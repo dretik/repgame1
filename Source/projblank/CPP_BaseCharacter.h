@@ -14,11 +14,15 @@ class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter
 {
 	GENERATED_BODY()
 
+public:
+	ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializer);
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent*
 		PlayerInputComponent) override;
 
+	//movement
 	void MoveRight(float Value);
 	void MoveForward(float Value);
+	void Dodge();
 
 };
