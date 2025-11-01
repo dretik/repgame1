@@ -3,7 +3,6 @@
 
 #include "CPP_BaseCharacter.h"
 #include "Components/InputComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "PaperFlipbookComponent.h" //sprite component
 #include "Engine/Engine.h"
 
@@ -67,6 +66,17 @@ void ACPP_BaseCharacter::MoveForward(float Value)
 
 void ACPP_BaseCharacter::Dodge()
 {
+
+    if (bIsDodging) return;
+    bIsDodging = true;
+    float DodgeDuration = 0.5f;
+
+    if (DodgeAnimationFlipbook)
+    {
+        GetSprite()->SetFlipbook(DodgeAnimationFlipbook);
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("DODGE anim CALLED!"));
+    }
+    
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("DODGE FUNCTION CALLED!"));
     FVector RightDirection = GetActorRightVector();
 
@@ -87,4 +97,36 @@ void ACPP_BaseCharacter::Dodge()
 
     const float DodgeStrength = 500.0f;
     LaunchCharacter(CombinedDirection * DodgeStrength, true, false);
+
+    FTimerHandle UnusedHandle;
+    GetWorldTimerManager().SetTimer(UnusedHandle, this, 
+        &ACPP_BaseCharacter::StopDodge, DodgeDuration, false);
+}
+
+void ACPP_BaseCharacter::StopDodge()
+{
+    bIsDodging = false;
+}
+void ACPP_BaseCharacter::StopJump()
+{
+    bIsJumping = false;
+}
+
+void ACPP_BaseCharacter::OnJumped_Implementation()
+{
+    Super::OnJumped_Implementation();
+    if (bIsJumping) return;
+    bIsJumping = true;
+    bIsInAir = true;
+    float JumpDuration=0.5f;
+
+    if (JumpAnimationFlipbook)
+    {
+        GetSprite()->SetFlipbook(JumpAnimationFlipbook);
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("jump anim called"));
+    }
+
+    FTimerHandle UnusedHandle;
+    GetWorldTimerManager().SetTimer(UnusedHandle, this,
+        &ACPP_BaseCharacter::StopJump, JumpDuration, false);
 }
