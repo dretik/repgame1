@@ -44,9 +44,11 @@ void ACPP_BaseEnemy::OnPawnSeen(APawn* SeenPawn)
     AAIController* AIController = Cast<AAIController>(GetController());
     if (AIController)
     {
-        // Даем команду двигаться к замеченной пешке
-        AIController->MoveToActor(SeenPawn);
+        // Записываем увиденную пешку в Blackboard
+        AIController->GetBlackboardComponent()->SetValueAsObject("TargetPlayer", SeenPawn);
     }
+
+
 }
 
 void ACPP_BaseEnemy::BeginPlay()
@@ -109,4 +111,67 @@ void ACPP_BaseEnemy::Tick(float DeltaTime)
 
         GetSprite()->SetRelativeScale3D(CurrentScale);
     }
+}
+
+void ACPP_BaseEnemy::AttackPlayer()
+{
+    if (bIsAttacking) return;
+
+    bIsAttacking = true;
+
+    if (EnemyAttackFlipbook)
+    {
+        GetSprite()->SetFlipbook(EnemyAttackFlipbook);
+    }
+
+    // --- ЛОГИКА НАНЕСЕНИЯ УРОНА ИГРОКУ ---
+
+    // Запускаем трассировку через небольшую задержку, чтобы она совпала с анимацией удара
+    FTimerHandle HitTraceTimer;
+    GetWorldTimerManager().SetTimer(HitTraceTimer, this, &ACPP_BaseEnemy::PerformHitTrace, 0.2f, false);
+}
+
+void ACPP_BaseEnemy::PerformHitTrace()
+{
+    const FVector Start = GetActorLocation();
+    const FVector End = Start + (GetActorForwardVector() * 150.0f); // Направление зависит от поворота AI
+    const FVector HalfSize = FVector(60.0f, 60.0f, 60.0f);
+    TArray<AActor*> ActorsToIgnore;
+    ActorsToIgnore.Add(this);
+    FHitResult HitResult;
+
+    bool bHit = UKismetSystemLibrary::BoxTraceSingle(
+        GetWorld(),
+        Start,
+        End,
+        HalfSize,
+        GetActorRotation(),
+        UEngineTypes::ConvertToTraceType(ECC_WorldDynamic),
+        false,
+        ActorsToIgnore,
+        EDrawDebugTrace::ForDuration, // Рисуем коробку для отладки
+        HitResult,
+        true
+    ); // Скопируйте параметры из атаки игрока
+
+    if (bHit)
+    {
+        AActor* HitActor = HitResult.GetActor();
+        // Проверяем, что попали именно в игрока (по тегу или классу)
+        ACPP_BaseCharacter* PlayerCharacter = Cast<ACPP_BaseCharacter>(HitActor);
+        if (PlayerCharacter && !Cast<ACPP_BaseEnemy>(PlayerCharacter)) // Убеждаемся, что это игрок, а не другой враг
+        {
+            float DamageToApply = 15.0f;
+            UGameplayStatics::ApplyDamage(HitActor, DamageToApply, GetController(), this, UDamageType::StaticClass());
+        }
+    }
+
+    // После выполнения трассировки завершаем атаку
+    FinishAttack();
+}
+
+void ACPP_BaseEnemy::FinishAttack()
+{
+    bIsAttacking = false;
+    // Здесь можно будет вернуть Idle анимацию, но пока наша логика в Tick с этим справится
 }

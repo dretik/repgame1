@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "PaperCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "CPP_BaseCharacter.generated.h"
 
 class UPaperFlipbook;
@@ -20,6 +22,9 @@ class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter
 public:
 	ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializer);
     virtual void OnJumped_Implementation() override;
+
+    virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
+        class AController* EventInstigator, AActor* DamageCauser) override;
 protected:
     //flipbook
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations")
@@ -39,6 +44,13 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Actions")
         UPaperFlipbook* DodgeAnimationFlipbook;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Attack")
+        UPaperFlipbook* Attack1Flipbook;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Attack")
+        UPaperFlipbook* Attack2Flipbook;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Attack")
+        UPaperFlipbook* Attack3Flipbook;
     // BlueprintReadWrite, чтобы мы могли менять его в Блюпринтах
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "State")
         bool bIsInAir = false;
@@ -46,6 +58,18 @@ protected:
         bool bIsDodging = false;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
         bool bIsJumping = false;
+
+    //attacks
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State | Attack")
+        bool bIsAttacking = false;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State | Attack")
+        int32 ComboCounter = 0;
+
+    //health
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
+        float MaxHealth = 100.0f;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+        float CurrentHealth;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent*
 		PlayerInputComponent) override;
@@ -56,4 +80,12 @@ protected:
 	void Dodge();
     void StopDodge();
     void StopJump();
+
+    void Attack();
+    void AttackEnd();
+    void ResetCombo();
+
+    virtual void BeginPlay() override;
+
+    FTimerHandle ComboResetTimer;
 };
