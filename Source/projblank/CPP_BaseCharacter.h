@@ -9,11 +9,10 @@
 #include "Kismet/GameplayStatics.h"
 #include "CPP_BaseCharacter.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, NewHealth, float, MaxHealth);
+
 class UPaperFlipbook;
 
-/**
- * 
- */
 UCLASS()
 class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter
 {
@@ -25,6 +24,10 @@ public:
 
     virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
         class AController* EventInstigator, AActor* DamageCauser) override;
+
+    //delegate object
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+        FOnHealthChangedSignature OnHealthChanged;
 protected:
     //flipbook
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations")
@@ -73,6 +76,9 @@ protected:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent*
 		PlayerInputComponent) override;
+
+    UFUNCTION(BlueprintNativeEvent, Category = "Health")
+        void OnDeath();
 
 	//movement
 	void MoveRight(float Value);

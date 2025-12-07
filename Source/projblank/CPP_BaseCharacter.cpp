@@ -154,10 +154,10 @@ void ACPP_BaseCharacter::Attack()
         const FVector HalfSize = FVector(50.0f, 50.0f, 50.0f); // Размер "коробки" урона
         TArray<AActor*> ActorsToIgnore;
         ActorsToIgnore.Add(this); // Игнорируем самих себя
-        FHitResult HitResult;
+        TArray <FHitResult> HitResult;
 
         // Выполняем трассировку
-        bool bHit = UKismetSystemLibrary::BoxTraceSingle(
+        bool bHit = UKismetSystemLibrary::BoxTraceMulti(
             GetWorld(),
             Start,
             End,
@@ -174,23 +174,27 @@ void ACPP_BaseCharacter::Attack()
         // Если мы в кого-то попали
         if (bHit)
         {
-            AActor* HitActor = HitResult.GetActor();
-            if (HitActor)
-            {
-                // Наносим урон
-                float DamageToApply = 25.0f; // Базовый урон
-                if (ComboCounter == 3) DamageToApply = 50.0f; // Усиленный урон для 3-го удара
+            for (const FHitResult& Result : HitResult) {
+                AActor* HitActor = Result.GetActor();
+                if (HitActor && HitActor != this)
+                {
+                    if (GEngine)
+                    {
+                        // Печатаем фиолетовым цветом, кого мы ударили
+                        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Magenta, FString::Printf(TEXT("HIT ACTOR: %s"), *HitActor->GetName()));
+                    }
 
-                // Вызываем стандартную функцию нанесения урона
-                UGameplayStatics::ApplyDamage(
-                    HitActor, // Кому наносим урон
-                    DamageToApply, // Сколько урона
-                    GetController(), // Кто нанес урон (контроллер)
-                    this, // Сам "виновник" урона (наш персонаж)
-                    UDamageType::StaticClass() // Тип урона (пока стандартный)
-                );
+                    // Наносим урон
+                    float DamageToApply = 10.0f; // Базовый урон
+                    if (ComboCounter == 3) DamageToApply = 30.0f; // Усиленный урон для 3-го удара
+
+                    // Вызываем стандартную функцию нанесения урона
+                    UGameplayStatics::ApplyDamage(HitActor, DamageToApply, GetController(), this, UDamageType::StaticClass());
+                }
             }
         }
+        else
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Magenta, TEXT("HIT NOTHING"));
 
         break;
     }
@@ -295,6 +299,8 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
         GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("%s took %f damage. Current Health: %f"), *GetName(), ActualDamage, CurrentHealth));
     }
 
+    OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+
     // Проверяем, не умер ли персонаж
     if (CurrentHealth <= 0.0f)
     {
@@ -304,8 +310,15 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
             GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%s has died!"), *GetName()));
         }
         // Пока просто уничтожим актера
-        Destroy();
+        OnDeath();
     }
 
     return ActualDamage;
+}
+
+void ACPP_BaseCharacter::OnDeath_Implementation()
+{
+
+
+    Destroy(); // По умолчанию просто уничтожаем
 }

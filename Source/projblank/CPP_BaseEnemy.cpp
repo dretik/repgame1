@@ -36,12 +36,6 @@ void ACPP_BaseEnemy::OnPawnSeen(APawn* SeenPawn)
         return;
     }
 
-    // Выводим отладочное сообщение
-    if (GEngine)
-    {
-        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("I see you, %s!"), *SeenPawn->GetName()));
-    }
-
     AAIController* AIController = Cast<AAIController>(GetController());
     if (AIController)
     {
@@ -101,6 +95,20 @@ void ACPP_BaseEnemy::Tick(float DeltaTime)
             CurrentScale.X = -FMath::Abs(CurrentScale.X);
         }
 
+        //float ForwardX = GetActorForwardVector().Y;
+        //FVector CurrentScale = GetSprite()->GetRelativeScale3D();
+
+        //if (ForwardX > 0.1f) // Смотрим вправо
+        //{
+        //    CurrentScale.Y = FMath::Abs(CurrentScale.Y); // Scale положительный
+        //    GetSprite()->SetRelativeScale3D(CurrentScale);
+        //}
+        //else if (ForwardX < -0.1f) // Смотрим влево
+        //{
+        //    CurrentScale.Y = -FMath::Abs(CurrentScale.Y); // Scale отрицательный
+        //    GetSprite()->SetRelativeScale3D(CurrentScale);
+        //}
+
         //if (DotProduct > 0.1f) // Движемся вправо
         //{
         //    CurrentScale.Y = FMath::Abs(CurrentScale.Y); // Делаем масштаб положительным
@@ -119,20 +127,16 @@ void ACPP_BaseEnemy::AttackPlayer()
 {
     if (bIsAttacking)
     {
-        // Если мы видим это сообщение, значит враг застрял и пытается атаковать снова
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, TEXT("Attack BLOCKED: Already Attacking"));
         return;
     }
 
     bIsAttacking = true;
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Enemy Attack STARTED"));
     float AttackDuration = 0.2f;
 
     if (EnemyAttackFlipbook)
     {
         GetSprite()->SetFlipbook(EnemyAttackFlipbook);
         AttackDuration= EnemyAttackFlipbook->GetTotalDuration();
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("Anim Duration: %f"), AttackDuration));
     }
 
     // Запускаем трассировку через небольшую задержку, чтобы она совпала с анимацией удара
@@ -186,7 +190,5 @@ void ACPP_BaseEnemy::PerformHitTrace()
 
 void ACPP_BaseEnemy::FinishAttack()
 {
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Enemy Attack FINISHED"));
     bIsAttacking = false;
-    // Здесь можно будет вернуть Idle анимацию, но пока наша логика в Tick с этим справится
 }
