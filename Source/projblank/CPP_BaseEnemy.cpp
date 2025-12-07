@@ -6,6 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
 #include "PaperFlipbookComponent.h"
+#include "PaperFlipbook.h"
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -46,8 +47,9 @@ void ACPP_BaseEnemy::OnPawnSeen(APawn* SeenPawn)
     {
         // Записываем увиденную пешку в Blackboard
         AIController->GetBlackboardComponent()->SetValueAsObject("TargetPlayer", SeenPawn);
+    
+        AIController->SetFocus(SeenPawn);
     }
-
 
 }
 
@@ -115,24 +117,36 @@ void ACPP_BaseEnemy::Tick(float DeltaTime)
 
 void ACPP_BaseEnemy::AttackPlayer()
 {
-    if (bIsAttacking) return;
+    if (bIsAttacking)
+    {
+        // Если мы видим это сообщение, значит враг застрял и пытается атаковать снова
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, TEXT("Attack BLOCKED: Already Attacking"));
+        return;
+    }
 
     bIsAttacking = true;
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Enemy Attack STARTED"));
+    float AttackDuration = 0.2f;
 
     if (EnemyAttackFlipbook)
     {
         GetSprite()->SetFlipbook(EnemyAttackFlipbook);
+        AttackDuration= EnemyAttackFlipbook->GetTotalDuration();
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("Anim Duration: %f"), AttackDuration));
     }
-
-    // --- ЛОГИКА НАНЕСЕНИЯ УРОНА ИГРОКУ ---
 
     // Запускаем трассировку через небольшую задержку, чтобы она совпала с анимацией удара
     FTimerHandle HitTraceTimer;
-    GetWorldTimerManager().SetTimer(HitTraceTimer, this, &ACPP_BaseEnemy::PerformHitTrace, 0.2f, false);
+    GetWorldTimerManager().SetTimer(HitTraceTimer, this, &ACPP_BaseEnemy::PerformHitTrace, 0.1f, false);
+
+    FTimerHandle FinishTimer;
+    GetWorldTimerManager().SetTimer(FinishTimer, this, &ACPP_BaseEnemy::FinishAttack, AttackDuration, false);
 }
 
 void ACPP_BaseEnemy::PerformHitTrace()
 {
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("PERFORM HIT TRACE NOW!"));
+
     const FVector Start = GetActorLocation();
     const FVector End = Start + (GetActorForwardVector() * 150.0f); // Направление зависит от поворота AI
     const FVector HalfSize = FVector(60.0f, 60.0f, 60.0f);
@@ -152,7 +166,7 @@ void ACPP_BaseEnemy::PerformHitTrace()
         EDrawDebugTrace::ForDuration, // Рисуем коробку для отладки
         HitResult,
         true
-    ); // Скопируйте параметры из атаки игрока
+    );
 
     if (bHit)
     {
@@ -167,11 +181,12 @@ void ACPP_BaseEnemy::PerformHitTrace()
     }
 
     // После выполнения трассировки завершаем атаку
-    FinishAttack();
+    //FinishAttack();
 }
 
 void ACPP_BaseEnemy::FinishAttack()
 {
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Enemy Attack FINISHED"));
     bIsAttacking = false;
     // Здесь можно будет вернуть Idle анимацию, но пока наша логика в Tick с этим справится
 }

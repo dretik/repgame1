@@ -30,8 +30,6 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
         UPawnSensingComponent* PawnSensingComp;
 
-    bool bIsAttacking = false;
-
     FTimerHandle AttackCooldownTimer;
 
     UPROPERTY(EditAnywhere, Category = "AI | Attack")
