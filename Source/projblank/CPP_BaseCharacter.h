@@ -7,11 +7,21 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "CharacterStats.h"
 #include "CPP_BaseCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, NewHealth, float, MaxHealth);
 
 class UPaperFlipbook;
+
+UENUM(BlueprintType)
+enum class EAttackPhase : uint8
+{
+    None = 0 UMETA(DisplayName = "No Attack"),
+    LightAttack = 1 UMETA(DisplayName = "Light Attack (Phase 1)"),
+    DashAttack = 2 UMETA(DisplayName = "Dash Attack (Phase 2)"),
+    HeavyAttack = 3 UMETA(DisplayName = "Heavy Attack (Phase 3)")
+};
 
 UCLASS()
 class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter
@@ -29,6 +39,9 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Events")
         FOnHealthChangedSignature OnHealthChanged;
 protected:
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
+        UCharacterStats* CharacterStats;
+
     //flipbook
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations")
         UPaperFlipbook* IdleAnimationFlipbook;

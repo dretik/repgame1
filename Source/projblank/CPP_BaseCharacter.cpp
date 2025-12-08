@@ -10,21 +10,18 @@
 ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
 {
-
-    // Получаем доступ к компоненту движения
+    // 1. Сохраняем указатель в переменную
     UCharacterMovementComponent* MoveComponent = GetCharacterMovement();
 
-    // Устанавливаем скорость бега
-    MoveComponent->MaxWalkSpeed = 450.0f;
-
-    // Устанавливаем начальную скорость прыжка
-    MoveComponent->JumpZVelocity = 450.0f;
-
-    // Устанавливаем гравитацию (если нужно)
-    MoveComponent->GravityScale = 1.f;
-
-    // Также можно настроить возможность управления в воздухе
-    MoveComponent->AirControl = 0.5f; // 0 = нет контроля, 1 = полный контроль
+    // 2. САМОЕ ГЛАВНОЕ: Проверяем, существует ли он
+    if (MoveComponent)
+    {
+        // 3. Используем переменную MoveComponent вместо постоянного вызова GetCharacterMovement()
+        MoveComponent->GravityScale = 1.0f;
+        MoveComponent->AirControl = 0.5f;
+        MoveComponent->MaxWalkSpeed = 450.0f;
+        MoveComponent->JumpZVelocity = 600.0f;
+    }
 }
 
 // Эта функция соединяет названия осей ("MoveRight") с нашими C++ функциями
@@ -119,17 +116,15 @@ void ACPP_BaseCharacter::StopJump()
 
 void ACPP_BaseCharacter::Attack()
 {
-    // Если мы уже атакуем, ничего не делаем
+    if (!CharacterStats) return;
     if (bIsAttacking) return;
-
     // Увеличиваем счетчик комбо
     ComboCounter++;
     bIsAttacking = true;
 
-    // Сбрасываем предыдущий таймер сброса комбо, если он был
     GetWorldTimerManager().ClearTimer(ComboResetTimer);
 
-    float AttackDuration = 0.5f; // Длительность по умолчанию
+    float AttackDuration = 0.5f;
 
     FVector RightDirection = GetActorRightVector();
     if (GetSprite()->GetRelativeScale3D().X < 0.0f)
@@ -137,9 +132,9 @@ void ACPP_BaseCharacter::Attack()
         RightDirection *= -1.0f;
     }
 
-    switch (ComboCounter)
+    switch ((EAttackPhase)ComboCounter)
     {
-    case 1:
+    case EAttackPhase::LightAttack:
     {
         // --- ПЕРВАЯ АТАКА (БАЗОВАЯ) ---
         if (Attack1Flipbook)
@@ -185,8 +180,8 @@ void ACPP_BaseCharacter::Attack()
                     }
 
                     // Наносим урон
-                    float DamageToApply = 10.0f; // Базовый урон
-                    if (ComboCounter == 3) DamageToApply = 30.0f; // Усиленный урон для 3-го удара
+                    float DamageToApply = CharacterStats->BaseDamage; // Базовый урон
+                    if (ComboCounter == 3) DamageToApply *= CharacterStats->HeavyAttackMultiplier;
 
                     // Вызываем стандартную функцию нанесения урона
                     UGameplayStatics::ApplyDamage(HitActor, DamageToApply, GetController(), this, UDamageType::StaticClass());
@@ -198,8 +193,7 @@ void ACPP_BaseCharacter::Attack()
 
         break;
     }
-    case 2:
-        // --- ВТОРАЯ АТАКА (С РЫВКОМ) ---
+    case EAttackPhase::DashAttack:
         if (Attack2Flipbook)
         {
             GetSprite()->SetFlipbook(Attack2Flipbook);
@@ -209,7 +203,7 @@ void ACPP_BaseCharacter::Attack()
         AttackDuration = 0.5f;
         break;
 
-    case 3:
+    case EAttackPhase::HeavyAttack:
         // --- ТРЕТЬЯ АТАКА (ТЯЖЕЛАЯ) ---
         if (Attack3Flipbook)
         {
@@ -263,7 +257,15 @@ void ACPP_BaseCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    CurrentHealth = MaxHealth;
+    if (CharacterStats)
+    {
+        CurrentHealth = CharacterStats->MaxHealth;
+
+        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
+        GetCharacterMovement()->JumpZVelocity = CharacterStats->JumpVelocity;
+        GetCharacterMovement()->GravityScale = CharacterStats->GravityScale;
+        GetCharacterMovement()->AirControl = CharacterStats->AirControl;
+    }
 }
 
 void ACPP_BaseCharacter::OnJumped_Implementation()
