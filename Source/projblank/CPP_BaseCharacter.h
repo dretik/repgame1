@@ -67,7 +67,7 @@ protected:
         UPaperFlipbook* Attack2Flipbook;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Attack")
         UPaperFlipbook* Attack3Flipbook;
-    // BlueprintReadWrite, чтобы мы могли менять его в Блюпринтах
+    // BlueprintReadWrite states
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "State")
         bool bIsInAir = false;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
@@ -82,11 +82,9 @@ protected:
         int32 ComboCounter = 0;
 
     //health
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
-        float MaxHealth = 100.0f;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
         float CurrentHealth;
-
+    //functions
 	virtual void SetupPlayerInputComponent(class UInputComponent*
 		PlayerInputComponent) override;
 
@@ -103,6 +101,8 @@ protected:
     void Attack();
     void AttackEnd();
     void ResetCombo();
+
+    void PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount);
 
     virtual void BeginPlay() override;
 

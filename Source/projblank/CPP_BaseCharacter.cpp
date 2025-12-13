@@ -10,13 +10,10 @@
 ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
 {
-    // 1. Сохраняем указатель в переменную
     UCharacterMovementComponent* MoveComponent = GetCharacterMovement();
 
-    // 2. САМОЕ ГЛАВНОЕ: Проверяем, существует ли он
     if (MoveComponent)
     {
-        // 3. Используем переменную MoveComponent вместо постоянного вызова GetCharacterMovement()
         MoveComponent->GravityScale = 1.0f;
         MoveComponent->AirControl = 0.5f;
         MoveComponent->MaxWalkSpeed = 450.0f;
@@ -24,7 +21,6 @@ ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializ
     }
 }
 
-// Эта функция соединяет названия осей ("MoveRight") с нашими C++ функциями
 void ACPP_BaseCharacter::SetupPlayerInputComponent(UInputComponent* 
     PlayerInputComponent)
 {
@@ -70,24 +66,19 @@ void ACPP_BaseCharacter::Dodge()
 {
 
     if (bIsDodging) return;
+    if (!CharacterStats) return;
     bIsDodging = true;
     bIsInAir = true;
-    float DodgeDuration = 0.5f;
 
     if (DodgeAnimationFlipbook)
     {
         GetSprite()->SetFlipbook(DodgeAnimationFlipbook);
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("DODGE anim CALLED!"));
     }
     
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("DODGE FUNCTION CALLED!"));
     FVector RightDirection = GetActorRightVector();
 
-    // 2. Проверяем, отражен ли спрайт.
-    // Если Scale.X отрицательный, значит, персонаж смотрит "назад" относительно актера.
     if (GetSprite()->GetRelativeScale3D().X < 0.0f)
     {
-        // 3. Инвертируем направление, чтобы оно соответствовало спрайту.
         RightDirection *= -1.0f;
     }
     const FVector DodgeHorizontalDirection = RightDirection * -1.0f;
@@ -97,12 +88,11 @@ void ACPP_BaseCharacter::Dodge()
 
     const FVector DodgeDirection = RightDirection * -1.0f;
 
-    const float DodgeStrength = 500.0f;
-    LaunchCharacter(CombinedDirection * DodgeStrength, true, false);
+    LaunchCharacter(CombinedDirection * CharacterStats->DodgeStrength, true, false);
 
     FTimerHandle UnusedHandle;
     GetWorldTimerManager().SetTimer(UnusedHandle, this, 
-        &ACPP_BaseCharacter::StopDodge, DodgeDuration, false);
+        &ACPP_BaseCharacter::StopDodge, CharacterStats->DodgeDuration, false);
 }
 
 void ACPP_BaseCharacter::StopDodge()
@@ -118,13 +108,12 @@ void ACPP_BaseCharacter::Attack()
 {
     if (!CharacterStats) return;
     if (bIsAttacking) return;
-    // Увеличиваем счетчик комбо
     ComboCounter++;
     bIsAttacking = true;
 
     GetWorldTimerManager().ClearTimer(ComboResetTimer);
 
-    float AttackDuration = 0.5f;
+    float CurrentAttackDuration = 0.5f;
 
     FVector RightDirection = GetActorRightVector();
     if (GetSprite()->GetRelativeScale3D().X < 0.0f)
@@ -135,122 +124,125 @@ void ACPP_BaseCharacter::Attack()
     switch ((EAttackPhase)ComboCounter)
     {
     case EAttackPhase::LightAttack:
-    {
-        // --- ПЕРВАЯ АТАКА (БАЗОВАЯ) ---
-        if (Attack1Flipbook)
-        {
-            GetSprite()->SetFlipbook(Attack1Flipbook);
-        }
-        AttackDuration = 0.2f;
+        if (Attack1Flipbook) GetSprite()->SetFlipbook(Attack1Flipbook);
 
-        // Определяем параметры трассировки
-        const FVector Start = GetActorLocation(); // Начинаем от себя
-        const FVector End = Start + (RightDirection * 150.0f); // "Выпускаем" на 150 юнитов вперед
-        const FVector HalfSize = FVector(50.0f, 50.0f, 50.0f); // Размер "коробки" урона
-        TArray<AActor*> ActorsToIgnore;
-        ActorsToIgnore.Add(this); // Игнорируем самих себя
-        TArray <FHitResult> HitResult;
+        CurrentAttackDuration = CharacterStats->LightAttackDuration;
 
-        // Выполняем трассировку
-        bool bHit = UKismetSystemLibrary::BoxTraceMulti(
-            GetWorld(),
-            Start,
-            End,
-            HalfSize,
-            GetActorRotation(),
-            UEngineTypes::ConvertToTraceType(ECC_WorldDynamic),
-            false,
-            ActorsToIgnore,
-            EDrawDebugTrace::ForDuration, // Рисуем коробку для отладки
-            HitResult,
-            true
+        PerformAttackTrace(
+            CharacterStats->LightAttackRange,
+            CharacterStats->LightAttackBoxSize,
+            CharacterStats->LightAttackDamage
         );
-
-        // Если мы в кого-то попали
-        if (bHit)
-        {
-            for (const FHitResult& Result : HitResult) {
-                AActor* HitActor = Result.GetActor();
-                if (HitActor && HitActor != this)
-                {
-                    if (GEngine)
-                    {
-                        // Печатаем фиолетовым цветом, кого мы ударили
-                        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Magenta, FString::Printf(TEXT("HIT ACTOR: %s"), *HitActor->GetName()));
-                    }
-
-                    // Наносим урон
-                    float DamageToApply = CharacterStats->BaseDamage; // Базовый урон
-                    if (ComboCounter == 3) DamageToApply *= CharacterStats->HeavyAttackMultiplier;
-
-                    // Вызываем стандартную функцию нанесения урона
-                    UGameplayStatics::ApplyDamage(HitActor, DamageToApply, GetController(), this, UDamageType::StaticClass());
-                }
-            }
-        }
-        else
-            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Magenta, TEXT("HIT NOTHING"));
-
         break;
-    }
+
     case EAttackPhase::DashAttack:
-        if (Attack2Flipbook)
-        {
-            GetSprite()->SetFlipbook(Attack2Flipbook);
-        }
-        // Добавляем рывок вперед
-        LaunchCharacter(RightDirection * 200.0f, true, true);
-        AttackDuration = 0.5f;
-        break;
+        if (Attack2Flipbook) GetSprite()->SetFlipbook(Attack2Flipbook);
 
+        LaunchCharacter(RightDirection * CharacterStats->DashAttackImpulse, true, true);
+        CurrentAttackDuration = CharacterStats->DashAttackDuration;
+
+        PerformAttackTrace(
+            CharacterStats->DashAttackRange,
+            CharacterStats->DashAttackBoxSize,
+            CharacterStats->DashAttackDamage
+        );
+        break;
     case EAttackPhase::HeavyAttack:
-        // --- ТРЕТЬЯ АТАКА (ТЯЖЕЛАЯ) ---
-        if (Attack3Flipbook)
+        if (Attack3Flipbook) GetSprite()->SetFlipbook(Attack3Flipbook);
+
+        if (GetCharacterMovement())
         {
-            GetSprite()->SetFlipbook(Attack3Flipbook);
+            GetCharacterMovement()->MaxWalkSpeed = CharacterStats->HeavyAttackWalkSpeed;
         }
-        // Ограничиваем движение
-        GetCharacterMovement()->MaxWalkSpeed = 50.0f; // Сильно замедляем
-        AttackDuration = 0.6f;
+        CurrentAttackDuration = CharacterStats->HeavyAttackDuration;
+
+        PerformAttackTrace(
+            CharacterStats->HeavyAttackRange,
+            CharacterStats->HeavyAttackBoxSize,
+            CharacterStats->HeavyAttackDamage
+        );
         break;
 
     default:
-        // Если что-то пошло не так, сбрасываем
         ResetCombo();
         return;
     }
 
-    // Ставим таймер на завершение текущей атаки
     FTimerHandle UnusedHandle;
     GetWorldTimerManager().SetTimer(UnusedHandle, this, 
-        &ACPP_BaseCharacter::AttackEnd, AttackDuration, false);
+        &ACPP_BaseCharacter::AttackEnd, CurrentAttackDuration, false);
 }
 
 void ACPP_BaseCharacter::AttackEnd()
 {
-    // Атака завершена, мы снова можем атаковать
     bIsAttacking = false;
 
-    // Восстанавливаем скорость после тяжелой атаки, если это был третий удар
     if (ComboCounter == 3)
     {
-        // Возвращаем скорость к значению по умолчанию, которое мы задали в конструкторе
-        GetCharacterMovement()->MaxWalkSpeed = 450.0f;
+        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
     }
 
-    // Ставим таймер, который сбросит комбо, если не будет следующего удара
-    // 0.3f - это "окно" для следующего удара в комбо
+    float ResetTime = CharacterStats->ComboResetTime;
+
     GetWorldTimerManager().SetTimer(ComboResetTimer, this,
-        &ACPP_BaseCharacter::ResetCombo, 0.3f, false);
+        &ACPP_BaseCharacter::ResetCombo, ResetTime, false);
 }
 
 void ACPP_BaseCharacter::ResetCombo()
 {
-    // Сбрасываем все в исходное состояние
     ComboCounter = 0;
     bIsAttacking = false;
-    // На всякий случай восстанавливаем скорость, если комбо прервалось
-    GetCharacterMovement()->MaxWalkSpeed = 450.0f;
+
+    if (CharacterStats && GetCharacterMovement()) {
+        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
+    }
+}
+
+void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount)
+{
+    float DirectionSign = (GetSprite()->GetRelativeScale3D().X > 0.0f) ? 1.0f : -1.0f;
+
+    FVector AttackDirection = FVector(0.0f, 1.0f, 0.0f) * DirectionSign;
+
+    const FVector Start = GetActorLocation();
+    const FVector End = Start + (AttackDirection * Range);
+    const FVector HalfSize = BoxSize;
+
+    TArray<AActor*> ActorsToIgnore;
+    ActorsToIgnore.Add(this);
+    TArray<FHitResult> HitResults;
+
+    bool bHit = UKismetSystemLibrary::BoxTraceMulti(
+        GetWorld(),
+        Start,
+        End,
+        HalfSize,
+        FRotator::ZeroRotator,
+        UEngineTypes::ConvertToTraceType(ECC_WorldDynamic),
+        false,
+        ActorsToIgnore,
+        EDrawDebugTrace::ForDuration,
+        HitResults,
+        true
+    );
+
+    if (bHit)
+    {
+        for (const FHitResult& Result : HitResults)
+        {
+            AActor* HitActor = Result.GetActor();
+            if (HitActor && HitActor != this)
+            {
+                UGameplayStatics::ApplyDamage(
+                    HitActor,
+                    DamageAmount,
+                    GetController(),
+                    this,
+                    UDamageType::StaticClass()
+                );
+            }
+        }
+    }
 }
 
 void ACPP_BaseCharacter::BeginPlay()
@@ -261,10 +253,13 @@ void ACPP_BaseCharacter::BeginPlay()
     {
         CurrentHealth = CharacterStats->MaxHealth;
 
-        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
-        GetCharacterMovement()->JumpZVelocity = CharacterStats->JumpVelocity;
-        GetCharacterMovement()->GravityScale = CharacterStats->GravityScale;
-        GetCharacterMovement()->AirControl = CharacterStats->AirControl;
+        if (GetCharacterMovement())
+        {
+            GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
+            GetCharacterMovement()->JumpZVelocity = CharacterStats->JumpVelocity;
+            GetCharacterMovement()->GravityScale = CharacterStats->GravityScale;
+            GetCharacterMovement()->AirControl = CharacterStats->AirControl;
+        }
     }
 }
 
@@ -272,46 +267,39 @@ void ACPP_BaseCharacter::OnJumped_Implementation()
 {
     Super::OnJumped_Implementation();
     if (bIsJumping) return;
+    if (!CharacterStats) return;
     bIsJumping = true;
     bIsInAir = true;
-    float JumpDuration=0.5f;
 
     if (JumpAnimationFlipbook)
     {
         GetSprite()->SetFlipbook(JumpAnimationFlipbook);
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("jump anim called"));
     }
 
     FTimerHandle UnusedHandle;
     GetWorldTimerManager().SetTimer(UnusedHandle, this,
-        &ACPP_BaseCharacter::StopJump, JumpDuration, false);
+        &ACPP_BaseCharacter::StopJump, CharacterStats->JumpDuration, false);
 }
 
 float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-    // Сначала вызываем родительскую функцию, чтобы получить базовый обработанный урон
     const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-    // Уменьшаем здоровье
     CurrentHealth -= ActualDamage;
 
-    // Выводим в лог для отладки
     if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("%s took %f damage. Current Health: %f"), *GetName(), ActualDamage, CurrentHealth));
     }
 
-    OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+    OnHealthChanged.Broadcast(CurrentHealth, CharacterStats->MaxHealth);
 
-    // Проверяем, не умер ли персонаж
     if (CurrentHealth <= 0.0f)
     {
-        // Здесь будет логика смерти
         if (GEngine)
         {
             GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%s has died!"), *GetName()));
         }
-        // Пока просто уничтожим актера
         OnDeath();
     }
 
@@ -320,7 +308,5 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 
 void ACPP_BaseCharacter::OnDeath_Implementation()
 {
-
-
-    Destroy(); // По умолчанию просто уничтожаем
+    Destroy();
 }
