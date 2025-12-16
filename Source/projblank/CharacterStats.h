@@ -53,7 +53,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Movement")
         float DodgeDuration = 0.5f;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Movement")
-        float JumpDuration = 0.5f;
+        float JumpDuration = 0.2f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Movement")
         float DashAttackImpulse = 200.0f;
@@ -80,7 +80,7 @@ public:
         float LightAttackRange = 100.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Combat | Light Attack")
-        FVector LightAttackBoxSize = FVector(40.0f, 40.0f, 40.0f);
+        FVector LightAttackBoxSize = FVector(90.0f, 40.0f, 40.0f);
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Combat | Light Attack")
         float LightAttackDuration = 0.2f;
@@ -93,7 +93,7 @@ public:
         float DashAttackRange = 150.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Combat | Dash Attack")
-        FVector DashAttackBoxSize = FVector(50.0f, 50.0f, 50.0f);
+        FVector DashAttackBoxSize = FVector(100.0f, 50.0f, 50.0f);
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Combat | Dash Attack")
         float DashAttackDuration = 0.5f;
@@ -106,7 +106,7 @@ public:
         float HeavyAttackRange = 200.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Combat | Heavy Attack")
-        FVector HeavyAttackBoxSize = FVector(60.0f, 60.0f, 60.0f);
+        FVector HeavyAttackBoxSize = FVector(120.0f, 60.0f, 60.0f);
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Combat | Heavy Attack")
         float HeavyAttackDuration = 0.6f;

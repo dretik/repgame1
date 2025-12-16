@@ -3,7 +3,9 @@
 
 #include "CPP_BaseCharacter.h"
 #include "Components/InputComponent.h"
-#include "PaperFlipbookComponent.h" //sprite component
+#include "Components/CapsuleComponent.h"
+#include "PaperFlipbookComponent.h"
+#include "PaperFlipbook.h"
 #include "Engine/Engine.h"
 
 
@@ -45,6 +47,7 @@ void ACPP_BaseCharacter::SetupPlayerInputComponent(UInputComponent*
 
 void ACPP_BaseCharacter::MoveRight(float Value)
 {
+    if (bIsDead) return;
     AddMovementInput(GetActorRightVector(), Value);
 
     if (Value > 0.0f)
@@ -59,12 +62,13 @@ void ACPP_BaseCharacter::MoveRight(float Value)
 
 void ACPP_BaseCharacter::MoveForward(float Value)
 {
+    if (bIsDead) return;
     AddMovementInput(GetActorForwardVector(), Value);
 }
 
 void ACPP_BaseCharacter::Dodge()
 {
-
+    if (bIsDead) return;
     if (bIsDodging) return;
     if (!CharacterStats) return;
     bIsDodging = true;
@@ -106,6 +110,7 @@ void ACPP_BaseCharacter::StopJump()
 
 void ACPP_BaseCharacter::Attack()
 {
+    if (bIsDead) return;
     if (!CharacterStats) return;
     if (bIsAttacking) return;
     ComboCounter++;
@@ -252,6 +257,7 @@ void ACPP_BaseCharacter::BeginPlay()
     if (CharacterStats)
     {
         CurrentHealth = CharacterStats->MaxHealth;
+        MaxHealth = CharacterStats->MaxHealth;
 
         if (GetCharacterMovement())
         {
@@ -265,6 +271,7 @@ void ACPP_BaseCharacter::BeginPlay()
 
 void ACPP_BaseCharacter::OnJumped_Implementation()
 {
+    if (bIsDead) return;
     Super::OnJumped_Implementation();
     if (bIsJumping) return;
     if (!CharacterStats) return;
@@ -307,6 +314,47 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 }
 
 void ACPP_BaseCharacter::OnDeath_Implementation()
+{
+    if (bIsDead) return;
+
+    bIsDead = true;
+
+    GetCharacterMovement()->StopMovementImmediately();
+    GetCharacterMovement()->DisableMovement();
+
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    if (GetController())
+    {
+        GetController()->StopMovement();
+        GetController()->UnPossess(); 
+    }
+
+    float DeathDuration = 0.6f; 
+
+    if (DeathAnimationFlipbook)
+    {
+        GetSprite()->SetFlipbook(DeathAnimationFlipbook);
+        GetSprite()->SetLooping(false);
+        DeathDuration = DeathAnimationFlipbook->GetTotalDuration();
+    }
+
+    FTimerHandle TimerHandle;
+    GetWorldTimerManager().SetTimer(TimerHandle, this, &ACPP_BaseCharacter::SwitchToDeadStatic, DeathDuration, false);
+}
+
+void ACPP_BaseCharacter::SwitchToDeadStatic()
+{
+    if (DeadStaticFlipbook)
+    {
+        GetSprite()->SetFlipbook(DeadStaticFlipbook);
+    }
+
+    FTimerHandle TimerHandle;
+    GetWorldTimerManager().SetTimer(TimerHandle, this, &ACPP_BaseCharacter::DestroyCharacter, 2.0f, false);
+}
+
+void ACPP_BaseCharacter::DestroyCharacter()
 {
     Destroy();
 }

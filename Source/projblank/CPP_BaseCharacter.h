@@ -45,21 +45,21 @@ protected:
     //flipbook
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations")
         UPaperFlipbook* IdleAnimationFlipbook;
-
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations")
         UPaperFlipbook* WalkAnimationFlipbook;
-
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Jumping")
         UPaperFlipbook* JumpAnimationFlipbook;
-
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Jumping")
         UPaperFlipbook* FallingAnimationFlipbook;
-
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Jumping")
         UPaperFlipbook* LandingAnimationFlipbook;
-
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Actions")
         UPaperFlipbook* DodgeAnimationFlipbook;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Death")
+        UPaperFlipbook* DeathAnimationFlipbook;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Death")
+        UPaperFlipbook* DeadStaticFlipbook;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Attack")
         UPaperFlipbook* Attack1Flipbook;
@@ -81,9 +81,14 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State | Attack")
         int32 ComboCounter = 0;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
+        bool bIsDead = false;
+
     //health
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
         float CurrentHealth;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+        float MaxHealth;
     //functions
 	virtual void SetupPlayerInputComponent(class UInputComponent*
 		PlayerInputComponent) override;
@@ -101,6 +106,9 @@ protected:
     void Attack();
     void AttackEnd();
     void ResetCombo();
+
+    void SwitchToDeadStatic();
+    void DestroyCharacter();
 
     void PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount);
 

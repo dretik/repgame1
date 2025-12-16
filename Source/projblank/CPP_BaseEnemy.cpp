@@ -84,18 +84,11 @@ void ACPP_BaseEnemy::AttackPlayer()
 
     float AttackDuration = 0.5f;
 
-    if (EnemyAttackFlipbook)
-    {
-        GetSprite()->SetFlipbook(EnemyAttackFlipbook);
-        AttackDuration = EnemyAttackFlipbook->GetTotalDuration();
-    }
-    if (AttackDuration <= 0.0f)
-    {
-        AttackDuration = CharacterStats->LightAttackDuration;
-    }
+    if (Attack1Flipbook) GetSprite()->SetFlipbook(Attack1Flipbook);
+    AttackDuration = CharacterStats->Attack1Duration;
 
-    FTimerHandle HitTraceTimer;
-    GetWorldTimerManager().SetTimer(HitTraceTimer, this, &ACPP_BaseEnemy::PerformHitTrace, AttackDuration, false);
+    FTimerHandle HitTimer;
+    GetWorldTimerManager().SetTimer(HitTimer, this, &ACPP_BaseEnemy::PerformHitTrace, AttackDuration*0.5f, false);
 
     FTimerHandle FinishTimer;
     GetWorldTimerManager().SetTimer(FinishTimer, this, &ACPP_BaseEnemy::FinishAttack, AttackDuration, false);
