@@ -8,6 +8,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "CharacterStats.h"
+#include "InteractableInterface.h"
 #include "CPP_BaseCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, NewHealth, float, MaxHealth);
@@ -110,9 +111,12 @@ protected:
     void SwitchToDeadStatic();
     void DestroyCharacter();
 
+    void InteractWithObject();
+
     void PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount);
 
     virtual void BeginPlay() override;
+    virtual bool CanDealDamageTo(AActor* TargetActor) const;
 
     FTimerHandle ComboResetTimer;
 };

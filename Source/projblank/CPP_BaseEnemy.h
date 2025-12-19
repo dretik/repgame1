@@ -38,6 +38,7 @@ private:
         void OnPawnSeen(APawn* SeenPawn);
 
     virtual void BeginPlay() override;
+    virtual bool CanDealDamageTo(AActor* TargetActor) const override;
 
     void PerformHitTrace();
     void FinishAttack();

@@ -39,6 +39,9 @@ void ACPP_BaseCharacter::SetupPlayerInputComponent(UInputComponent*
         IE_Pressed, this, &ACharacter::Jump);
     PlayerInputComponent->BindAction("DodgeAction", 
         IE_Pressed, this, &ACPP_BaseCharacter::Dodge);
+    PlayerInputComponent->BindAction("InteractAction",
+        IE_Pressed, this, &ACPP_BaseCharacter::InteractWithObject);
+
 
     //attack
     PlayerInputComponent->BindAction("AttackAction", 
@@ -236,8 +239,15 @@ void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float 
         for (const FHitResult& Result : HitResults)
         {
             AActor* HitActor = Result.GetActor();
-            if (HitActor && HitActor != this)
+
+            if (HitActor && CanDealDamageTo(HitActor))
             {
+                float DamageToApply = CharacterStats->BaseDamage;
+                if ((EAttackPhase)ComboCounter == EAttackPhase::HeavyAttack)
+                {
+                    DamageToApply *= CharacterStats->HeavyAttackMultiplier;
+                }
+
                 UGameplayStatics::ApplyDamage(
                     HitActor,
                     DamageAmount,
@@ -357,4 +367,28 @@ void ACPP_BaseCharacter::SwitchToDeadStatic()
 void ACPP_BaseCharacter::DestroyCharacter()
 {
     Destroy();
+}
+
+void ACPP_BaseCharacter::InteractWithObject()
+{
+    if (bIsDead) return;
+
+    TArray<AActor*> OverlappingActors;
+    GetOverlappingActors(OverlappingActors);
+
+    for (AActor* Actor : OverlappingActors)
+    {
+        if (Actor->GetClass()->ImplementsInterface(UInteractableInterface::StaticClass()))
+        {
+            IInteractableInterface::Execute_Interact(Actor, this);
+
+            return;
+        }
+    }
+}
+
+bool ACPP_BaseCharacter::CanDealDamageTo(AActor* TargetActor) const
+{
+    if (TargetActor == this) return false; 
+    return true;
 }

@@ -108,3 +108,18 @@ void ACPP_BaseEnemy::FinishAttack()
 {
     bIsAttacking = false;
 }
+
+bool ACPP_BaseEnemy::CanDealDamageTo(AActor* TargetActor) const
+{
+    if (!Super::CanDealDamageTo(TargetActor))
+    {
+        return false;
+    }
+
+    if (TargetActor->IsA(ACPP_BaseEnemy::StaticClass()))
+    {
+        return false;
+    }
+
+    return true;
+}
