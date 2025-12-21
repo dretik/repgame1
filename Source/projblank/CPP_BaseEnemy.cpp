@@ -6,6 +6,7 @@
 #include "AIController.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
+#include "CPP_BaseItem.h"
 #include "CharacterStats.h"
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
@@ -122,4 +123,57 @@ bool ACPP_BaseEnemy::CanDealDamageTo(AActor* TargetActor) const
     }
 
     return true;
+}
+
+void ACPP_BaseEnemy::OnDeath_Implementation()
+{
+    SpawnLoot();
+
+    Super::OnDeath_Implementation();
+}
+
+void ACPP_BaseEnemy::SpawnLoot()
+{
+    if (!CharacterStats) return;
+
+    if (FMath::FRand() > CharacterStats->DropChance)
+    {
+        return;
+    }
+
+    if (CharacterStats->PossibleDrops.Num() == 0)
+    {
+        return;
+    }
+
+    int32 RandomIndex = FMath::RandRange(0, CharacterStats->PossibleDrops.Num() - 1);
+    TSubclassOf<ACPP_BaseItem> ItemToSpawn = CharacterStats->PossibleDrops[RandomIndex];
+
+    if (ItemToSpawn)
+    {
+        FVector SpawnLocation = GetActorLocation();
+        SpawnLocation.Z += 10.0f;
+
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+        ACPP_BaseItem* DroppedItem = GetWorld()->SpawnActor<ACPP_BaseItem>(
+            ItemToSpawn,
+            SpawnLocation,
+            FRotator::ZeroRotator,
+            SpawnParams
+            );
+
+        // impulse
+        if (DroppedItem)
+        {
+            UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedItem->GetRootComponent());
+            if (RootPrim)
+            {
+                FVector ImpulseDirection = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), 1.0f);
+                ImpulseDirection.Normalize();
+                RootPrim->AddImpulse(ImpulseDirection * 300.0f, NAME_None, true);
+            }
+        }
+    }
 }

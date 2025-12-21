@@ -33,6 +33,10 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Attack")
         UPaperFlipbook* EnemyAttackFlipbook;
 
+    virtual void OnDeath_Implementation() override;
+
+    void SpawnLoot();
+
 private:
     UFUNCTION()
         void OnPawnSeen(APawn* SeenPawn);

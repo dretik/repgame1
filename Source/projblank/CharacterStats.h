@@ -6,6 +6,17 @@
 #include "Engine/DataAsset.h"
 #include "CharacterStats.generated.h"
 
+class ACPP_BaseItem;
+
+USTRUCT(BlueprintType)
+struct FLootItem
+{
+    GENERATED_BODY()
+
+        UPROPERTY(EditAnywhere, BlueprintReadOnly)
+        TSubclassOf<ACPP_BaseItem> ItemClass;
+};
+
 UCLASS()
 class PROJBLANK_API UCharacterStats : public UPrimaryDataAsset
 {
@@ -110,4 +121,10 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Combat | Heavy Attack")
         float HeavyAttackDuration = 0.6f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        float DropChance = 0.5f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        TArray<TSubclassOf<ACPP_BaseItem>> PossibleDrops;
 };
