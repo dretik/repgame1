@@ -127,4 +127,5 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
         TArray<TSubclassOf<ACPP_BaseItem>> PossibleDrops;
+
 };

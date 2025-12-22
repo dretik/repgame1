@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "InteractableInterface.h"
+#include "CPP_BaseCharacter.h"
 #include "CPP_BaseItem.generated.h"
 
 class UPaperSpriteComponent;
@@ -29,7 +30,18 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
         USphereComponent* InteractionSphere;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
+        bool bAutoPickup = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data | Stats")
+        TArray<FStatModifier> StatModifiers;
+
     virtual void BeginPlay() override;
+
+    UFUNCTION()
+        void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, 
+            UPrimitiveComponent* OtherComp, 
+            int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 public:
     virtual void Interact_Implementation(AActor* Interactor) override;

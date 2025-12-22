@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "CharacterStats.h"
 #include "InteractableInterface.h"
+#include "GameplayTagContainer.h"
 #include "CPP_BaseCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, NewHealth, float, MaxHealth);
@@ -24,6 +25,21 @@ enum class EAttackPhase : uint8
     HeavyAttack = 3 UMETA(DisplayName = "Heavy Attack (Phase 3)")
 };
 
+USTRUCT(BlueprintType)
+struct FStatModifier
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+    FGameplayTag StatTag;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+    bool bIsMultiplier = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+    float Value = 0.0f;
+};
+
 UCLASS()
 class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter
 {
@@ -35,7 +51,8 @@ public:
 
     virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
         class AController* EventInstigator, AActor* DamageCauser) override;
-
+    UFUNCTION(BlueprintCallable, Category = "Stats")
+        void ApplyStatModifier(FStatModifier Modifier);
     //delegate object
     UPROPERTY(BlueprintAssignable, Category = "Events")
         FOnHealthChangedSignature OnHealthChanged;
@@ -82,6 +99,9 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State | Attack")
         int32 ComboCounter = 0;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats | Dynamic")
+        float CurrentDamageMultiplier = 1.0f;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
         bool bIsDead = false;
 
@@ -90,6 +110,9 @@ protected:
         float CurrentHealth;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
         float MaxHealth;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
+        bool bIsInvulnerable = false;
     //functions
 	virtual void SetupPlayerInputComponent(class UInputComponent*
 		PlayerInputComponent) override;

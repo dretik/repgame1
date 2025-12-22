@@ -2,9 +2,11 @@
 
 
 #include "CPP_BaseCharacter.h"
+#include "GameplayTagsManager.h"
 #include "Components/InputComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "PaperFlipbookComponent.h"
+#include "GameFramework/Controller.h"
 #include "PaperFlipbook.h"
 #include "Engine/Engine.h"
 
@@ -76,11 +78,14 @@ void ACPP_BaseCharacter::Dodge()
     if (!CharacterStats) return;
     bIsDodging = true;
     bIsInAir = true;
+    bIsInvulnerable = true;
 
     if (DodgeAnimationFlipbook)
     {
         GetSprite()->SetFlipbook(DodgeAnimationFlipbook);
     }
+
+    GetSprite()->SetSpriteColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.7f));
     
     FVector RightDirection = GetActorRightVector();
 
@@ -105,6 +110,9 @@ void ACPP_BaseCharacter::Dodge()
 void ACPP_BaseCharacter::StopDodge()
 {
     bIsDodging = false;
+    bIsInvulnerable = false;
+
+    GetSprite()->SetSpriteColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
 }
 void ACPP_BaseCharacter::StopJump()
 {
@@ -242,7 +250,7 @@ void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float 
 
             if (HitActor && CanDealDamageTo(HitActor))
             {
-                float DamageToApply = CharacterStats->BaseDamage;
+                float DamageToApply = DamageAmount * CurrentDamageMultiplier;
                 if ((EAttackPhase)ComboCounter == EAttackPhase::HeavyAttack)
                 {
                     DamageToApply *= CharacterStats->HeavyAttackMultiplier;
@@ -250,7 +258,7 @@ void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float 
 
                 UGameplayStatics::ApplyDamage(
                     HitActor,
-                    DamageAmount,
+                    DamageToApply,
                     GetController(),
                     this,
                     UDamageType::StaticClass()
@@ -266,8 +274,8 @@ void ACPP_BaseCharacter::BeginPlay()
 
     if (CharacterStats)
     {
+
         CurrentHealth = CharacterStats->MaxHealth;
-        MaxHealth = CharacterStats->MaxHealth;
 
         if (GetCharacterMovement())
         {
@@ -276,6 +284,9 @@ void ACPP_BaseCharacter::BeginPlay()
             GetCharacterMovement()->GravityScale = CharacterStats->GravityScale;
             GetCharacterMovement()->AirControl = CharacterStats->AirControl;
         }
+    }
+    else {
+        CurrentHealth = 100.0f;
     }
 }
 
@@ -300,6 +311,11 @@ void ACPP_BaseCharacter::OnJumped_Implementation()
 
 float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+    if (bIsInvulnerable)
+    {
+        return 0.0f;
+    }
+    
     const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
     CurrentHealth -= ActualDamage;
@@ -391,4 +407,46 @@ bool ACPP_BaseCharacter::CanDealDamageTo(AActor* TargetActor) const
 {
     if (TargetActor == this) return false; 
     return true;
+}
+
+void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
+{
+    float* StatToModify = nullptr;
+
+    if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Health"))))
+    {
+        StatToModify = &CurrentHealth;
+    }
+    else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Damage"))))
+    {
+        StatToModify = &CurrentDamageMultiplier;
+    }
+    else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Speed"))))
+    {
+        if (GetCharacterMovement())
+        {
+            StatToModify = &GetCharacterMovement()->MaxWalkSpeed;
+        }
+    }
+
+    if (StatToModify)
+    {
+        if (Modifier.bIsMultiplier)
+        {
+            *StatToModify *= Modifier.Value;
+        }
+        else
+        {
+            *StatToModify += Modifier.Value;
+        }
+
+        if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Health"))))
+        {
+            OnHealthChanged.Broadcast(CurrentHealth, CharacterStats ? CharacterStats->MaxHealth : 100.f);
+            if (CurrentHealth <= 0) OnDeath();
+        }
+
+        if (GEngine)
+            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Stat Modified via Tags!"));
+    }
 }

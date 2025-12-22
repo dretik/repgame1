@@ -2,12 +2,13 @@
 
 
 #include "CPP_BaseItem.h"
+#include "CPP_BaseCharacter.h"
 #include "Components/SphereComponent.h"
 #include "PaperSpriteComponent.h"
 
 ACPP_BaseItem::ACPP_BaseItem()
 {
-    // vollision
+    // collision
     SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
     RootComponent = SphereComp;
 
@@ -41,17 +42,39 @@ ACPP_BaseItem::ACPP_BaseItem()
 void ACPP_BaseItem::BeginPlay()
 {
 	Super::BeginPlay();
+
+    if (InteractionSphere)
+    {
+        InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &ACPP_BaseItem::OnOverlapBegin);
+    }
 }
 
 void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
 {
-    if (GEngine)
+    ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(Interactor);
+
+    if (BaseChar)
     {
-        GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Picked up: %s"), *ItemName.ToString()));
+
+        if (GEngine)
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Picked up: %s"), *ItemName.ToString()));
+        }
+
+        Destroy();
     }
-
-    // inventory interaction logic to be added
-
-    Destroy();
 }
 
+void ACPP_BaseItem::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+    if (!bAutoPickup) return;
+
+    ACPP_BaseCharacter* OverlappedCharacter = Cast<ACPP_BaseCharacter>(OtherActor);
+
+    if (OverlappedCharacter && OverlappedCharacter->IsPlayerControlled())
+    {
+        Interact_Implementation(OverlappedCharacter);
+        // for more complex interface logic
+        // IInteractableInterface::Execute_Interact(this, OtherActor);
+    }
+}
