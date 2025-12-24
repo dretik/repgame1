@@ -100,6 +100,8 @@ protected:
         int32 ComboCounter = 0;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats | Dynamic")
+        float CurrentBaseDamage = 0.f;;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats | Dynamic")
         float CurrentDamageMultiplier = 1.0f;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")

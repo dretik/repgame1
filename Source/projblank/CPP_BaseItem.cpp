@@ -4,6 +4,7 @@
 #include "CPP_BaseItem.h"
 #include "CPP_BaseCharacter.h"
 #include "Components/SphereComponent.h"
+#include "CPP_InventoryComponent.h" 
 #include "PaperSpriteComponent.h"
 
 ACPP_BaseItem::ACPP_BaseItem()
@@ -60,7 +61,7 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
 {
     ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(Interactor);
 
-    if (BaseChar)
+    if (BaseChar && BaseChar->IsPlayerControlled())
     {
 
         if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Picked up: %s"), *ItemName.ToString()));
@@ -70,6 +71,15 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("ITEM: Calling ApplyStatModifier..."));
 
             BaseChar->ApplyStatModifier(Mod);
+        }
+
+        if (bIsInventoryItem)
+        {
+            UCPP_InventoryComponent* InventoryComp = BaseChar->FindComponentByClass<UCPP_InventoryComponent>();
+            if (InventoryComp)
+            {
+                InventoryComp->AddItem(this->GetClass(), 1);
+            }
         }
 
         Destroy();

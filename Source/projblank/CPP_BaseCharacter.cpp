@@ -147,7 +147,7 @@ void ACPP_BaseCharacter::Attack()
         PerformAttackTrace(
             CharacterStats->LightAttackRange,
             CharacterStats->LightAttackBoxSize,
-            CharacterStats->LightAttackDamage
+            CurrentBaseDamage
         );
         break;
 
@@ -160,7 +160,7 @@ void ACPP_BaseCharacter::Attack()
         PerformAttackTrace(
             CharacterStats->DashAttackRange,
             CharacterStats->DashAttackBoxSize,
-            CharacterStats->DashAttackDamage
+            CurrentBaseDamage
         );
         break;
     case EAttackPhase::HeavyAttack:
@@ -175,7 +175,7 @@ void ACPP_BaseCharacter::Attack()
         PerformAttackTrace(
             CharacterStats->HeavyAttackRange,
             CharacterStats->HeavyAttackBoxSize,
-            CharacterStats->HeavyAttackDamage
+            CurrentBaseDamage
         );
         break;
 
@@ -277,6 +277,7 @@ void ACPP_BaseCharacter::BeginPlay()
 
         CurrentMaxHealth = CharacterStats->MaxHealth;
         CurrentHealth = CurrentMaxHealth;
+        CurrentBaseDamage = CharacterStats->BaseDamage;
 
         if (GetCharacterMovement())
         {
@@ -289,6 +290,7 @@ void ACPP_BaseCharacter::BeginPlay()
     else {
         CurrentMaxHealth = 100.0f;
         CurrentHealth = 100.0f;
+        CurrentBaseDamage = 10.0f;
     }
     OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
 }
@@ -433,19 +435,31 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
 
     float* StatToModify = nullptr;
 
-    if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Health"))))
+    const FGameplayTag Tag_Health = FGameplayTag::RequestGameplayTag(FName("Stats.Health"));
+    const FGameplayTag Tag_HealthMax = FGameplayTag::RequestGameplayTag(FName("Stats.HealthMax"));
+    const FGameplayTag Tag_Damage = FGameplayTag::RequestGameplayTag(FName("Stats.Damage"));
+    const FGameplayTag Tag_Speed = FGameplayTag::RequestGameplayTag(FName("Stats.Speed"));
+
+    if (Modifier.StatTag.MatchesTagExact(Tag_Health))
     {
         StatToModify = &CurrentHealth;
     }
-    else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.HealthMax"))))
+    else if (Modifier.StatTag.MatchesTagExact(Tag_HealthMax))
     {
         StatToModify = &CurrentMaxHealth;
     }
-    else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Damage"))))
+    else if (Modifier.StatTag.MatchesTagExact(Tag_Damage))
     {
-        StatToModify = &CurrentDamageMultiplier;
+        if (Modifier.bIsMultiplier)
+        {
+            StatToModify = &CurrentDamageMultiplier;
+        }
+        else
+        {
+            StatToModify = &CurrentBaseDamage;
+        }
     }
-    else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Speed"))))
+    else if (Modifier.StatTag.MatchesTagExact(Tag_Speed))
     {
         if (GetCharacterMovement())
         {
@@ -473,13 +487,30 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
         }
         else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.HealthMax"))))
         {
-            if (!Modifier.bIsMultiplier)
+            if (!Modifier.bIsMultiplier && Modifier.Value > 0.0f)
             {
                 CurrentHealth += Modifier.Value;
             }
 
             OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
         }
+        else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Damage"))))
+        {
+            if (Modifier.bIsMultiplier)
+            {
+                CurrentDamageMultiplier *= Modifier.Value;
+
+                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
+                    FString::Printf(TEXT("Damage Multiplier Increased: %f"), CurrentDamageMultiplier));
+            }
+            else
+            {
+                CurrentBaseDamage += Modifier.Value;
+
+                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
+                    FString::Printf(TEXT("Base Damage Increased: %f"), CurrentBaseDamage));
+            }
+        }   
 
         if (GEngine)
             GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,

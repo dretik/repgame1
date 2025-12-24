@@ -78,7 +78,9 @@ void ACPP_BaseEnemy::Tick(float DeltaTime)
 
 void ACPP_BaseEnemy::AttackPlayer()
 {
-    if (!CharacterStats) return;
+    if (!CharacterStats) {
+        return;
+    }
     if (bIsAttacking) return;
 
     bIsAttacking = true;
