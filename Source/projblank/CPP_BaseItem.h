@@ -23,15 +23,20 @@ protected:
     // collision mesh
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
         USphereComponent* SphereComp;
+    void EnablePhysicsCollision();
 
     // sprite
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
         UPaperSpriteComponent* ItemSprite;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
         USphereComponent* InteractionSphere;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data | UI")
+        UTexture2D* ItemIcon;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
         bool bAutoPickup = false;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data")
+        bool bIsInventoryItem = true;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data | Stats")
         TArray<FStatModifier> StatModifiers;
@@ -48,4 +53,8 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data")
         FName ItemName;
+
+    //ui getters
+    UTexture2D* GetIcon() const { return ItemIcon; }
+    bool IsInventoryItem() const { return bIsInventoryItem; }
 };

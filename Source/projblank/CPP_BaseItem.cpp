@@ -16,6 +16,9 @@ ACPP_BaseItem::ACPP_BaseItem()
     SphereComp->SetSimulatePhysics(true);
     SphereComp->SetSphereRadius(16.0f);
     SphereComp->SetCollisionProfileName("PhysicsActor");
+    SphereComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+    SphereComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
+    SphereComp->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Ignore);
     SphereComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
     // sprite
@@ -47,6 +50,10 @@ void ACPP_BaseItem::BeginPlay()
     {
         InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &ACPP_BaseItem::OnOverlapBegin);
     }
+
+    FTimerHandle EnableTimer;
+    GetWorldTimerManager().SetTimer(EnableTimer, this, &ACPP_BaseItem::EnablePhysicsCollision, 0.5f, false);
+
 }
 
 void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
@@ -80,5 +87,20 @@ void ACPP_BaseItem::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
         Interact_Implementation(OverlappedCharacter);
         // for more complex interface logic
         // IInteractableInterface::Execute_Interact(this, OtherActor);
+    }
+}
+
+void ACPP_BaseItem::EnablePhysicsCollision()
+{
+    if (InteractionSphere)
+    {
+        InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+        InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &ACPP_BaseItem::OnOverlapBegin);
+    }
+
+    if (SphereComp)
+    {
+        SphereComp->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Block);
+        SphereComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
     }
 }

@@ -136,43 +136,69 @@ void ACPP_BaseEnemy::SpawnLoot()
 {
     if (!CharacterStats) return;
 
-    if (FMath::FRand() > CharacterStats->DropChance)
+    if (FMath::FRand() > CharacterStats->DropChance) return;
+
+    if (CharacterStats->LootTable.Num() == 0) return;
+
+    float TotalWeight = 0.0f;
+    for (const FLootItem& Entry : CharacterStats->LootTable)
     {
-        return;
+        if (Entry.ItemClass) TotalWeight += Entry.DropWeight;
     }
+    if (TotalWeight <= 0.0f) return;
 
-    if (CharacterStats->PossibleDrops.Num() == 0)
+    int32 ItemsToSpawn = FMath::RandRange(CharacterStats->MinLootCount, CharacterStats->MaxLootCount);
+
+    for (int32 i = 0; i < ItemsToSpawn; i++)
     {
-        return;
-    }
+        float RandomPoint = FMath::FRandRange(0.0f, TotalWeight);
+        float CurrentSum = 0.0f;
+        TSubclassOf<ACPP_BaseItem> SelectedItemClass = nullptr;
 
-    int32 RandomIndex = FMath::RandRange(0, CharacterStats->PossibleDrops.Num() - 1);
-    TSubclassOf<ACPP_BaseItem> ItemToSpawn = CharacterStats->PossibleDrops[RandomIndex];
-
-    if (ItemToSpawn)
-    {
-        FVector SpawnLocation = GetActorLocation();
-        SpawnLocation.Z += 10.0f;
-
-        FActorSpawnParameters SpawnParams;
-        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-        ACPP_BaseItem* DroppedItem = GetWorld()->SpawnActor<ACPP_BaseItem>(
-            ItemToSpawn,
-            SpawnLocation,
-            FRotator::ZeroRotator,
-            SpawnParams
-            );
-
-        // impulse
-        if (DroppedItem)
+        for (const FLootItem& Entry : CharacterStats->LootTable)
         {
-            UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedItem->GetRootComponent());
-            if (RootPrim)
+            if (!Entry.ItemClass) continue;
+
+            CurrentSum += Entry.DropWeight;
+            if (RandomPoint <= CurrentSum)
             {
-                FVector ImpulseDirection = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), 1.0f);
-                ImpulseDirection.Normalize();
-                RootPrim->AddImpulse(ImpulseDirection * 300.0f, NAME_None, true);
+                SelectedItemClass = Entry.ItemClass;
+                break;
+            }
+        }
+
+        if (SelectedItemClass)
+        {
+            FVector SpawnLocation = GetActorLocation();
+            SpawnLocation.Z += 20.0f; 
+            SpawnLocation.X += FMath::RandRange(-10.f, 10.f);
+            SpawnLocation.Y += FMath::RandRange(-10.f, 10.f);
+
+            FActorSpawnParameters SpawnParams;
+            SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+            ACPP_BaseItem* DroppedItem = GetWorld()->SpawnActor<ACPP_BaseItem>(
+                SelectedItemClass,
+                SpawnLocation,
+                FRotator::ZeroRotator,
+                SpawnParams
+                );
+
+            if (DroppedItem)
+            {
+                UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedItem->GetRootComponent());
+                if (RootPrim)
+                {
+                    FVector ImpulseDir = FVector(
+                        FMath::RandRange(-1.f, 1.f),
+                        FMath::RandRange(-1.f, 1.f), 
+                        FMath::RandRange(0.5f, 1.5f) 
+                    );
+                    ImpulseDir.Normalize();
+
+                    float ImpulseStrength = FMath::RandRange(300.0f, 500.0f);
+                    RootPrim->AddImpulse(ImpulseDir * ImpulseStrength, NAME_None, true);
+                }
             }
         }
     }

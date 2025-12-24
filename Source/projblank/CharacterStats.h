@@ -13,8 +13,11 @@ struct FLootItem
 {
     GENERATED_BODY()
 
-        UPROPERTY(EditAnywhere, BlueprintReadOnly)
+        UPROPERTY(EditAnywhere, BlueprintReadWrite)
         TSubclassOf<ACPP_BaseItem> ItemClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.1"))
+        float DropWeight = 1.0f;
 };
 
 UCLASS()
@@ -122,10 +125,17 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Combat | Heavy Attack")
         float HeavyAttackDuration = 0.6f;
 
+    //loot
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
         float DropChance = 0.5f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
-        TArray<TSubclassOf<ACPP_BaseItem>> PossibleDrops;
+        int32 MinLootCount = 1;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        int32 MaxLootCount = 3;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        TArray<FLootItem> LootTable;
 
 };
