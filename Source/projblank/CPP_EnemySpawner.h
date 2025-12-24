@@ -11,6 +11,18 @@ class UBoxComponent;
 class UWidgetComponent;
 class UArrowComponent;
 
+USTRUCT(BlueprintType)
+struct FEnemySpawnInfo
+{
+    GENERATED_BODY()
+
+        UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        TSubclassOf<AActor> EnemyClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.1"))
+        float SpawnWeight = 1.0f;
+};
+
 UCLASS()
 class PROJBLANK_API ACPP_EnemySpawner : public AActor, public IInteractableInterface
 {
@@ -35,9 +47,8 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
         UArrowComponent* SpawnPoint;
 
-    // spawn class
-    UPROPERTY(EditAnywhere, Category = "Spawner")
-        TSubclassOf<class AActor> EnemyClassToSpawn;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner")
+        TArray<FEnemySpawnInfo> SpawnList;
 
 public:
     virtual void Interact_Implementation(AActor* Interactor) override;

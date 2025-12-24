@@ -275,7 +275,8 @@ void ACPP_BaseCharacter::BeginPlay()
     if (CharacterStats)
     {
 
-        CurrentHealth = CharacterStats->MaxHealth;
+        CurrentMaxHealth = CharacterStats->MaxHealth;
+        CurrentHealth = CurrentMaxHealth;
 
         if (GetCharacterMovement())
         {
@@ -286,8 +287,10 @@ void ACPP_BaseCharacter::BeginPlay()
         }
     }
     else {
+        CurrentMaxHealth = 100.0f;
         CurrentHealth = 100.0f;
     }
+    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
 }
 
 void ACPP_BaseCharacter::OnJumped_Implementation()
@@ -320,12 +323,17 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 
     CurrentHealth -= ActualDamage;
 
+    if (CurrentHealth < 0.0f)
+    {
+        CurrentHealth = 0.0f;
+    }
+
     if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("%s took %f damage. Current Health: %f"), *GetName(), ActualDamage, CurrentHealth));
     }
 
-    OnHealthChanged.Broadcast(CurrentHealth, CharacterStats->MaxHealth);
+    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
 
     if (CurrentHealth <= 0.0f)
     {
@@ -411,11 +419,27 @@ bool ACPP_BaseCharacter::CanDealDamageTo(AActor* TargetActor) const
 
 void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
 {
+    //TMap vocab
+    //TMap<FGameplayTag, float*> StatMap;
+    //StatMap.Add(FGameplayTag::RequestGameplayTag("Stats.Damage"), &DamageMultiplier);
+    //StatMap.Add(FGameplayTag::RequestGameplayTag("Stats.Speed"), &MaxWalkSpeed);
+    
+    if (GEngine)
+    {
+        FString IncomingTagName = Modifier.StatTag.ToString();
+        GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan,
+            FString::Printf(TEXT("Incoming Tag: '%s'"), *IncomingTagName));
+    }
+
     float* StatToModify = nullptr;
 
     if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Health"))))
     {
         StatToModify = &CurrentHealth;
+    }
+    else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.HealthMax"))))
+    {
+        StatToModify = &CurrentMaxHealth;
     }
     else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Damage"))))
     {
@@ -442,11 +466,23 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
 
         if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Health"))))
         {
-            OnHealthChanged.Broadcast(CurrentHealth, CharacterStats ? CharacterStats->MaxHealth : 100.f);
+            if (*StatToModify > CurrentMaxHealth) *StatToModify = CurrentMaxHealth;
+            if (*StatToModify < 0) *StatToModify = 0;
+            OnHealthChanged.Broadcast(CurrentHealth,CurrentMaxHealth);
             if (CurrentHealth <= 0) OnDeath();
+        }
+        else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.HealthMax"))))
+        {
+            if (!Modifier.bIsMultiplier)
+            {
+                CurrentHealth += Modifier.Value;
+            }
+
+            OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
         }
 
         if (GEngine)
-            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Stat Modified via Tags!"));
+            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
+                FString::Printf(TEXT("Stat Changed! New Value: %f"), *StatToModify));
     }
 }

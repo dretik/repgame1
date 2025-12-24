@@ -56,9 +56,13 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
     if (BaseChar)
     {
 
-        if (GEngine)
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Picked up: %s"), *ItemName.ToString()));
+
+        for (const FStatModifier& Mod : StatModifiers)
         {
-            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Picked up: %s"), *ItemName.ToString()));
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("ITEM: Calling ApplyStatModifier..."));
+
+            BaseChar->ApplyStatModifier(Mod);
         }
 
         Destroy();

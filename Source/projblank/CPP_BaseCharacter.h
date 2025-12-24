@@ -109,7 +109,7 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
         float CurrentHealth;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
-        float MaxHealth;
+        float CurrentMaxHealth;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
         bool bIsInvulnerable = false;

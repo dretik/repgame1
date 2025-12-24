@@ -31,7 +31,7 @@ ACPP_EnemySpawner::ACPP_EnemySpawner()
     // 4. spawn point
     SpawnPoint = CreateDefaultSubobject<UArrowComponent>(TEXT("SpawnPoint"));
     SpawnPoint->SetupAttachment(RootComponent);
-    SpawnPoint->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
+    SpawnPoint->SetRelativeLocation(FVector(150.f, 0.f, 0.f));
 }
 
 // Called when the game starts or when spawned
@@ -64,18 +64,50 @@ void ACPP_EnemySpawner::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor
 
 void ACPP_EnemySpawner::Interact_Implementation(AActor* Interactor)
 {
-    if (EnemyClassToSpawn)
+    if (SpawnList.Num() == 0) return;
+
+    float TotalWeight = 0.0f;
+    for (const FEnemySpawnInfo& Entry : SpawnList)
+    {
+        if (Entry.EnemyClass)
+        {
+            TotalWeight += Entry.SpawnWeight;
+        }
+    }
+
+    if (TotalWeight <= 0.0f) return;
+
+    float RandomPoint = FMath::FRandRange(0.0f, TotalWeight);
+
+    TSubclassOf<AActor> SelectedClass = nullptr;
+    float CurrentSum = 0.0f;
+
+    for (const FEnemySpawnInfo& Entry : SpawnList)
+    {
+        if (!Entry.EnemyClass) continue;
+
+        CurrentSum += Entry.SpawnWeight;
+
+        if (RandomPoint <= CurrentSum)
+        {
+            SelectedClass = Entry.EnemyClass;
+            break; 
+        }
+    }
+
+    if (SelectedClass)
     {
         FActorSpawnParameters SpawnParams;
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
         GetWorld()->SpawnActor<AActor>(
-            EnemyClassToSpawn,
+            SelectedClass,
             SpawnPoint->GetComponentLocation(),
             SpawnPoint->GetComponentRotation(),
             SpawnParams
             );
 
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Enemy Spawned!"));
+        if (GEngine)
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, FString::Printf(TEXT("Spawned: %s"), *SelectedClass->GetName()));
     }
 }
