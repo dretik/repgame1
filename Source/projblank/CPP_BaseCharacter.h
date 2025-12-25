@@ -56,6 +56,18 @@ public:
     //delegate object
     UPROPERTY(BlueprintAssignable, Category = "Events")
         FOnHealthChangedSignature OnHealthChanged;
+
+    UFUNCTION(BlueprintCallable, Category = "Abilities")
+        int32 GrantAbility(FGameplayTag AbilityTag, int32 MaxLevel);
+
+    UFUNCTION(BlueprintCallable, Category = "Abilities")
+        bool HasAbility(FGameplayTag AbilityTag) const;
+    UFUNCTION(BlueprintCallable, Category = "Abilities")
+        int32 GetAbilityLevel(FGameplayTag AbilityTag) const;
+
+    void CastFireball();
+
+    virtual bool CanDealDamageTo(AActor* TargetActor) const;
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
         UCharacterStats* CharacterStats;
@@ -98,6 +110,13 @@ protected:
         bool bIsAttacking = false;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State | Attack")
         int32 ComboCounter = 0;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State | Attack")
+        bool bCanCastSpell = true;
+
+    FTimerHandle SpellCooldownTimer;
+    void ResetSpellCooldown();
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Spells")
+        float FireballCooldown = 1.0f;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats | Dynamic")
         float CurrentBaseDamage = 0.f;;
@@ -115,6 +134,15 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
         bool bIsInvulnerable = false;
+
+    //unlocked abilities
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
+        TMap<FGameplayTag, int32> AbilityLevels;
+
+    // projectile
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Spells")
+        TArray<TSubclassOf<class ACPP_Projectile>> FireballLevels;
+
     //functions
 	virtual void SetupPlayerInputComponent(class UInputComponent*
 		PlayerInputComponent) override;
@@ -141,7 +169,6 @@ protected:
     void PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount);
 
     virtual void BeginPlay() override;
-    virtual bool CanDealDamageTo(AActor* TargetActor) const;
 
     FTimerHandle ComboResetTimer;
 };

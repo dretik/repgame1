@@ -8,6 +8,7 @@
 #include "PaperFlipbook.h"
 #include "CPP_BaseItem.h"
 #include "CharacterStats.h"
+#include "Kismet/GameplayStatics.h"
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -142,29 +143,62 @@ void ACPP_BaseEnemy::SpawnLoot()
 
     if (CharacterStats->LootTable.Num() == 0) return;
 
-    float TotalWeight = 0.0f;
-    for (const FLootItem& Entry : CharacterStats->LootTable)
-    {
-        if (Entry.ItemClass) TotalWeight += Entry.DropWeight;
-    }
-    if (TotalWeight <= 0.0f) return;
-
     int32 ItemsToSpawn = FMath::RandRange(CharacterStats->MinLootCount, CharacterStats->MaxLootCount);
+
+    //assuming singleplayer
+    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    if (!Player) return;
+    //
 
     for (int32 i = 0; i < ItemsToSpawn; i++)
     {
-        float RandomPoint = FMath::FRandRange(0.0f, TotalWeight);
-        float CurrentSum = 0.0f;
-        TSubclassOf<ACPP_BaseItem> SelectedItemClass = nullptr;
+        TArray<FLootItem> ValidCandidates;
+        float ValidTotalWeight = 0.0f;
 
         for (const FLootItem& Entry : CharacterStats->LootTable)
         {
             if (!Entry.ItemClass) continue;
 
-            CurrentSum += Entry.DropWeight;
+            ACPP_BaseItem* DefaultItem = Cast<ACPP_BaseItem>(Entry.ItemClass->GetDefaultObject());
+
+            bool bIsItemValid = true;
+
+            if (DefaultItem)
+            {
+                FGameplayTag Tag = DefaultItem->GetAbilityTag();
+
+                if (Tag.IsValid())
+                {
+                    int32 CurrentLevel = Player->GetAbilityLevel(Tag);
+                    int32 MaxLevel = DefaultItem->GetMaxLevel();
+
+                    if (CurrentLevel >= MaxLevel)
+                    {
+                        bIsItemValid = false;
+                    }
+                }
+            }
+
+            if (bIsItemValid)
+            {
+                ValidCandidates.Add(Entry);
+                ValidTotalWeight += Entry.DropWeight;
+            }
+        }
+
+        if (ValidCandidates.Num() == 0) return;
+        if (ValidTotalWeight <= 0.0f) return;
+
+        float RandomPoint = FMath::FRandRange(0.0f, ValidTotalWeight);
+        float CurrentSum = 0.0f;
+        TSubclassOf<ACPP_BaseItem> SelectedItemClass = nullptr;
+
+        for (const FLootItem& ValidEntry : ValidCandidates)
+        {
+            CurrentSum += ValidEntry.DropWeight;
             if (RandomPoint <= CurrentSum)
             {
-                SelectedItemClass = Entry.ItemClass;
+                SelectedItemClass = ValidEntry.ItemClass;
                 break;
             }
         }
@@ -172,7 +206,7 @@ void ACPP_BaseEnemy::SpawnLoot()
         if (SelectedItemClass)
         {
             FVector SpawnLocation = GetActorLocation();
-            SpawnLocation.Z += 20.0f; 
+            SpawnLocation.Z += 20.0f;
             SpawnLocation.X += FMath::RandRange(-10.f, 10.f);
             SpawnLocation.Y += FMath::RandRange(-10.f, 10.f);
 
@@ -193,8 +227,8 @@ void ACPP_BaseEnemy::SpawnLoot()
                 {
                     FVector ImpulseDir = FVector(
                         FMath::RandRange(-1.f, 1.f),
-                        FMath::RandRange(-1.f, 1.f), 
-                        FMath::RandRange(0.5f, 1.5f) 
+                        FMath::RandRange(-1.f, 1.f),
+                        FMath::RandRange(0.5f, 1.5f)
                     );
                     ImpulseDir.Normalize();
 

@@ -82,6 +82,11 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
             }
         }
 
+        if (AbilityToUnlock.IsValid())
+        {
+            BaseChar->GrantAbility(AbilityToUnlock, MaxAbilityLevel);
+        }
+
         Destroy();
     }
 }

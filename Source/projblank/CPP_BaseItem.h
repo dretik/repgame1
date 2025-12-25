@@ -48,6 +48,12 @@ protected:
             UPrimitiveComponent* OtherComp, 
             int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data | Ability")
+        FGameplayTag AbilityToUnlock;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data | Ability")
+        int32 MaxAbilityLevel = 3;
+
 public:
     virtual void Interact_Implementation(AActor* Interactor) override;
 
@@ -57,4 +63,7 @@ public:
     //ui getters
     UTexture2D* GetIcon() const { return ItemIcon; }
     bool IsInventoryItem() const { return bIsInventoryItem; }
+
+    FGameplayTag GetAbilityTag() const { return AbilityToUnlock; }
+    int32 GetMaxLevel() const { return MaxAbilityLevel; }
 };

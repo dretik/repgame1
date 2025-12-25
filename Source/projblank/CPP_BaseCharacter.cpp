@@ -8,6 +8,7 @@
 #include "PaperFlipbookComponent.h"
 #include "GameFramework/Controller.h"
 #include "PaperFlipbook.h"
+#include "CPP_Projectile.h"
 #include "Engine/Engine.h"
 
 
@@ -48,6 +49,8 @@ void ACPP_BaseCharacter::SetupPlayerInputComponent(UInputComponent*
     //attack
     PlayerInputComponent->BindAction("AttackAction", 
         IE_Pressed, this, &ACPP_BaseCharacter::Attack);
+    PlayerInputComponent->BindAction("CastAction",
+        IE_Pressed, this, &ACPP_BaseCharacter::CastFireball);
 }
 
 void ACPP_BaseCharacter::MoveRight(float Value)
@@ -516,4 +519,108 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
             GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
                 FString::Printf(TEXT("Stat Changed! New Value: %f"), *StatToModify));
     }
+}
+
+int32 ACPP_BaseCharacter::GrantAbility(FGameplayTag AbilityTag, int32 MaxLevel)
+{
+    if (!AbilityTag.IsValid()) return 0;
+
+    if (AbilityLevels.Contains(AbilityTag))
+    {
+        int32 CurrentLevel = AbilityLevels[AbilityTag];
+
+        if (CurrentLevel < MaxLevel)
+        {
+            AbilityLevels[AbilityTag] = CurrentLevel + 1;
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow,
+                FString::Printf(TEXT("Ability UPGRADED to Level %d!"), CurrentLevel + 1));
+        }
+        else
+        {
+            // if ability already max leveled
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("Ability Already Max Level!"));
+        }
+    }
+    else
+    {
+        AbilityLevels.Add(AbilityTag, 1);
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("New Ability Unlocked!"));
+    }
+
+    return AbilityLevels[AbilityTag];
+}
+
+int32 ACPP_BaseCharacter::GetAbilityLevel(FGameplayTag AbilityTag) const
+{
+    if (AbilityLevels.Contains(AbilityTag))
+    {
+        return AbilityLevels[AbilityTag];
+    }
+    return 0;
+}
+
+bool ACPP_BaseCharacter::HasAbility(FGameplayTag AbilityTag) const
+{
+    return GetAbilityLevel(AbilityTag) > 0;
+}
+
+void ACPP_BaseCharacter::CastFireball()
+{
+    if (bIsDead || bIsAttacking) return;
+
+    if (!bCanCastSpell)
+    {
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("Spell on Cooldown!"));
+        return;
+    }
+
+    if (!HasAbility(FGameplayTag::RequestGameplayTag("Ability.Fireball")))
+    {
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Ability Locked!"));
+        return;
+    }
+
+    int32 Level = GetAbilityLevel(FGameplayTag::RequestGameplayTag("Ability.Fireball"));
+    if (Level <= 0) return;
+
+    bCanCastSpell = false;
+    GetWorldTimerManager().SetTimer(SpellCooldownTimer, this, &ACPP_BaseCharacter::ResetSpellCooldown, FireballCooldown, false);
+
+    int32 Index = FMath::Clamp(Level - 1, 0, FireballLevels.Num() - 1);
+
+    //cast flipbook to be added
+    if (FireballLevels.Num() > 0)
+    {
+        TSubclassOf<ACPP_Projectile> ProjectileClass = FireballLevels[Index];
+
+        if (ProjectileClass)
+        {
+            FVector SpawnLocation = GetActorLocation();
+            SpawnLocation.Z += 20.0f;
+            FRotator SpawnRotation = FRotator::ZeroRotator;
+
+            if (GetSprite()->GetRelativeScale3D().X > 0.0f)
+            {
+                SpawnRotation.Yaw = 90.0f;
+                SpawnLocation.Y += 40.0f;
+            }
+            else
+            {
+                SpawnRotation.Yaw = -90.0f;
+                SpawnLocation.Y -= 40.0f;
+            }
+
+            FActorSpawnParameters SpawnParams;
+            SpawnParams.Owner = this;
+            SpawnParams.Instigator = GetInstigator();
+
+            GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+        }
+    }
+}
+
+void ACPP_BaseCharacter::ResetSpellCooldown()
+{
+    bCanCastSpell = true;
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("Spell Ready!"));
 }
