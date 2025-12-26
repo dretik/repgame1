@@ -10,6 +10,7 @@ class UPaperFlipbookComponent;
 class USphereComponent;
 class UProjectileMovementComponent;
 class UPaperFlipbook;
+class UNiagaraSystem;
 
 UCLASS()
 class PROJBLANK_API ACPP_Projectile : public AActor
@@ -47,6 +48,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
         float ExplosionRadius = 80.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visuals")
+        UNiagaraSystem* ExplosionEffect;
 
     virtual void BeginPlay() override;
 

@@ -47,4 +47,10 @@ public:
 		FOnInventoryUpdated OnInventoryUpdated;
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+		bool RemoveItem(TSubclassOf<ACPP_BaseItem> ItemClass, int32 Amount = 1);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+		int32 GetItemAmount(TSubclassOf<ACPP_BaseItem> ItemClass) const;
 };

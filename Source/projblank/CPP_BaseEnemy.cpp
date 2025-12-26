@@ -79,10 +79,15 @@ void ACPP_BaseEnemy::Tick(float DeltaTime)
 
 void ACPP_BaseEnemy::AttackPlayer()
 {
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("AI Trying to Attack..."));
     if (!CharacterStats) {
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("FAIL: No Stats!"));
         return;
     }
-    if (bIsAttacking) return;
+    if (bIsAttacking) { 
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("FAIL: Already Attacking!"));
+        return; 
+    }
 
     bIsAttacking = true;
 

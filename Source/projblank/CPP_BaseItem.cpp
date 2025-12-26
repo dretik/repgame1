@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "CPP_InventoryComponent.h" 
 #include "PaperSpriteComponent.h"
+#include "Components/WidgetComponent.h"
 
 ACPP_BaseItem::ACPP_BaseItem()
 {
@@ -40,6 +41,15 @@ ACPP_BaseItem::ACPP_BaseItem()
     InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore); 
     InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+    //labelwidget
+    LabelWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("LabelWidget"));
+    LabelWidget->SetupAttachment(RootComponent);
+
+    LabelWidget->SetWidgetSpace(EWidgetSpace::Screen);
+    LabelWidget->SetDrawAtDesiredSize(true);
+    LabelWidget->SetRelativeLocation(FVector(0.f, 0.f, 50.f));
+    LabelWidget->SetVisibility(false);
 }
 
 // Called when the game starts or when spawned
@@ -55,6 +65,35 @@ void ACPP_BaseItem::BeginPlay()
     FTimerHandle EnableTimer;
     GetWorldTimerManager().SetTimer(EnableTimer, this, &ACPP_BaseItem::EnablePhysicsCollision, 0.5f, false);
 
+    if (!ItemName.IsNone())
+    {
+        LabelWidget->SetVisibility(true);
+
+        // Попытка передать текст в виджет (C++ -> BP Widget)
+        // Так как мы не создавали C++ класс для виджета, сделаем это через Cast
+        UUserWidget* WidgetObj = LabelWidget->GetUserWidgetObject();
+        if (WidgetObj)
+        {
+            // Здесь есть хитрость: у базового UUserWidget нет метода SetText.
+            // Самый простой способ без создания C++ класса для виджета - 
+            // использовать Property Reflection (найти переменную по имени).
+
+            FText NameText = FText::FromName(ItemName);
+
+            FProperty* Prop = WidgetObj->GetClass()->FindPropertyByName(FName("LabelName"));
+            if (FStrProperty* StrProp = CastField<FStrProperty>(Prop))
+            {
+                StrProp->SetPropertyValue_InContainer(WidgetObj, ItemName.ToString());
+            }
+            else if (FTextProperty* TxtProp = CastField<FTextProperty>(Prop))
+            {
+                TxtProp->SetPropertyValue_InContainer(WidgetObj, NameText);
+            }
+
+            // Чтобы текст обновился, иногда нужно принудительно вызвать Construct заново или кастомный ивент.
+            // Но проще всего сделать это в BP_BaseItem (см. ниже).
+        }
+    }
 }
 
 void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
@@ -86,6 +125,9 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
         {
             BaseChar->GrantAbility(AbilityToUnlock, MaxAbilityLevel);
         }
+
+        FString PickupMsg = FString::Printf(TEXT("Picked up: %s"), *ItemName.ToString());
+        BaseChar->ShowNotification(PickupMsg, FLinearColor::Green);
 
         Destroy();
     }

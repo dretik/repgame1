@@ -53,3 +53,45 @@ void UCPP_InventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
+bool UCPP_InventoryComponent::RemoveItem(TSubclassOf<ACPP_BaseItem> ItemClass, int32 Amount)
+{
+    if (!ItemClass || Amount <= 0) return false;
+
+    for (int32 i = 0; i < Inventory.Num(); i++)
+    {
+        if (Inventory[i].ItemClass == ItemClass)
+        {
+            if (Inventory[i].Count >= Amount)
+            {
+                Inventory[i].Count -= Amount;
+
+                if (Inventory[i].Count <= 0)
+                {
+                    Inventory.RemoveAt(i);
+                }
+
+                OnInventoryUpdated.Broadcast(Inventory);
+
+                return true; 
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+
+    return false;
+}
+
+int32 UCPP_InventoryComponent::GetItemAmount(TSubclassOf<ACPP_BaseItem> ItemClass) const
+{
+    for (const FInventorySlot& Slot : Inventory)
+    {
+        if (Slot.ItemClass == ItemClass)
+        {
+            return Slot.Count;
+        }
+    }
+    return 0;
+}

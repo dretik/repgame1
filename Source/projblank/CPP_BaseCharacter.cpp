@@ -9,6 +9,8 @@
 #include "GameFramework/Controller.h"
 #include "PaperFlipbook.h"
 #include "CPP_Projectile.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Engine/Engine.h"
 
 
@@ -219,6 +221,21 @@ void ACPP_BaseCharacter::ResetCombo()
 
 void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount)
 {
+    if (CharacterStats && CharacterStats->AttackEffect)
+    {
+        FRotator EffectRotation = FRotator::ZeroRotator;
+
+        if (GetSprite()->GetRelativeScale3D().X > 0.0f)
+        {
+            EffectRotation.Yaw = 90.0f;
+        }
+        else {
+            EffectRotation.Yaw = -90.0f;
+        }
+
+        SpawnParticle(CharacterStats->AttackEffect, GetActorLocation(), EffectRotation);
+    }
+
     float DirectionSign = (GetSprite()->GetRelativeScale3D().X > 0.0f) ? 1.0f : -1.0f;
 
     FVector AttackDirection = FVector(0.0f, 1.0f, 0.0f) * DirectionSign;
@@ -243,7 +260,7 @@ void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float 
         EDrawDebugTrace::ForDuration,
         HitResults,
         true
-    );
+    ); 
 
     if (bHit)
     {
@@ -338,6 +355,11 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
         GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("%s took %f damage. Current Health: %f"), *GetName(), ActualDamage, CurrentHealth));
     }
 
+    if (CharacterStats)
+    {
+        SpawnParticle(CharacterStats->HitEffect, GetActorLocation());
+    }
+
     OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
 
     if (CurrentHealth <= 0.0f)
@@ -367,6 +389,11 @@ void ACPP_BaseCharacter::OnDeath_Implementation()
     {
         GetController()->StopMovement();
         GetController()->UnPossess(); 
+    }
+
+    if (CharacterStats)
+    {
+        SpawnParticle(CharacterStats->DeathEffect, GetActorLocation());
     }
 
     float DeathDuration = 0.6f; 
@@ -586,6 +613,21 @@ void ACPP_BaseCharacter::CastFireball()
     bCanCastSpell = false;
     GetWorldTimerManager().SetTimer(SpellCooldownTimer, this, &ACPP_BaseCharacter::ResetSpellCooldown, FireballCooldown, false);
 
+    if (CharacterStats && CharacterStats->AttackEffect)
+    {
+        FRotator EffectRotation = FRotator::ZeroRotator;
+
+        if (GetSprite()->GetRelativeScale3D().X > 0.0f)
+        {
+            EffectRotation.Yaw = 90.0f;
+        }
+        else {
+            EffectRotation.Yaw = -90.0f;
+        }
+
+        SpawnParticle(CharacterStats->AttackEffect, GetActorLocation(), EffectRotation);
+    }
+    
     int32 Index = FMath::Clamp(Level - 1, 0, FireballLevels.Num() - 1);
 
     //cast flipbook to be added
@@ -623,4 +665,27 @@ void ACPP_BaseCharacter::ResetSpellCooldown()
 {
     bCanCastSpell = true;
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("Spell Ready!"));
+}
+
+void ACPP_BaseCharacter::ShowNotification(FString Text, FLinearColor Color)
+{
+    OnNotificationReceived.Broadcast(FText::FromString(Text), Color);
+}
+
+void ACPP_BaseCharacter::SpawnParticle(UNiagaraSystem* Effect, FVector Location, FRotator Rotation)
+{
+    if (Effect)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+            GetWorld(),
+            Effect,
+            Location,
+            Rotation,
+            FVector(1.f), // Scale
+            true, // Auto Destroy
+            true, // Auto Activate
+            ENCPoolMethod::None,
+            true // PreCullCheck
+        );
+    }
 }

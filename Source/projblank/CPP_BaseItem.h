@@ -10,6 +10,7 @@
 
 class UPaperSpriteComponent;
 class USphereComponent;
+class UWidgetComponent;
 
 UCLASS()
 class PROJBLANK_API ACPP_BaseItem : public AActor, public IInteractableInterface
@@ -53,6 +54,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Data | Ability")
         int32 MaxAbilityLevel = 3;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+        UWidgetComponent* LabelWidget;
 
 public:
     virtual void Interact_Implementation(AActor* Interactor) override;

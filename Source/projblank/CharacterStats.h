@@ -7,6 +7,7 @@
 #include "CharacterStats.generated.h"
 
 class ACPP_BaseItem;
+class UNiagaraSystem;
 
 USTRUCT(BlueprintType)
 struct FLootItem
@@ -138,4 +139,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
         TArray<FLootItem> LootTable;
 
+    //vfx
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | VFX")
+        UNiagaraSystem* AttackEffect;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | VFX")
+        UNiagaraSystem* HitEffect;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | VFX")
+        UNiagaraSystem* DeathEffect;
 };

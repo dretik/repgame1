@@ -10,9 +10,12 @@
 #include "CharacterStats.h"
 #include "InteractableInterface.h"
 #include "GameplayTagContainer.h"
+#include "NiagaraSystem.h"
 #include "CPP_BaseCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, NewHealth, float, MaxHealth);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNotificationReceived, FText, Message, FLinearColor, Color);
 
 class UPaperFlipbook;
 
@@ -56,6 +59,11 @@ public:
     //delegate object
     UPROPERTY(BlueprintAssignable, Category = "Events")
         FOnHealthChangedSignature OnHealthChanged;
+
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+        FOnNotificationReceived OnNotificationReceived;
+
+    void ShowNotification(FString Text, FLinearColor Color = FLinearColor::White);
 
     UFUNCTION(BlueprintCallable, Category = "Abilities")
         int32 GrantAbility(FGameplayTag AbilityTag, int32 MaxLevel);
@@ -149,6 +157,9 @@ protected:
 
     UFUNCTION(BlueprintNativeEvent, Category = "Health")
         void OnDeath();
+
+    void SpawnParticle(UNiagaraSystem* Effect, FVector Location, 
+        FRotator Rotation = FRotator::ZeroRotator);
 
 	//movement
 	void MoveRight(float Value);

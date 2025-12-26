@@ -8,6 +8,8 @@
 #include "PaperFlipbook.h"
 #include "DrawDebugHelpers.h"
 #include "CPP_BaseCharacter.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h" 
 
 ACPP_Projectile::ACPP_Projectile()
 {
@@ -60,6 +62,7 @@ void ACPP_Projectile::SwitchToFlyLoop()
     {
         ProjectileSprite->SetFlipbook(FlyAnim);
         ProjectileSprite->SetLooping(true);
+        ProjectileSprite->Play();
     }
 }
 
@@ -73,13 +76,13 @@ void ACPP_Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 
         MovementComp->StopMovementImmediately();
         CollisionComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-        AttachToActor(OtherActor, FAttachmentTransformRules::KeepWorldTransform);
 
         float DestroyDelay = 0.1f;
         if (HitAnim)
         {
-            ProjectileSprite->SetFlipbook(HitAnim);
             ProjectileSprite->SetLooping(false);
+            ProjectileSprite->SetFlipbook(HitAnim);
+            ProjectileSprite->PlayFromStart();
             DestroyDelay = HitAnim->GetTotalDuration();
         }
 
@@ -91,6 +94,11 @@ void ACPP_Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
         TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
         ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
         ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+
+        if (ExplosionEffect)
+        {
+            UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
+        }
 
         bool bResult = UKismetSystemLibrary::SphereOverlapActors(
             GetWorld(),
