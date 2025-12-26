@@ -50,6 +50,8 @@ ACPP_BaseItem::ACPP_BaseItem()
     LabelWidget->SetDrawAtDesiredSize(true);
     LabelWidget->SetRelativeLocation(FVector(0.f, 0.f, 50.f));
     LabelWidget->SetVisibility(false);
+
+    ItemName = NSLOCTEXT("Items", "DefaultItemName", "Unknown Item");
 }
 
 // Called when the game starts or when spawned
@@ -65,7 +67,7 @@ void ACPP_BaseItem::BeginPlay()
     FTimerHandle EnableTimer;
     GetWorldTimerManager().SetTimer(EnableTimer, this, &ACPP_BaseItem::EnablePhysicsCollision, 0.5f, false);
 
-    if (!ItemName.IsNone())
+    if (!ItemName.IsEmpty())
     {
         LabelWidget->SetVisibility(true);
 
@@ -78,7 +80,7 @@ void ACPP_BaseItem::BeginPlay()
             // —амый простой способ без создани€ C++ класса дл€ виджета - 
             // использовать Property Reflection (найти переменную по имени).
 
-            FText NameText = FText::FromName(ItemName);
+            FText NameText = ItemName;
 
             FProperty* Prop = WidgetObj->GetClass()->FindPropertyByName(FName("LabelName"));
             if (FStrProperty* StrProp = CastField<FStrProperty>(Prop))
@@ -126,8 +128,9 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
             BaseChar->GrantAbility(AbilityToUnlock, MaxAbilityLevel);
         }
 
-        FString PickupMsg = FString::Printf(TEXT("Picked up: %s"), *ItemName.ToString());
-        BaseChar->ShowNotification(PickupMsg, FLinearColor::Green);
+        FText FormatPattern = NSLOCTEXT("HUD", "PickupMessage", "Picked up: {0}");
+        FText FinalMsg = FText::Format(FormatPattern, ItemName);
+        BaseChar->ShowNotification(FinalMsg, FLinearColor::Green);
 
         Destroy();
     }

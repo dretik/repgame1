@@ -28,9 +28,9 @@ protected:
 		int32 AmountToRemove = 5;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thief Settings")
-		FString SuccessMessage = "You lost items!";
+		FText SuccessMessage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thief Settings")
-		FString FailMessage = "Not enough items to pay!";
+		FText FailMessage;
 
 };

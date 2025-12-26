@@ -62,7 +62,8 @@ public:
     virtual void Interact_Implementation(AActor* Interactor) override;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data")
-        FName ItemName;
+        FText ItemName;
+        //FName ItemName;
 
     //ui getters
     UTexture2D* GetIcon() const { return ItemIcon; }

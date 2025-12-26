@@ -9,7 +9,9 @@
 ACPP_Item_Thief::ACPP_Item_Thief()
 {
 	bIsInventoryItem = false;
-	ItemName = FName("Thief Item");
+	SuccessMessage = NSLOCTEXT("Shop", "DefaultSuccess", "Payed items!");
+	FailMessage = NSLOCTEXT("Shop", "DefaultFail", "Not enough items to pay!");
+	ItemName = NSLOCTEXT("Items", "ThiefItemName", "Thief Item");
 }
 
 void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
@@ -27,7 +29,7 @@ void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
 		{
 			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, SuccessMessage);
+				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, SuccessMessage.ToString());
 			}
 			// soundcue can be played
 			for (const FStatModifier& Mod : StatModifiers)
@@ -38,7 +40,10 @@ void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
 			{
 				InventoryComp->AddItem(this->GetClass(), 1);
 			}
-			FString Msg = FString::Printf(TEXT("%s purchased!"), *ItemName.ToString());
+			FText Msg = FText::Format(
+				NSLOCTEXT("HUD", "PickupMessage", "Picked up: {0}"),
+				ItemName
+			);
 			Player->ShowNotification(Msg, FColor::Yellow);
 
 			Destroy();
@@ -47,7 +52,7 @@ void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
 		{
 			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, FailMessage);
+				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, FailMessage.ToString());
 			}
 			// if not enough items logic 
 			// Player->TakeDamage(10.0f, ...); 

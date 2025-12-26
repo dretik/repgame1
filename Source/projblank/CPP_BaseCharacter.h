@@ -63,7 +63,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Events")
         FOnNotificationReceived OnNotificationReceived;
 
-    void ShowNotification(FString Text, FLinearColor Color = FLinearColor::White);
+    void ShowNotification(FText Text, FLinearColor Color = FLinearColor::White);
 
     UFUNCTION(BlueprintCallable, Category = "Abilities")
         int32 GrantAbility(FGameplayTag AbilityTag, int32 MaxLevel);

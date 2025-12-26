@@ -667,9 +667,9 @@ void ACPP_BaseCharacter::ResetSpellCooldown()
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("Spell Ready!"));
 }
 
-void ACPP_BaseCharacter::ShowNotification(FString Text, FLinearColor Color)
+void ACPP_BaseCharacter::ShowNotification(FText Text, FLinearColor Color)
 {
-    OnNotificationReceived.Broadcast(FText::FromString(Text), Color);
+    OnNotificationReceived.Broadcast(Text, Color);
 }
 
 void ACPP_BaseCharacter::SpawnParticle(UNiagaraSystem* Effect, FVector Location, FRotator Rotation)
