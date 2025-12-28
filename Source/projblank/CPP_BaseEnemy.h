@@ -22,7 +22,7 @@ public:
     virtual void Tick(float DeltaTime) override;
 
     UFUNCTION(BlueprintCallable, Category = "AI | Attack")
-        void AttackPlayer();
+        virtual void AttackPlayer();
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
@@ -33,9 +33,17 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Attack")
         UPaperFlipbook* EnemyAttackFlipbook;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
+        float StoppingDistance = 80.0f;
+
     virtual void OnDeath_Implementation() override;
 
     void SpawnLoot();
+    void SpawnCoins();
+
+    virtual void FinishAttack();
+
+    void PerformHitTrace();
 
 private:
     UFUNCTION()
@@ -44,6 +52,4 @@ private:
     virtual void BeginPlay() override;
     virtual bool CanDealDamageTo(AActor* TargetActor) const override;
 
-    void PerformHitTrace();
-    void FinishAttack();
 };

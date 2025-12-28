@@ -17,6 +17,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, N
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNotificationReceived, FText, Message, FLinearColor, Color);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCoinsUpdated, int32, NewCount);
+
 class UPaperFlipbook;
 
 UENUM(BlueprintType)
@@ -76,6 +78,13 @@ public:
     void CastFireball();
 
     virtual bool CanDealDamageTo(AActor* TargetActor) const;
+
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+        FOnCoinsUpdated OnCoinsUpdated;
+
+    UFUNCTION(BlueprintCallable, Category = "Economy")
+        void AddCoins(int32 Amount);
+    int32 GetCoinCount() const { return CoinCount; }
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
         UCharacterStats* CharacterStats;
@@ -160,6 +169,13 @@ protected:
 
     void SpawnParticle(UNiagaraSystem* Effect, FVector Location, 
         FRotator Rotation = FRotator::ZeroRotator);
+
+    //currency economics
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Economy")
+        int32 CoinCount = 0;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Economy")
+        float CoinMultiplier = 1.0f;
 
 	//movement
 	void MoveRight(float Value);

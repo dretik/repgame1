@@ -4,6 +4,7 @@
 #include "CPP_Item_Thief.h"
 #include "CPP_BaseCharacter.h"
 #include "CPP_InventoryComponent.h"
+#include "CPP_Item_Currency.h"
 #include "Engine/Engine.h"
 
 ACPP_Item_Thief::ACPP_Item_Thief()
@@ -21,9 +22,22 @@ void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
 
 	UCPP_InventoryComponent* InventoryComp = Player->FindComponentByClass<UCPP_InventoryComponent>();
 
+	bool bSuccess = false;
+	
 	if (InventoryComp && ItemToRemove)
 	{
-		bool bSuccess = InventoryComp->RemoveItem(ItemToRemove, AmountToRemove);
+		if (ItemToRemove->IsChildOf(ACPP_Item_Currency::StaticClass()))
+		{
+			if (Player->GetCoinCount() >= AmountToRemove)
+			{
+				Player->AddCoins(-AmountToRemove);
+				bSuccess = true;
+			}
+		}
+		else if (InventoryComp)
+		{
+			bSuccess = InventoryComp->RemoveItem(ItemToRemove, AmountToRemove);
+		}
 
 		if (bSuccess)
 		{
@@ -36,7 +50,7 @@ void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
 			{
 				Player->ApplyStatModifier(Mod);
 			}
-			if (bIsInventoryItem)
+			if (bIsInventoryItem && InventoryComp)
 			{
 				InventoryComp->AddItem(this->GetClass(), 1);
 			}

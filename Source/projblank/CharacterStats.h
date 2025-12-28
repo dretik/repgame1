@@ -8,6 +8,7 @@
 
 class ACPP_BaseItem;
 class UNiagaraSystem;
+class ACPP_Item_Currency;
 
 USTRUCT(BlueprintType)
 struct FLootItem
@@ -148,4 +149,12 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | VFX")
         UNiagaraSystem* DeathEffect;
+
+    //coins
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        TSubclassOf<ACPP_Item_Currency> CoinClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        int32 MinCoins = 5;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        int32 MaxCoins = 15;
 };

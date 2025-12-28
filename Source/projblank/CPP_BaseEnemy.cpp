@@ -9,6 +9,7 @@
 #include "CPP_BaseItem.h"
 #include "CharacterStats.h"
 #include "Kismet/GameplayStatics.h"
+#include "CPP_Item_Currency.h"
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -41,6 +42,7 @@ void ACPP_BaseEnemy::BeginPlay()
     {
         PawnSensingComp->OnSeePawn.AddDynamic(this, &ACPP_BaseEnemy::OnPawnSeen);
     }
+
 }
 
 void ACPP_BaseEnemy::OnPawnSeen(APawn* SeenPawn)
@@ -48,9 +50,12 @@ void ACPP_BaseEnemy::OnPawnSeen(APawn* SeenPawn)
     if (SeenPawn == nullptr) return;
 
     AAIController* AIController = Cast<AAIController>(GetController());
-    if (AIController)
+
+    if (AIController && AIController->GetBlackboardComponent())
     {
         AIController->GetBlackboardComponent()->SetValueAsObject("TargetPlayer", SeenPawn);
+
+        AIController->GetBlackboardComponent()->SetValueAsFloat("StoppingDistance", StoppingDistance);
     }
 }
 
@@ -116,6 +121,8 @@ void ACPP_BaseEnemy::PerformHitTrace()
 void ACPP_BaseEnemy::FinishAttack()
 {
     bIsAttacking = false;
+    GetSprite()->SetLooping(true);
+    GetSprite()->Play();
 }
 
 bool ACPP_BaseEnemy::CanDealDamageTo(AActor* TargetActor) const
@@ -136,6 +143,7 @@ bool ACPP_BaseEnemy::CanDealDamageTo(AActor* TargetActor) const
 void ACPP_BaseEnemy::OnDeath_Implementation()
 {
     SpawnLoot();
+    SpawnCoins();
 
     Super::OnDeath_Implementation();
 }
@@ -241,6 +249,42 @@ void ACPP_BaseEnemy::SpawnLoot()
                     RootPrim->AddImpulse(ImpulseDir * ImpulseStrength, NAME_None, true);
                 }
             }
+        }
+    }
+}
+
+void ACPP_BaseEnemy::SpawnCoins()
+{
+    if (!CharacterStats || !CharacterStats->CoinClass) return;
+
+    int32 TotalValue = FMath::RandRange(CharacterStats->MinCoins, CharacterStats->MaxCoins);
+    if (TotalValue <= 0) return;
+
+    FVector SpawnLocation = GetActorLocation();
+    SpawnLocation.Z += 40.0f;
+
+    SpawnLocation.X += FMath::RandRange(-20.f, 20.f);
+    SpawnLocation.Y += FMath::RandRange(-20.f, 20.f);
+
+    FActorSpawnParameters Params;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    ACPP_Item_Currency* DroppedCoin = GetWorld()->SpawnActor<ACPP_Item_Currency>(
+        CharacterStats->CoinClass,
+        SpawnLocation,
+        FRotator::ZeroRotator,
+        Params
+        );
+
+    if (DroppedCoin)
+    {
+        DroppedCoin->SetValue(TotalValue);
+
+        UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedCoin->GetRootComponent());
+        if (RootPrim)
+        {
+            FVector Impulse = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), 1.0f);
+            RootPrim->AddImpulse(Impulse.GetSafeNormal() * 400.0f, NAME_None, true);
         }
     }
 }

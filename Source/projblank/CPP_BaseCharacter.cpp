@@ -469,6 +469,7 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
     const FGameplayTag Tag_HealthMax = FGameplayTag::RequestGameplayTag(FName("Stats.HealthMax"));
     const FGameplayTag Tag_Damage = FGameplayTag::RequestGameplayTag(FName("Stats.Damage"));
     const FGameplayTag Tag_Speed = FGameplayTag::RequestGameplayTag(FName("Stats.Speed"));
+    const FGameplayTag Tag_CoinMult = FGameplayTag::RequestGameplayTag(FName("Stats.CoinMultiplier"));
 
     if (Modifier.StatTag.MatchesTagExact(Tag_Health))
     {
@@ -496,6 +497,19 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
             StatToModify = &GetCharacterMovement()->MaxWalkSpeed;
         }
     }
+    //else if (Modifier.StatTag.MatchesTagExact(Tag_CoinMult))
+    //{
+        //if (Modifier.bIsMultiplier)
+        //{
+            //StatToModify = &CoinMultiplier;
+        //}
+        //else
+        //{
+        //    StatToModify = &CoinCount;
+        //}
+        
+    //}
+
 
     if (StatToModify)
     {
@@ -540,7 +554,40 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
                 if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
                     FString::Printf(TEXT("Base Damage Increased: %f"), CurrentBaseDamage));
             }
-        }   
+        }  
+        else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.CoinMultiplier"))))
+        {
+            if (Modifier.bIsMultiplier)
+            {
+                CoinMultiplier *= Modifier.Value;
+                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow,
+                    FString::Printf(TEXT("Coin Multiplier is now: %f"), CoinMultiplier));
+            }
+            else
+            {
+                CoinMultiplier += Modifier.Value;
+                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow,
+                    FString::Printf(TEXT("Coin Multiplier is now: %f"), CoinMultiplier));
+            }
+            return;
+        }
+        else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Gold"))))
+        {
+
+            if (Modifier.bIsMultiplier)
+            {
+                int32 CurrentGold = CoinCount;
+                int32 BonusGold = FMath::FloorToInt(CurrentGold * (Modifier.Value - 1.0f));
+                AddCoins(BonusGold);
+            }
+            else
+            {
+                int32 CoinsToAdd = FMath::RoundToInt(Modifier.Value);
+                AddCoins(CoinsToAdd);
+            }
+
+            return;
+        }
 
         if (GEngine)
             GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
@@ -688,4 +735,16 @@ void ACPP_BaseCharacter::SpawnParticle(UNiagaraSystem* Effect, FVector Location,
             true // PreCullCheck
         );
     }
+}
+
+void ACPP_BaseCharacter::AddCoins(int32 Amount)
+{
+    int32 FinalAmount = FMath::FloorToInt(Amount * CoinMultiplier);
+
+    CoinCount += FinalAmount;
+
+    OnCoinsUpdated.Broadcast(CoinCount);
+
+    if (GEngine)
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Coins: %d (+%d)"), CoinCount, FinalAmount));
 }

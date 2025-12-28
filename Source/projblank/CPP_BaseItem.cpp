@@ -105,8 +105,6 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
     if (BaseChar && BaseChar->IsPlayerControlled())
     {
 
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Picked up: %s"), *ItemName.ToString()));
-
         for (const FStatModifier& Mod : StatModifiers)
         {
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("ITEM: Calling ApplyStatModifier..."));
@@ -128,9 +126,11 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
             BaseChar->GrantAbility(AbilityToUnlock, MaxAbilityLevel);
         }
 
-        FText FormatPattern = NSLOCTEXT("HUD", "PickupMessage", "Picked up: {0}");
-        FText FinalMsg = FText::Format(FormatPattern, ItemName);
-        BaseChar->ShowNotification(FinalMsg, FLinearColor::Green);
+        FText Msg = FText::Format(
+            NSLOCTEXT("HUD", "Pickup", "Picked up: {0}"),
+            ItemName
+        );
+        BaseChar->ShowNotification(Msg, FLinearColor::Green);
 
         Destroy();
     }
