@@ -40,6 +40,9 @@ protected:
 
     void SpawnLoot();
     void SpawnCoins();
+    void SpawnXP();
+
+    float EnemyLevelDamageMultiplier = 1.0f;
 
     virtual void FinishAttack();
 

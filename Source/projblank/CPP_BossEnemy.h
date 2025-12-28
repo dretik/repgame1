@@ -74,4 +74,6 @@ protected:
 
     FTimerHandle SkyfallTimer;
     int32 MeteorsToSpawn = 0;
+
+    float CurrentSkyfallDamage = 20.0f;
 };

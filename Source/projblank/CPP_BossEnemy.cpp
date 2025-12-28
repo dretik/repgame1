@@ -57,13 +57,15 @@ void ACPP_BossEnemy::ExecuteAttack(const FBossAttackConfig& Config)
         GetSprite()->PlayFromStart();
     }
 
+    float ScaledDamage = Config.Damage * EnemyLevelDamageMultiplier;
+
     switch (Config.AttackType)
     {
     case EBossAttackType::Melee:
     {
         FTimerHandle HitTimer;
-        GetWorldTimerManager().SetTimer(HitTimer, [this, Config]() {
-            DoMeleeAttack(Config.Damage);
+        GetWorldTimerManager().SetTimer(HitTimer, [this, ScaledDamage]() {
+            DoMeleeAttack(ScaledDamage);
             }, 0.4f, false);
 
         FTimerHandle FinishTimer;
@@ -73,7 +75,7 @@ void ACPP_BossEnemy::ExecuteAttack(const FBossAttackConfig& Config)
 
     case EBossAttackType::Dash:
     {
-        DoDashAttack(Config.Damage);
+        DoDashAttack(ScaledDamage);
         FTimerHandle FinishTimer;
         GetWorldTimerManager().SetTimer(FinishTimer, this, &ACPP_BossEnemy::FinishAttack, Config.Duration, false);
     }
@@ -81,6 +83,8 @@ void ACPP_BossEnemy::ExecuteAttack(const FBossAttackConfig& Config)
 
     case EBossAttackType::Skyfall:
     {
+        CurrentSkyfallDamage = ScaledDamage;
+
         CurrentLoopAnim = Config.AttackAnimLoop;
 
         float IntroDuration = 0.5f;
@@ -183,8 +187,14 @@ void ACPP_BossEnemy::SpawnSingleMeteor()
         Params.Owner = this;
         Params.Instigator = GetInstigator();
 
-        GetWorld()->SpawnActor<AActor>(SkyfallProjectileClass, SpawnLoc, SpawnRot, Params);
-    
+        AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(SkyfallProjectileClass, SpawnLoc, SpawnRot, Params);
+        
+        ACPP_Projectile* Meteor = Cast<ACPP_Projectile>(SpawnedActor);
+        if (Meteor)
+        {
+            Meteor->SetDamage(CurrentSkyfallDamage);
+        }
+
         if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Meteor Spawned!"));
     }
 }

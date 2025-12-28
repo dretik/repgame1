@@ -10,6 +10,7 @@
 #include "CharacterStats.h"
 #include "Kismet/GameplayStatics.h"
 #include "CPP_Item_Currency.h"
+#include "CPP_Item_XP.h"
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -38,11 +39,29 @@ void ACPP_BaseEnemy::BeginPlay()
 {
     Super::BeginPlay();
 
+    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+
     if (PawnSensingComp)
     {
         PawnSensingComp->OnSeePawn.AddDynamic(this, &ACPP_BaseEnemy::OnPawnSeen);
     }
+    if (Player && CharacterStats)
+    {
+        int32 PlayerLevel = Player->GetCharacterLevel();
 
+        if (PlayerLevel > 1)
+        {
+            float HealthScale = 1.0f + ((PlayerLevel - 1) * CharacterStats->HealthScalingFactor);
+            float NewMaxHealth = CharacterStats->MaxHealth * HealthScale;
+
+            CurrentMaxHealth = NewMaxHealth; 
+            CurrentHealth = NewMaxHealth;    
+
+            EnemyLevelDamageMultiplier = 1.0f + ((PlayerLevel - 1) * CharacterStats->DamageScalingFactor);
+
+        }
+    }
+    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
 }
 
 void ACPP_BaseEnemy::OnPawnSeen(APawn* SeenPawn)
@@ -112,10 +131,12 @@ void ACPP_BaseEnemy::PerformHitTrace()
 {
     if (!CharacterStats) return;
 
+    float ScaledDamage = CharacterStats->LightAttackDamage * EnemyLevelDamageMultiplier;
+
     PerformAttackTrace(
         CharacterStats->LightAttackRange,
         CharacterStats->LightAttackBoxSize,
-        CharacterStats->LightAttackDamage);
+        ScaledDamage);
 }
 
 void ACPP_BaseEnemy::FinishAttack()
@@ -144,6 +165,7 @@ void ACPP_BaseEnemy::OnDeath_Implementation()
 {
     SpawnLoot();
     SpawnCoins();
+    SpawnXP();
 
     Super::OnDeath_Implementation();
 }
@@ -285,6 +307,57 @@ void ACPP_BaseEnemy::SpawnCoins()
         {
             FVector Impulse = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), 1.0f);
             RootPrim->AddImpulse(Impulse.GetSafeNormal() * 400.0f, NAME_None, true);
+        }
+    }
+}
+
+void ACPP_BaseEnemy::SpawnXP()
+{
+    if (!CharacterStats || !CharacterStats->XPItemClass) return;
+
+    float BaseAmount = (float)FMath::RandRange(CharacterStats->MinXP, CharacterStats->MaxXP);
+
+    float XPScaler = 1.0f;
+    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    if (Player)
+    {
+        int32 PlayerLevel = Player->GetCharacterLevel();
+        if (PlayerLevel > 1)
+        {
+            XPScaler = 1.0f + ((PlayerLevel - 1) * CharacterStats->XPScalingFactor);
+        }
+    }
+
+    int32 FinalXPAmount = FMath::RoundToInt(BaseAmount * XPScaler);
+
+    if (FinalXPAmount <= 0) return;
+
+    FVector SpawnLocation = GetActorLocation();
+    SpawnLocation.Z += 50.0f;
+    SpawnLocation.X += FMath::RandRange(-30.f, 30.f);
+    SpawnLocation.Y += FMath::RandRange(-30.f, 30.f);
+
+    FActorSpawnParameters Params;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    ACPP_Item_XP* DroppedXP = GetWorld()->SpawnActor<ACPP_Item_XP>(
+        CharacterStats->XPItemClass,
+        SpawnLocation,
+        FRotator::ZeroRotator,
+        Params
+        );
+
+    if (DroppedXP)
+    {
+        // 4. Устанавливаем значение
+        DroppedXP->SetValue(FinalXPAmount);
+
+        // 5. Импульс (чуть сильнее вверх, чем монеты)
+        UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedXP->GetRootComponent());
+        if (RootPrim)
+        {
+            FVector Impulse = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), 1.5f); // Z выше
+            RootPrim->AddImpulse(Impulse.GetSafeNormal() * 450.0f, NAME_None, true);
         }
     }
 }

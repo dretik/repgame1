@@ -21,6 +21,8 @@ public:
 	// Sets default values for this actor's properties
 	ACPP_Projectile();
 
+    void SetDamage(float NewDamage) { Damage = NewDamage; }
+
 protected:
     //components
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

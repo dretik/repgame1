@@ -5,6 +5,7 @@
 #include "CPP_BaseCharacter.h"
 #include "CPP_InventoryComponent.h"
 #include "CPP_Item_Currency.h"
+#include "CPP_Item_XP.h"
 #include "Engine/Engine.h"
 
 ACPP_Item_Thief::ACPP_Item_Thief()
@@ -26,12 +27,25 @@ void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
 	
 	if (InventoryComp && ItemToRemove)
 	{
-		if (ItemToRemove->IsChildOf(ACPP_Item_Currency::StaticClass()))
+		if (ItemToRemove->IsChildOf(ACPP_Item_Currency::StaticClass())
+			&& !ItemToRemove->IsChildOf(ACPP_Item_XP::StaticClass()))
 		{
 			if (Player->GetCoinCount() >= AmountToRemove)
 			{
 				Player->AddCoins(-AmountToRemove);
 				bSuccess = true;
+			}
+		}
+		else if (ItemToRemove->IsChildOf(ACPP_Item_XP::StaticClass()))
+		{
+			if (Player->GetCurrentXP() >= (float)AmountToRemove)
+			{
+				Player->RemoveExperience((float)AmountToRemove);
+				bSuccess = true;
+			}
+			else
+			{
+				//message
 			}
 		}
 		else if (InventoryComp)
@@ -55,7 +69,7 @@ void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
 				InventoryComp->AddItem(this->GetClass(), 1);
 			}
 			FText Msg = FText::Format(
-				NSLOCTEXT("HUD", "PickupMessage", "Picked up: {0}"),
+				NSLOCTEXT("Shop", "PurchaseMsg", "Used: {0}"),
 				ItemName
 			);
 			Player->ShowNotification(Msg, FColor::Yellow);

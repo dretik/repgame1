@@ -9,6 +9,7 @@
 class ACPP_BaseItem;
 class UNiagaraSystem;
 class ACPP_Item_Currency;
+class ACPP_Item_XP;
 
 USTRUCT(BlueprintType)
 struct FLootItem
@@ -157,4 +158,31 @@ public:
         int32 MinCoins = 5;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
         int32 MaxCoins = 15;
+
+    //xp
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        TSubclassOf<ACPP_Item_XP> XPItemClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        int32 MinXP = 10;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        int32 MaxXP = 20;
+
+    //scaling
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Scaling")
+        float HealthScalingFactor = 0.1f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Scaling")
+        float DamageScalingFactor = 0.05f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Scaling")
+        float XPScalingFactor = 0.2f;
+
+    //player scaling
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Player Progression")
+        float HealthGrowthPerLevel = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Player Progression")
+        float DamageGrowthPerLevel = 2.0f;
 };

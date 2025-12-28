@@ -71,14 +71,9 @@ void ACPP_BaseItem::BeginPlay()
     {
         LabelWidget->SetVisibility(true);
 
-        // Попытка передать текст в виджет (C++ -> BP Widget)
-        // Так как мы не создавали C++ класс для виджета, сделаем это через Cast
         UUserWidget* WidgetObj = LabelWidget->GetUserWidgetObject();
         if (WidgetObj)
         {
-            // Здесь есть хитрость: у базового UUserWidget нет метода SetText.
-            // Самый простой способ без создания C++ класса для виджета - 
-            // использовать Property Reflection (найти переменную по имени).
 
             FText NameText = ItemName;
 
@@ -91,9 +86,6 @@ void ACPP_BaseItem::BeginPlay()
             {
                 TxtProp->SetPropertyValue_InContainer(WidgetObj, NameText);
             }
-
-            // Чтобы текст обновился, иногда нужно принудительно вызвать Construct заново или кастомный ивент.
-            // Но проще всего сделать это в BP_BaseItem (см. ниже).
         }
     }
 }

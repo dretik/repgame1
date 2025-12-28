@@ -11,6 +11,7 @@
 #include "CPP_Projectile.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
+#include "CPP_DamageTextActor.h"
 #include "Engine/Engine.h"
 
 
@@ -342,6 +343,25 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
     }
     
     const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+    if (ActualDamage > 0.0f && DamageTextClass)
+    {
+        FVector SpawnLoc = GetActorLocation();
+        SpawnLoc.Z += FMath::RandRange(50.f, 70.f);
+        SpawnLoc.X += FMath::RandRange(-20.f, 20.f);
+        SpawnLoc.Y += FMath::RandRange(-20.f, 20.f);
+
+        ACPP_DamageTextActor* DmgText = GetWorld()->SpawnActor<ACPP_DamageTextActor>(
+            DamageTextClass,
+            SpawnLoc,
+            FRotator::ZeroRotator
+            );
+
+        if (DmgText)
+        {
+            DmgText->UpdateDamageText(ActualDamage);
+        }
+    }
 
     CurrentHealth -= ActualDamage;
 
@@ -703,7 +723,15 @@ void ACPP_BaseCharacter::CastFireball()
             SpawnParams.Owner = this;
             SpawnParams.Instigator = GetInstigator();
 
-            GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+            AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+
+            ACPP_Projectile* Fireball = Cast<ACPP_Projectile>(SpawnedActor);
+            if (Fireball)
+            {
+                float MagicDamage = CurrentBaseDamage * CurrentDamageMultiplier;
+
+                Fireball->SetDamage(MagicDamage);
+            }
         }
     }
 }
@@ -747,4 +775,66 @@ void ACPP_BaseCharacter::AddCoins(int32 Amount)
 
     if (GEngine)
         GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Coins: %d (+%d)"), CoinCount, FinalAmount));
+}
+
+void ACPP_BaseCharacter::AddExperience(float Amount)
+{
+    CurrentXP += Amount;
+
+    while (CurrentXP >= XPToNextLevel)
+    {
+        CurrentXP -= XPToNextLevel;
+        LevelUp();
+    }
+
+    OnXPUpdated.Broadcast(CurrentXP, XPToNextLevel, CharacterLevel);
+
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Purple, FString::Printf(TEXT("XP: %.0f / %.0f"), CurrentXP, XPToNextLevel));
+}
+
+void ACPP_BaseCharacter::LevelUp()
+{
+    CharacterLevel++;
+
+    XPToNextLevel *= LevelUpMultiplier;
+
+    CurrentHealth = CurrentMaxHealth;
+    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("LEVEL UP! Level: %d"), CharacterLevel));
+
+    if (CharacterStats)
+    {
+        float HPBonus = CharacterStats->HealthGrowthPerLevel;
+        CurrentMaxHealth += HPBonus;
+
+        float DmgBonus = CharacterStats->DamageGrowthPerLevel;
+        CurrentBaseDamage += DmgBonus;
+
+        CurrentHealth = CurrentMaxHealth;
+
+        OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+
+
+        FText LevelUpMsg = FText::Format(
+            NSLOCTEXT("HUD", "LevelUpDetail", "Level Up! HP +{0}, Dmg +{1}"),
+            FText::AsNumber((int32)HPBonus),
+            FText::AsNumber((int32)DmgBonus)
+        );
+        ShowNotification(LevelUpMsg, FColor::Yellow);
+    }
+
+    //sound or effect to be played
+}
+
+void ACPP_BaseCharacter::RemoveExperience(float Amount)
+{
+    CurrentXP -= Amount;
+
+    if (CurrentXP < 0.0f) CurrentXP = 0.0f;
+
+    OnXPUpdated.Broadcast(CurrentXP, XPToNextLevel, CharacterLevel);
+
+    if (GEngine)
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Purple, FString::Printf(TEXT("XP Spent: -%.0f"), Amount));
 }

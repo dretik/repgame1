@@ -18,6 +18,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, N
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNotificationReceived, FText, Message, FLinearColor, Color);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCoinsUpdated, int32, NewCount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnXPUpdated, float, CurrentXP, float, MaxXP, int32, Level);
 
 class UPaperFlipbook;
 
@@ -79,12 +80,30 @@ public:
 
     virtual bool CanDealDamageTo(AActor* TargetActor) const;
 
+    //coins
     UPROPERTY(BlueprintAssignable, Category = "Events")
         FOnCoinsUpdated OnCoinsUpdated;
 
     UFUNCTION(BlueprintCallable, Category = "Economy")
         void AddCoins(int32 Amount);
     int32 GetCoinCount() const { return CoinCount; }
+
+    //xp
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+        FOnXPUpdated OnXPUpdated;
+
+    UFUNCTION(BlueprintCallable, Category = "Progression")
+        int32 GetCharacterLevel() const { return CharacterLevel; }
+
+    UFUNCTION(BlueprintCallable, Category = "Progression")
+        void AddExperience(float Amount);
+
+    UFUNCTION(BlueprintCallable, Category = "Progression")
+        float GetCurrentXP() const { return CurrentXP; }
+
+    UFUNCTION(BlueprintCallable, Category = "Progression")
+        void RemoveExperience(float Amount);
+
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
         UCharacterStats* CharacterStats;
@@ -176,6 +195,24 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Economy")
         float CoinMultiplier = 1.0f;
+
+    //progression
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+        int32 CharacterLevel = 1;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+        float CurrentXP = 0.0f;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+        float XPToNextLevel = 100.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Progression")
+        float LevelUpMultiplier = 1.2f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Combat | UI")
+        TSubclassOf<class ACPP_DamageTextActor> DamageTextClass;
+
+    void LevelUp();
 
 	//movement
 	void MoveRight(float Value);
