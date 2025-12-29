@@ -7,6 +7,8 @@
 #include "CPP_InventoryComponent.h" 
 #include "PaperSpriteComponent.h"
 #include "Components/WidgetComponent.h"
+#include "CPP_SaveGame.h" 
+#include "CPP_GameInstance.h" 
 
 ACPP_BaseItem::ACPP_BaseItem()
 {
@@ -88,6 +90,25 @@ void ACPP_BaseItem::BeginPlay()
             }
         }
     }
+
+    UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
+    // Если мы загружаемся ИЛИ продолжаем играть
+    if (GI)
+    {
+        // Сначала грузим список из файла, если это загрузка
+        if (GI->bIsLoadingSave)
+        {
+            UCPP_SaveGame* LoadInst = Cast<UCPP_SaveGame>(UGameplayStatics::LoadGameFromSlot(GI->SaveSlotName, 0));
+            if (LoadInst) GI->CurrentSessionCollectedItems = LoadInst->CollectedItems;
+        }
+
+        // Проверяем, не собрали ли меня
+        if (GI->CurrentSessionCollectedItems.Contains(GetName()))
+        {
+            Destroy(); // Меня уже нет
+            return;
+        }
+    }
 }
 
 void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
@@ -123,6 +144,12 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
             ItemName
         );
         BaseChar->ShowNotification(Msg, FLinearColor::Green);
+
+        UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
+        if (GI)
+        {
+            GI->AddCollectedItem(GetName());
+        }
 
         Destroy();
     }

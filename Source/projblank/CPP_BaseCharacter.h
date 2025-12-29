@@ -104,6 +104,31 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Progression")
         void RemoveExperience(float Amount);
 
+    //GETTERS 
+    UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+        float GetCurrentHealth() const { return CurrentHealth; }
+
+    UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+        float GetCurrentMaxHealth() const { return CurrentMaxHealth; }
+
+    UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+        float GetCurrentBaseDamage() const { return CurrentBaseDamage; }
+
+    const TMap<FGameplayTag, int32>& GetAbilityLevels() const { return AbilityLevels; }
+
+    //SETTERS
+    UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+        void SetStatsFromSave(float SavedHealth, float SavedMaxHealth, float SavedBaseDamage, int32 SavedLevel, float SavedXP, int32 SavedCoins);
+
+    void SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities);
+
+    void SetLocationFromSave(FVector SavedLocation);
+
+    void SetCurrentHealth(float NewHealth);
+
+    UFUNCTION(BlueprintCallable, Category = "State")
+        bool IsDead() const { return bIsDead; }
+
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
         UCharacterStats* CharacterStats;

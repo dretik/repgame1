@@ -11,6 +11,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "CPP_Item_Currency.h"
 #include "CPP_Item_XP.h"
+#include "CPP_GameInstance.h"
+#include "CPP_SaveGame.h" 
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -62,6 +64,32 @@ void ACPP_BaseEnemy::BeginPlay()
         }
     }
     OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+    UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
+    if (GI && GI->bIsLoadingSave)
+    {
+        UCPP_SaveGame* LoadInst = Cast<UCPP_SaveGame>(UGameplayStatics::LoadGameFromSlot(GI->SaveSlotName, 0));
+
+        if (LoadInst)
+        {
+            FString MyID = GetName();
+
+            if (LoadInst->WorldEnemies.Contains(MyID))
+            {
+                FEnemySaveData Data = LoadInst->WorldEnemies[MyID];
+
+                if (Data.bIsDead)
+                {
+                    Destroy(); 
+                }
+                else
+                {
+                    CurrentHealth = Data.CurrentHealth;
+                    SetActorLocation(Data.Location);
+                    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+                }
+            }
+        }
+    }
 }
 
 void ACPP_BaseEnemy::OnPawnSeen(APawn* SeenPawn)

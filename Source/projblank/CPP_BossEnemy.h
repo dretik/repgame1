@@ -23,10 +23,10 @@ struct FBossAttackConfig
         EBossAttackType AttackType = EBossAttackType::Melee;
 
     UPROPERTY(EditAnywhere)
-        UPaperFlipbook* AttackAnim;
+        UPaperFlipbook* AttackAnim = nullptr;
 
     UPROPERTY(EditAnywhere)
-        UPaperFlipbook* AttackAnimLoop;
+        UPaperFlipbook* AttackAnimLoop = nullptr;
 
     UPROPERTY(EditAnywhere, meta = (ClampMin = "0.1"))
         float Weight = 1.0f;

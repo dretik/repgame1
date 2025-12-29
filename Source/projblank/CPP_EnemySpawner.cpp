@@ -7,6 +7,7 @@
 #include "Components/WidgetComponent.h"
 #include "Components/ArrowComponent.h"
 #include "CPP_BaseCharacter.h"
+#include "CPP_BaseEnemy.h" 
 
 // Sets default values
 ACPP_EnemySpawner::ACPP_EnemySpawner()
@@ -100,12 +101,21 @@ void ACPP_EnemySpawner::Interact_Implementation(AActor* Interactor)
         FActorSpawnParameters SpawnParams;
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-        GetWorld()->SpawnActor<AActor>(
+        AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
             SelectedClass,
             SpawnPoint->GetComponentLocation(),
             SpawnPoint->GetComponentRotation(),
             SpawnParams
             );
+
+        if (SpawnedActor)
+        {
+            ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(SpawnedActor);
+            if (Enemy)
+            {
+                Enemy->bIsDynamicallySpawned = true;
+            }
+        }
 
         if (GEngine)
             GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, FString::Printf(TEXT("Spawned: %s"), *SelectedClass->GetName()));

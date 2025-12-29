@@ -95,3 +95,13 @@ int32 UCPP_InventoryComponent::GetItemAmount(TSubclassOf<ACPP_BaseItem> ItemClas
     }
     return 0;
 }
+
+void UCPP_InventoryComponent::SetInventory(const TArray<FInventorySlot>& LoadedInventory)
+{
+    Inventory = LoadedInventory;
+
+    if (OnInventoryUpdated.IsBound())
+    {
+        OnInventoryUpdated.Broadcast(Inventory);
+    }
+}

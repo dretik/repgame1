@@ -24,6 +24,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "AI | Attack")
         virtual void AttackPlayer();
 
+    bool bIsDynamicallySpawned = false;
+
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
         UPawnSensingComponent* PawnSensingComp;

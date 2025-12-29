@@ -12,6 +12,8 @@
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "CPP_DamageTextActor.h"
+#include "CPP_GameInstance.h"
+#include "CPP_SaveGame.h"
 #include "Engine/Engine.h"
 
 
@@ -314,6 +316,24 @@ void ACPP_BaseCharacter::BeginPlay()
         CurrentBaseDamage = 10.0f;
     }
     OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+
+    UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
+
+    if (GI)
+    {
+        if (GI && GI->bIsLoadingSave && IsPlayerControlled())
+        {
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, TEXT("Loading Save Data..."));
+
+            GI->LoadGame(this);
+
+            GI->RespawnDynamicEnemies(GetWorld());
+        }
+        else
+        {
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, TEXT("New Game Started (Default Stats)"));
+        }
+    }
 }
 
 void ACPP_BaseCharacter::OnJumped_Implementation()
@@ -837,4 +857,38 @@ void ACPP_BaseCharacter::RemoveExperience(float Amount)
 
     if (GEngine)
         GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Purple, FString::Printf(TEXT("XP Spent: -%.0f"), Amount));
+}
+
+void ACPP_BaseCharacter::SetStatsFromSave(float SavedHealth, float SavedMaxHealth, float SavedBaseDamage, int32 SavedLevel, float SavedXP, int32 SavedCoins)
+{
+    CurrentHealth = SavedHealth;
+    CurrentMaxHealth = SavedMaxHealth;
+    CurrentBaseDamage = SavedBaseDamage;
+    CharacterLevel = SavedLevel;
+    CurrentXP = SavedXP;
+
+    CoinCount = SavedCoins;
+
+    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+    OnXPUpdated.Broadcast(CurrentXP, XPToNextLevel, CharacterLevel);
+    OnCoinsUpdated.Broadcast(CoinCount);
+
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Stats Restored from Save!"));
+}
+
+void ACPP_BaseCharacter::SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities)
+{
+    AbilityLevels = LoadedAbilities;
+}
+
+void ACPP_BaseCharacter::SetLocationFromSave(FVector SavedLocation)
+{
+    SetActorLocation(SavedLocation, false, nullptr, ETeleportType::TeleportPhysics);
+}
+
+void ACPP_BaseCharacter::SetCurrentHealth(float NewHealth)
+{
+    CurrentHealth = NewHealth;
+
+    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
 }

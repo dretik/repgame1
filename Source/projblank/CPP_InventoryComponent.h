@@ -53,4 +53,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 		int32 GetItemAmount(TSubclassOf<ACPP_BaseItem> ItemClass) const;
+
+	//saves getters
+	const TArray<FInventorySlot>& GetInventory() const { return Inventory; }
+
+	UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+		void SetInventory(const TArray<FInventorySlot>& LoadedInventory);
 };
