@@ -48,6 +48,13 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 		return;
 	}
 
+	ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(InstigatorCharacter);
+	if (!BaseChar) return;
+
+	int32 CurrentLevel = BaseChar->GetAbilityLevel(ActionTag);
+
+	if (CurrentLevel <= 0) CurrentLevel = 1;
+
 	FVector SpawnLocation = InstigatorCharacter->GetActorLocation();
 	SpawnLocation.Z += 20.0f;
 
@@ -77,7 +84,6 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 
 	// Настройка урона (берем из статов персонажа)
 	ACPP_Projectile* Proj = Cast<ACPP_Projectile>(SpawnedActor);
-	ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(InstigatorCharacter);
 
 	if (Proj && BaseChar)
 	{

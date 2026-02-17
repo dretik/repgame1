@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "CPP_BaseEnemy.h"
 #include "Perception/PawnSensingComponent.h" 
 #include "GameFramework/CharacterMovementComponent.h"
@@ -12,7 +10,9 @@
 #include "CPP_Item_Currency.h"
 #include "CPP_Item_XP.h"
 #include "CPP_GameInstance.h"
-#include "CPP_SaveGame.h" 
+#include "CPP_SaveGame.h"
+#include "CPP_Item_SkillUnlockable.h"
+#include "CPP_Action.h"   
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -245,16 +245,35 @@ void ACPP_BaseEnemy::SpawnLoot()
 
             if (DefaultItem)
             {
-                FGameplayTag Tag = DefaultItem->GetAbilityTag();
+                // Пытаемся привести предмет к типу "Предмет с Навыком"
+                ACPP_Item_SkillUnlockable* SkillItem = Cast<ACPP_Item_SkillUnlockable>(DefaultItem);
 
-                if (Tag.IsValid())
+                if (SkillItem)
                 {
-                    int32 CurrentLevel = Player->GetAbilityLevel(Tag);
-                    int32 MaxLevel = DefaultItem->GetMaxLevel();
-
-                    if (CurrentLevel >= MaxLevel)
+                    // Если это книга навыков, проверяем ActionClass
+                    if (SkillItem->GetActionClass())
                     {
-                        bIsItemValid = false;
+                        // Достаем тег прямо из класса Action
+                        UCPP_Action* DefaultAction = SkillItem->GetActionClass()->GetDefaultObject<UCPP_Action>();
+
+                        if (DefaultAction)
+                        {
+                            FGameplayTag Tag = DefaultAction->ActionTag;
+
+                            if (Tag.IsValid())
+                            {
+                                int32 CurrentLevel = Player->GetAbilityLevel(Tag);
+
+                                // ВНИМАНИЕ: Так как мы убрали MaxLevel из предмета, 
+                                // для диплома зададим константу или добавим свойство обратно в SkillItem.
+                                // Пока используем константу 3 как "Магическое число" (можно вынести в const int32)
+
+                                if (CurrentLevel >= SkillItem->GlobalMaxSkillLevel)
+                                {
+                                    bIsItemValid = false;
+                                }
+                            }
+                        }
                     }
                 }
             }

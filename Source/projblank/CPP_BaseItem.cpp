@@ -134,10 +134,10 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
             }
         }
 
-        if (AbilityToUnlock.IsValid())
-        {
-            BaseChar->GrantAbility(AbilityToUnlock, MaxAbilityLevel);
-        }
+        //if (AbilityToUnlock.IsValid())
+        //{
+        //    BaseChar->GrantAbility(AbilityToUnlock, MaxAbilityLevel);
+        //}
 
         FText Msg = FText::Format(
             NSLOCTEXT("HUD", "Pickup", "Picked up: {0}"),

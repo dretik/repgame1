@@ -37,6 +37,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		float CooldownTime = 1.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Action")
+		float Duration = 1.0f;
+
 	// Авто-запуск при получении компонентом (пассивки)
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		bool bAutoStart = false;

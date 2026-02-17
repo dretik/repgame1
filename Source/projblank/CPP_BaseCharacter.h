@@ -12,6 +12,8 @@
 #include "GameplayTagContainer.h"
 #include "NiagaraSystem.h"
 #include "CPP_AttributeComponent.h"
+#include "CPP_Action.h"   
+#include "CPP_ActionComponent.h"
 #include "CPP_BaseCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, NewHealth, float, MaxHealth);
@@ -69,15 +71,17 @@ public:
 
     void ShowNotification(FText Text, FLinearColor Color = FLinearColor::White);
 
+   /* UFUNCTION(BlueprintCallable, Category = "Abilities")
+        int32 GrantAbility(FGameplayTag AbilityTag, int32 MaxLevel);*/
     UFUNCTION(BlueprintCallable, Category = "Abilities")
-        int32 GrantAbility(FGameplayTag AbilityTag, int32 MaxLevel);
+        bool GrantAbility(TSubclassOf<UCPP_Action> ActionClass);
 
     UFUNCTION(BlueprintCallable, Category = "Abilities")
         bool HasAbility(FGameplayTag AbilityTag) const;
     UFUNCTION(BlueprintCallable, Category = "Abilities")
         int32 GetAbilityLevel(FGameplayTag AbilityTag) const;
 
-    void CastFireball();
+    /*void CastFireball();*/
 
     virtual bool CanDealDamageTo(AActor* TargetActor) const;
 
@@ -181,13 +185,18 @@ protected:
         bool bIsAttacking = false;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State | Attack")
         int32 ComboCounter = 0;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State | Attack")
-        bool bCanCastSpell = true;
+    /*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State | Attack")
+        bool bCanCastSpell = true;*/
 
-    FTimerHandle SpellCooldownTimer;
+    /*FTimerHandle SpellCooldownTimer;
+
     void ResetSpellCooldown();
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Spells")
-        float FireballCooldown = 1.0f;
+        float FireballCooldown = 1.0f;*/
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+        class UCPP_ActionComponent* ActionComp;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats | Dynamic")
         float CurrentBaseDamage = 0.f;;
@@ -211,8 +220,8 @@ protected:
         TMap<FGameplayTag, int32> AbilityLevels;
 
     // projectile
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Spells")
-        TArray<TSubclassOf<class ACPP_Projectile>> FireballLevels;
+    /*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat | Spells")
+        TArray<TSubclassOf<class ACPP_Projectile>> FireballLevels;*/
 
     //functions
 	virtual void SetupPlayerInputComponent(class UInputComponent*
@@ -227,6 +236,12 @@ protected:
     UFUNCTION()
         void OnHealthChangedCallback(AActor* InstigatorActor, UCPP_AttributeComponent* OwningComp, float NewHealth, float Delta);
 
+    UFUNCTION(BlueprintCallable, Category = "Actions")
+        void PrimaryAttack();
+
+    UFUNCTION(BlueprintCallable, Category = "Actions")
+        void MagicAttack();
+    
     void SpawnParticle(UNiagaraSystem* Effect, FVector Location, 
         FRotator Rotation = FRotator::ZeroRotator);
 

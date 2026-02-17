@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "CPP_BaseCharacter.h"
 #include "GameplayTagsManager.h"
 #include "Components/InputComponent.h"
@@ -15,8 +14,9 @@
 #include "CPP_GameInstance.h"
 #include "CPP_SaveGame.h"
 #include "CPP_AttributeComponent.h"
+#include "CPP_Action.h"   
+#include "CPP_ActionComponent.h"
 #include "Engine/Engine.h"
-
 
 ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -24,6 +24,8 @@ ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializ
     UCharacterMovementComponent* MoveComponent = GetCharacterMovement();
 
     AttributeComp = CreateDefaultSubobject<UCPP_AttributeComponent>(TEXT("AttributeComp"));
+
+    ActionComp = CreateDefaultSubobject<UCPP_ActionComponent>(TEXT("ActionComp"));
 
     if (MoveComponent)
     {
@@ -56,9 +58,9 @@ void ACPP_BaseCharacter::SetupPlayerInputComponent(UInputComponent*
 
     //attack
     PlayerInputComponent->BindAction("AttackAction", 
-        IE_Pressed, this, &ACPP_BaseCharacter::Attack);
+        IE_Pressed, this, &ACPP_BaseCharacter::PrimaryAttack);
     PlayerInputComponent->BindAction("CastAction",
-        IE_Pressed, this, &ACPP_BaseCharacter::CastFireball);
+        IE_Pressed, this, &ACPP_BaseCharacter::MagicAttack);
 }
 
 void ACPP_BaseCharacter::MoveRight(float Value)
@@ -608,33 +610,53 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
     }
 }
 
-int32 ACPP_BaseCharacter::GrantAbility(FGameplayTag AbilityTag, int32 MaxLevel)
+bool ACPP_BaseCharacter::GrantAbility(TSubclassOf<UCPP_Action> ActionClass)
 {
-    if (!AbilityTag.IsValid()) return 0;
+    if (!ActionClass || !ActionComp) return false;
 
-    if (AbilityLevels.Contains(AbilityTag))
+    // 1. Получаем Default Object, чтобы узнать тег способности, не создавая её
+    UCPP_Action* DefaultAction = ActionClass->GetDefaultObject<UCPP_Action>();
+    if (!DefaultAction) return false;
+
+    FGameplayTag ActionTag = DefaultAction->ActionTag;
+
+    // 2. Проверяем текущий уровень
+    int32 CurrentLevel = 0;
+    if (AbilityLevels.Contains(ActionTag))
     {
-        int32 CurrentLevel = AbilityLevels[AbilityTag];
+        CurrentLevel = AbilityLevels[ActionTag];
+    }
 
-        if (CurrentLevel < MaxLevel)
-        {
-            AbilityLevels[AbilityTag] = CurrentLevel + 1;
-            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow,
-                FString::Printf(TEXT("Ability UPGRADED to Level %d!"), CurrentLevel + 1));
-        }
-        else
-        {
-            // if ability already max leveled
-            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("Ability Already Max Level!"));
-        }
+    // 3. ЛОГИКА: Разблокировка или Апгрейд
+    if (CurrentLevel == 0)
+    {
+        // --- РАЗБЛОКИРОВКА (Первый подбор) ---
+
+        // Добавляем саму логику в компонент (чтобы можно было нажимать кнопку)
+        ActionComp->AddAction(ActionClass);
+
+        // Ставим уровень 1
+        AbilityLevels.Add(ActionTag, 1);
+
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
+            FString::Printf(TEXT("Ability Unlocked: %s (Level 1)"), *ActionTag.ToString()));
+
+        ShowNotification(NSLOCTEXT("Abilities", "Unlock", "New Ability Unlocked!"), FColor::Purple);
     }
     else
     {
-        AbilityLevels.Add(AbilityTag, 1);
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, TEXT("New Ability Unlocked!"));
+        // --- АПГРЕЙД (Повторный подбор) ---
+
+        // Просто повышаем уровень. ActionComponent трогать не надо, действие там уже есть.
+        AbilityLevels[ActionTag] = CurrentLevel + 1;
+
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
+            FString::Printf(TEXT("Ability Upgraded: %s (Level %d)"), *ActionTag.ToString(), CurrentLevel + 1));
+
+        ShowNotification(NSLOCTEXT("Abilities", "Upgrade", "Ability Level Up!"), FColor::Cyan);
     }
 
-    return AbilityLevels[AbilityTag];
+    return true;
 }
 
 int32 ACPP_BaseCharacter::GetAbilityLevel(FGameplayTag AbilityTag) const
@@ -651,89 +673,89 @@ bool ACPP_BaseCharacter::HasAbility(FGameplayTag AbilityTag) const
     return GetAbilityLevel(AbilityTag) > 0;
 }
 
-void ACPP_BaseCharacter::CastFireball()
-{
-    if (bIsDead || bIsAttacking) return;
+//void ACPP_BaseCharacter::CastFireball()
+//{
+//    if (bIsDead || bIsAttacking) return;
+//
+//    if (!bCanCastSpell)
+//    {
+//        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("Spell on Cooldown!"));
+//        return;
+//    }
+//
+//    if (!HasAbility(FGameplayTag::RequestGameplayTag("Ability.Fireball")))
+//    {
+//        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Ability Locked!"));
+//        return;
+//    }
+//
+//    int32 Level = GetAbilityLevel(FGameplayTag::RequestGameplayTag("Ability.Fireball"));
+//    if (Level <= 0) return;
+//
+//    bCanCastSpell = false;
+//    GetWorldTimerManager().SetTimer(SpellCooldownTimer, this, &ACPP_BaseCharacter::ResetSpellCooldown, FireballCooldown, false);
+//
+//    if (CharacterStats && CharacterStats->AttackEffect)
+//    {
+//        FRotator EffectRotation = FRotator::ZeroRotator;
+//
+//        if (GetSprite()->GetRelativeScale3D().X > 0.0f)
+//        {
+//            EffectRotation.Yaw = 90.0f;
+//        }
+//        else {
+//            EffectRotation.Yaw = -90.0f;
+//        }
+//
+//        SpawnParticle(CharacterStats->AttackEffect, GetActorLocation(), EffectRotation);
+//    }
+//    
+//    int32 Index = FMath::Clamp(Level - 1, 0, FireballLevels.Num() - 1);
+//
+//    //cast flipbook to be added
+//    if (FireballLevels.Num() > 0)
+//    {
+//        TSubclassOf<ACPP_Projectile> ProjectileClass = FireballLevels[Index];
+//
+//        if (ProjectileClass)
+//        {
+//            FVector SpawnLocation = GetActorLocation();
+//            SpawnLocation.Z += 20.0f;
+//            FRotator SpawnRotation = FRotator::ZeroRotator;
+//
+//            if (GetSprite()->GetRelativeScale3D().X > 0.0f)
+//            {
+//                SpawnRotation.Yaw = 90.0f;
+//                SpawnLocation.Y += 40.0f;
+//            }
+//            else
+//            {
+//                SpawnRotation.Yaw = -90.0f;
+//                SpawnLocation.Y -= 40.0f;
+//            }
+//
+//            FActorSpawnParameters SpawnParams;
+//            SpawnParams.Owner = this;
+//            SpawnParams.Instigator = GetInstigator();
+//
+//            AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+//
+//            ACPP_Projectile* Fireball = Cast<ACPP_Projectile>(SpawnedActor);
+//            if (Fireball)
+//            {
+//                float MagicDamage = CurrentBaseDamage * CurrentDamageMultiplier;
+//
+//                Fireball->SetDamage(MagicDamage);
+//            }
+//        }
+//    }
+//}
 
-    if (!bCanCastSpell)
-    {
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("Spell on Cooldown!"));
-        return;
-    }
-
-    if (!HasAbility(FGameplayTag::RequestGameplayTag("Ability.Fireball")))
-    {
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Ability Locked!"));
-        return;
-    }
-
-    int32 Level = GetAbilityLevel(FGameplayTag::RequestGameplayTag("Ability.Fireball"));
-    if (Level <= 0) return;
-
-    bCanCastSpell = false;
-    GetWorldTimerManager().SetTimer(SpellCooldownTimer, this, &ACPP_BaseCharacter::ResetSpellCooldown, FireballCooldown, false);
-
-    if (CharacterStats && CharacterStats->AttackEffect)
-    {
-        FRotator EffectRotation = FRotator::ZeroRotator;
-
-        if (GetSprite()->GetRelativeScale3D().X > 0.0f)
-        {
-            EffectRotation.Yaw = 90.0f;
-        }
-        else {
-            EffectRotation.Yaw = -90.0f;
-        }
-
-        SpawnParticle(CharacterStats->AttackEffect, GetActorLocation(), EffectRotation);
-    }
-    
-    int32 Index = FMath::Clamp(Level - 1, 0, FireballLevels.Num() - 1);
-
-    //cast flipbook to be added
-    if (FireballLevels.Num() > 0)
-    {
-        TSubclassOf<ACPP_Projectile> ProjectileClass = FireballLevels[Index];
-
-        if (ProjectileClass)
-        {
-            FVector SpawnLocation = GetActorLocation();
-            SpawnLocation.Z += 20.0f;
-            FRotator SpawnRotation = FRotator::ZeroRotator;
-
-            if (GetSprite()->GetRelativeScale3D().X > 0.0f)
-            {
-                SpawnRotation.Yaw = 90.0f;
-                SpawnLocation.Y += 40.0f;
-            }
-            else
-            {
-                SpawnRotation.Yaw = -90.0f;
-                SpawnLocation.Y -= 40.0f;
-            }
-
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.Owner = this;
-            SpawnParams.Instigator = GetInstigator();
-
-            AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-
-            ACPP_Projectile* Fireball = Cast<ACPP_Projectile>(SpawnedActor);
-            if (Fireball)
-            {
-                float MagicDamage = CurrentBaseDamage * CurrentDamageMultiplier;
-
-                Fireball->SetDamage(MagicDamage);
-            }
-        }
-    }
-}
-
-void ACPP_BaseCharacter::ResetSpellCooldown()
-{
-    bCanCastSpell = true;
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("Spell Ready!"));
-}
+//void ACPP_BaseCharacter::ResetSpellCooldown()
+//{
+//    bCanCastSpell = true;
+//    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("Spell Ready!"));
+//}
 
 void ACPP_BaseCharacter::ShowNotification(FText Text, FLinearColor Color)
 {
@@ -918,4 +940,22 @@ float ACPP_BaseCharacter::GetCurrentHealth() const
 float ACPP_BaseCharacter::GetCurrentMaxHealth() const
 {
     return AttributeComp ? AttributeComp->GetMaxHealth() : 0.0f;
+}
+
+void ACPP_BaseCharacter::PrimaryAttack()
+{
+    // Здесь пока можно оставить старую логику Attack(), 
+    // НО для диплома лучше со временем перенести и удар мечом в Action (класс CPP_Action_Melee).
+    // Пока оставим как есть, чтобы не сломать всё сразу:
+    Attack();
+}
+
+void ACPP_BaseCharacter::MagicAttack()
+{
+    if (ActionComp)
+    {
+        // Мы просим компонент: "Запусти действие с тегом Fireball".
+        // Компонент сам проверит кулдаун, наличие маны (если добавим), состояние оглушения и т.д.
+        ActionComp->StartActionByName(this, FGameplayTag::RequestGameplayTag("Ability.Fireball"));
+    }
 }
