@@ -14,6 +14,7 @@
 #include "CPP_DamageTextActor.h"
 #include "CPP_GameInstance.h"
 #include "CPP_SaveGame.h"
+#include "CPP_AttributeComponent.h"
 #include "Engine/Engine.h"
 
 
@@ -21,6 +22,8 @@ ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializ
     : Super(ObjectInitializer)
 {
     UCharacterMovementComponent* MoveComponent = GetCharacterMovement();
+
+    AttributeComp = CreateDefaultSubobject<UCPP_AttributeComponent>(TEXT("AttributeComp"));
 
     if (MoveComponent)
     {
@@ -297,9 +300,14 @@ void ACPP_BaseCharacter::BeginPlay()
 
     if (CharacterStats)
     {
+        if (AttributeComp)
+        {
+            AttributeComp->InitializeStats(CharacterStats->MaxHealth);
 
-        CurrentMaxHealth = CharacterStats->MaxHealth;
-        CurrentHealth = CurrentMaxHealth;
+            // ВАЖНО: Подписываемся на события компонента здесь
+            AttributeComp->OnHealthChanged.AddDynamic(this, &ACPP_BaseCharacter::OnHealthChangedCallback);
+            AttributeComp->OnDeath.AddDynamic(this, &ACPP_BaseCharacter::OnDeathStarted);
+        }
         CurrentBaseDamage = CharacterStats->BaseDamage;
 
         if (GetCharacterMovement())
@@ -311,11 +319,16 @@ void ACPP_BaseCharacter::BeginPlay()
         }
     }
     else {
-        CurrentMaxHealth = 100.0f;
-        CurrentHealth = 100.0f;
+        if (AttributeComp)
+        {
+            AttributeComp->InitializeStats(100.0f);
+        }
         CurrentBaseDamage = 10.0f;
     }
-    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+    if (AttributeComp)
+    {
+        OnHealthChanged.Broadcast(AttributeComp->GetHealth(), AttributeComp->GetMaxHealth());
+    }
 
     UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
 
@@ -357,12 +370,19 @@ void ACPP_BaseCharacter::OnJumped_Implementation()
 
 float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-    if (bIsInvulnerable)
+    if (bIsInvulnerable || !AttributeComp)
     {
         return 0.0f;
     }
     
     const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+    bool bApplied = AttributeComp->ApplyHealthChange(DamageCauser, -ActualDamage);
+
+    if (!bApplied && ActualDamage > 0.0f)
+    {
+        return 0.0f;
+    }
 
     if (ActualDamage > 0.0f && DamageTextClass)
     {
@@ -383,32 +403,14 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
         }
     }
 
-    CurrentHealth -= ActualDamage;
-
-    if (CurrentHealth < 0.0f)
-    {
-        CurrentHealth = 0.0f;
-    }
-
     if (GEngine)
     {
-        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("%s took %f damage. Current Health: %f"), *GetName(), ActualDamage, CurrentHealth));
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("%s took %f damage. Current Health: %f"), *GetName(), ActualDamage, AttributeComp->GetHealth()));
     }
 
     if (CharacterStats)
     {
         SpawnParticle(CharacterStats->HitEffect, GetActorLocation());
-    }
-
-    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
-
-    if (CurrentHealth <= 0.0f)
-    {
-        if (GEngine)
-        {
-            GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%s has died!"), *GetName()));
-        }
-        OnDeath();
     }
 
     return ActualDamage;
@@ -507,28 +509,60 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
 
     const FGameplayTag Tag_Health = FGameplayTag::RequestGameplayTag(FName("Stats.Health"));
     const FGameplayTag Tag_HealthMax = FGameplayTag::RequestGameplayTag(FName("Stats.HealthMax"));
-    const FGameplayTag Tag_Damage = FGameplayTag::RequestGameplayTag(FName("Stats.Damage"));
-    const FGameplayTag Tag_Speed = FGameplayTag::RequestGameplayTag(FName("Stats.Speed"));
-    const FGameplayTag Tag_CoinMult = FGameplayTag::RequestGameplayTag(FName("Stats.CoinMultiplier"));
 
     if (Modifier.StatTag.MatchesTagExact(Tag_Health))
     {
-        StatToModify = &CurrentHealth;
+        if (AttributeComp)
+        {
+            // Если множитель (например, зелье +50% от текущего)
+            float Delta = Modifier.Value;
+            if (Modifier.bIsMultiplier)
+            {
+                // Вычисляем сколько добавить: (Health * 1.5) - Health
+                float Current = AttributeComp->GetHealth();
+                Delta = (Current * Modifier.Value) - Current;
+            }
+
+            AttributeComp->ApplyHealthChange(this, Delta);
+
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
+                FString::Printf(TEXT("Health Modified by: %f"), Delta));
+        }
+        return; // Выходим, так как обработали
     }
     else if (Modifier.StatTag.MatchesTagExact(Tag_HealthMax))
     {
-        StatToModify = &CurrentMaxHealth;
+        if (AttributeComp)
+        {
+            float NewMax = AttributeComp->GetMaxHealth();
+            if (Modifier.bIsMultiplier)
+            {
+                NewMax *= Modifier.Value;
+            }
+            else
+            {
+                NewMax += Modifier.Value;
+            }
+
+            // Здесь мы используем InitializeStats, что также вылечит персонажа до полного.
+            // Для "Рогалика" получение MaxHP предмета часто лечит, так что это ок.
+            // Если нужно только увеличить потолок, не леча, нужно добавить метод SetMaxHealth в компонент.
+            AttributeComp->InitializeStats(NewMax);
+
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
+                FString::Printf(TEXT("Max Health Updated: %f"), NewMax));
+        }
+        return;
     }
-    else if (Modifier.StatTag.MatchesTagExact(Tag_Damage))
+
+    const FGameplayTag Tag_Damage = FGameplayTag::RequestGameplayTag(FName("Stats.Damage"));
+    const FGameplayTag Tag_Speed = FGameplayTag::RequestGameplayTag(FName("Stats.Speed"));
+    const FGameplayTag Tag_CoinMult = FGameplayTag::RequestGameplayTag(FName("Stats.CoinMultiplier"));
+    const FGameplayTag Tag_Gold = FGameplayTag::RequestGameplayTag(FName("Stats.Gold"));
+
+    if (Modifier.StatTag.MatchesTagExact(Tag_Damage))
     {
-        if (Modifier.bIsMultiplier)
-        {
-            StatToModify = &CurrentDamageMultiplier;
-        }
-        else
-        {
-            StatToModify = &CurrentBaseDamage;
-        }
+        StatToModify = Modifier.bIsMultiplier ? &CurrentDamageMultiplier : &CurrentBaseDamage;
     }
     else if (Modifier.StatTag.MatchesTagExact(Tag_Speed))
     {
@@ -537,20 +571,26 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
             StatToModify = &GetCharacterMovement()->MaxWalkSpeed;
         }
     }
-    //else if (Modifier.StatTag.MatchesTagExact(Tag_CoinMult))
-    //{
-        //if (Modifier.bIsMultiplier)
-        //{
-            //StatToModify = &CoinMultiplier;
-        //}
-        //else
-        //{
-        //    StatToModify = &CoinCount;
-        //}
-        
-    //}
+    else if (Modifier.StatTag.MatchesTagExact(Tag_CoinMult))
+    {
+        StatToModify = &CoinMultiplier; // Исправлено: CoinMultiplier всегда меняется здесь
+    }
+    else if (Modifier.StatTag.MatchesTagExact(Tag_Gold))
+    {
+        // Логика золота отдельная (метод AddCoins), указатель не нужен
+        if (Modifier.bIsMultiplier)
+        {
+            int32 BonusGold = FMath::FloorToInt(CoinCount * (Modifier.Value - 1.0f));
+            AddCoins(BonusGold);
+        }
+        else
+        {
+            AddCoins(FMath::RoundToInt(Modifier.Value));
+        }
+        return;
+    }
 
-
+    // Применяем изменения к float* если он найден
     if (StatToModify)
     {
         if (Modifier.bIsMultiplier)
@@ -560,73 +600,6 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
         else
         {
             *StatToModify += Modifier.Value;
-        }
-
-        if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Health"))))
-        {
-            if (*StatToModify > CurrentMaxHealth) *StatToModify = CurrentMaxHealth;
-            if (*StatToModify < 0) *StatToModify = 0;
-            OnHealthChanged.Broadcast(CurrentHealth,CurrentMaxHealth);
-            if (CurrentHealth <= 0) OnDeath();
-        }
-        else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.HealthMax"))))
-        {
-            if (!Modifier.bIsMultiplier && Modifier.Value > 0.0f)
-            {
-                CurrentHealth += Modifier.Value;
-            }
-
-            OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
-        }
-        else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Damage"))))
-        {
-            if (Modifier.bIsMultiplier)
-            {
-                CurrentDamageMultiplier *= Modifier.Value;
-
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
-                    FString::Printf(TEXT("Damage Multiplier Increased: %f"), CurrentDamageMultiplier));
-            }
-            else
-            {
-                CurrentBaseDamage += Modifier.Value;
-
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
-                    FString::Printf(TEXT("Base Damage Increased: %f"), CurrentBaseDamage));
-            }
-        }  
-        else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.CoinMultiplier"))))
-        {
-            if (Modifier.bIsMultiplier)
-            {
-                CoinMultiplier *= Modifier.Value;
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow,
-                    FString::Printf(TEXT("Coin Multiplier is now: %f"), CoinMultiplier));
-            }
-            else
-            {
-                CoinMultiplier += Modifier.Value;
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow,
-                    FString::Printf(TEXT("Coin Multiplier is now: %f"), CoinMultiplier));
-            }
-            return;
-        }
-        else if (Modifier.StatTag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Stats.Gold"))))
-        {
-
-            if (Modifier.bIsMultiplier)
-            {
-                int32 CurrentGold = CoinCount;
-                int32 BonusGold = FMath::FloorToInt(CurrentGold * (Modifier.Value - 1.0f));
-                AddCoins(BonusGold);
-            }
-            else
-            {
-                int32 CoinsToAdd = FMath::RoundToInt(Modifier.Value);
-                AddCoins(CoinsToAdd);
-            }
-
-            return;
         }
 
         if (GEngine)
@@ -818,23 +791,26 @@ void ACPP_BaseCharacter::LevelUp()
 
     XPToNextLevel *= LevelUpMultiplier;
 
-    CurrentHealth = CurrentMaxHealth;
-    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
-
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("LEVEL UP! Level: %d"), CharacterLevel));
+
+    float HPBonus = CharacterStats->HealthGrowthPerLevel; // Дефолт, если нет статов
+    float DmgBonus = CharacterStats->DamageGrowthPerLevel;
 
     if (CharacterStats)
     {
-        float HPBonus = CharacterStats->HealthGrowthPerLevel;
-        CurrentMaxHealth += HPBonus;
+        HPBonus = CharacterStats->HealthGrowthPerLevel;
+        DmgBonus = CharacterStats->DamageGrowthPerLevel;
 
-        float DmgBonus = CharacterStats->DamageGrowthPerLevel;
         CurrentBaseDamage += DmgBonus;
 
-        CurrentHealth = CurrentMaxHealth;
+        // --- МОДУЛЬНОЕ ОБНОВЛЕНИЕ ЗДОРОВЬЯ ---
+        if (AttributeComp)
+        {
+            float NewMaxHP = AttributeComp->GetMaxHealth() + HPBonus;
 
-        OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
-
+            // InitializeStats устанавливает MaxHealth и лечит персонажа до максимума
+            AttributeComp->InitializeStats(NewMaxHP);
+        }
 
         FText LevelUpMsg = FText::Format(
             NSLOCTEXT("HUD", "LevelUpDetail", "Level Up! HP +{0}, Dmg +{1}"),
@@ -844,7 +820,10 @@ void ACPP_BaseCharacter::LevelUp()
         ShowNotification(LevelUpMsg, FColor::Yellow);
     }
 
-    //sound or effect to be played
+    // Broadcast вызывается внутри InitializeStats -> OnHealthChangedCallback, 
+    // поэтому вручную вызывать OnHealthChanged.Broadcast не нужно.
+
+    // Звук или эффект можно добавить здесь
 }
 
 void ACPP_BaseCharacter::RemoveExperience(float Amount)
@@ -861,15 +840,25 @@ void ACPP_BaseCharacter::RemoveExperience(float Amount)
 
 void ACPP_BaseCharacter::SetStatsFromSave(float SavedHealth, float SavedMaxHealth, float SavedBaseDamage, int32 SavedLevel, float SavedXP, int32 SavedCoins)
 {
-    CurrentHealth = SavedHealth;
-    CurrentMaxHealth = SavedMaxHealth;
+    if (AttributeComp)
+    {
+        // Нам, возможно, понадобится функция ForceSetHealth в компоненте, 
+        // или просто InitializeStats(SavedMaxHealth) + ApplyHealthChange для подгонки.
+        // Но лучше всего добавить в Component метод SetHealthDirectly для загрузки.
+
+        // Пока используем InitializeStats для макс хп:
+        AttributeComp->InitializeStats(SavedMaxHealth);
+
+        // И хак через урон/лечение для текущего, чтобы выставить нужное значение:
+        float Diff = SavedHealth - AttributeComp->GetHealth();
+        AttributeComp->ApplyHealthChange(nullptr, Diff);
+    }
     CurrentBaseDamage = SavedBaseDamage;
     CharacterLevel = SavedLevel;
     CurrentXP = SavedXP;
-
     CoinCount = SavedCoins;
 
-    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+    //OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
     OnXPUpdated.Broadcast(CurrentXP, XPToNextLevel, CharacterLevel);
     OnCoinsUpdated.Broadcast(CoinCount);
 
@@ -888,7 +877,45 @@ void ACPP_BaseCharacter::SetLocationFromSave(FVector SavedLocation)
 
 void ACPP_BaseCharacter::SetCurrentHealth(float NewHealth)
 {
-    CurrentHealth = NewHealth;
+    if (AttributeComp)
+    {
+        float Diff = NewHealth - AttributeComp->GetHealth();
+        AttributeComp->ApplyHealthChange(nullptr, Diff);
+    }
 
-    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+}
+
+void ACPP_BaseCharacter::OnHealthChangedCallback(AActor* InstigatorActor, UCPP_AttributeComponent* OwningComp, float NewHealth, float Delta)
+{
+    // Сюда можно перенести визуальные эффекты (HitEffect)
+    if (Delta < 0.0f && CharacterStats && CharacterStats->HitEffect)
+    {
+        SpawnParticle(CharacterStats->HitEffect, GetActorLocation());
+    }
+    if (OwningComp)
+    {
+        OnHealthChanged.Broadcast(NewHealth, OwningComp->GetMaxHealth());
+    }
+}
+
+void ACPP_BaseCharacter::OnDeathStarted(AActor* Killer)
+{
+    // Вызываем твою существующую логику смерти
+    OnDeath();
+
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%s died!"), *GetName()));
+    }
+}
+
+float ACPP_BaseCharacter::GetCurrentHealth() const
+{
+    // Безопасная проверка: если компонента нет, возвращаем 0
+    return AttributeComp ? AttributeComp->GetHealth() : 0.0f;
+}
+
+float ACPP_BaseCharacter::GetCurrentMaxHealth() const
+{
+    return AttributeComp ? AttributeComp->GetMaxHealth() : 0.0f;
 }

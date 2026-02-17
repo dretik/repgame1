@@ -11,6 +11,7 @@
 #include "InteractableInterface.h"
 #include "GameplayTagContainer.h"
 #include "NiagaraSystem.h"
+#include "CPP_AttributeComponent.h"
 #include "CPP_BaseCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, NewHealth, float, MaxHealth);
@@ -105,11 +106,17 @@ public:
         void RemoveExperience(float Amount);
 
     //GETTERS 
-    UFUNCTION(BlueprintCallable, Category = "SaveSystem")
-        float GetCurrentHealth() const { return CurrentHealth; }
+    //UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+    //    float GetCurrentHealth() const { return CurrentHealth; }
+
+    //UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+    //    float GetCurrentMaxHealth() const { return CurrentMaxHealth; }
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
-        float GetCurrentMaxHealth() const { return CurrentMaxHealth; }
+        float GetCurrentHealth() const;
+
+    UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+        float GetCurrentMaxHealth() const;
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
         float GetCurrentBaseDamage() const { return CurrentBaseDamage; }
@@ -132,6 +139,9 @@ public:
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
         UCharacterStats* CharacterStats;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+        class UCPP_AttributeComponent* AttributeComp;
 
     //flipbook
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations")
@@ -188,10 +198,10 @@ protected:
         bool bIsDead = false;
 
     //health
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+    /*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
         float CurrentHealth;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
-        float CurrentMaxHealth;
+        float CurrentMaxHealth;*/
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
         bool bIsInvulnerable = false;
@@ -210,6 +220,12 @@ protected:
 
     UFUNCTION(BlueprintNativeEvent, Category = "Health")
         void OnDeath();
+
+    UFUNCTION()
+        void OnDeathStarted(AActor* Killer);
+
+    UFUNCTION()
+        void OnHealthChangedCallback(AActor* InstigatorActor, UCPP_AttributeComponent* OwningComp, float NewHealth, float Delta);
 
     void SpawnParticle(UNiagaraSystem* Effect, FVector Location, 
         FRotator Rotation = FRotator::ZeroRotator);

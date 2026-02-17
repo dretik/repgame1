@@ -47,7 +47,10 @@ void ACPP_BaseEnemy::BeginPlay()
     {
         PawnSensingComp->OnSeePawn.AddDynamic(this, &ACPP_BaseEnemy::OnPawnSeen);
     }
-    if (Player && CharacterStats)
+
+    // --- ЛОГИКА АВТОЛЕВЕЛИНГА (SCALING) ---
+    // Добавили проверку AttributeComp
+    if (Player && CharacterStats && AttributeComp)
     {
         int32 PlayerLevel = Player->GetCharacterLevel();
 
@@ -56,14 +59,17 @@ void ACPP_BaseEnemy::BeginPlay()
             float HealthScale = 1.0f + ((PlayerLevel - 1) * CharacterStats->HealthScalingFactor);
             float NewMaxHealth = CharacterStats->MaxHealth * HealthScale;
 
-            CurrentMaxHealth = NewMaxHealth; 
-            CurrentHealth = NewMaxHealth;    
+            // ИСПРАВЛЕНИЕ 1: Инициализируем компонент новыми статами
+            // Эта функция также вылечит врага до максимума (Health = NewMaxHealth)
+            AttributeComp->InitializeStats(NewMaxHealth);
 
             EnemyLevelDamageMultiplier = 1.0f + ((PlayerLevel - 1) * CharacterStats->DamageScalingFactor);
-
         }
     }
-    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+
+    // Broadcast здесь не нужен, он произойдет внутри InitializeStats -> OnHealthChangedCallback
+
+    // --- ЛОГИКА ЗАГРУЗКИ СОХРАНЕНИЯ ---
     UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
     if (GI && GI->bIsLoadingSave)
     {
@@ -79,13 +85,24 @@ void ACPP_BaseEnemy::BeginPlay()
 
                 if (Data.bIsDead)
                 {
-                    Destroy(); 
+                    Destroy();
                 }
                 else
                 {
-                    CurrentHealth = Data.CurrentHealth;
                     SetActorLocation(Data.Location);
-                    OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
+
+                    // ИСПРАВЛЕНИЕ 2: Восстанавливаем здоровье из сохранения
+                    if (AttributeComp)
+                    {
+                        // Сейчас у врага полное здоровье (из-за InitializeStats или дефолта).
+                        // Нам нужно выставить ровно столько, сколько было в сейве.
+                        // Вычисляем разницу и применяем её.
+                        float CurrentHP = AttributeComp->GetHealth();
+                        float Diff = Data.CurrentHealth - CurrentHP;
+
+                        // Применяем изменение (это может быть отрицательное число, если враг был ранен)
+                        AttributeComp->ApplyHealthChange(nullptr, Diff);
+                    }
                 }
             }
         }
@@ -377,10 +394,8 @@ void ACPP_BaseEnemy::SpawnXP()
 
     if (DroppedXP)
     {
-        // 4. Устанавливаем значение
         DroppedXP->SetValue(FinalXPAmount);
 
-        // 5. Импульс (чуть сильнее вверх, чем монеты)
         UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedXP->GetRootComponent());
         if (RootPrim)
         {

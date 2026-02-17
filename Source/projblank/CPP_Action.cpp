@@ -1,0 +1,80 @@
+#include "CPP_Action.h"
+#include "CPP_ActionComponent.h"
+#include "Engine/World.h"
+
+bool UCPP_Action::CanStart_Implementation(AActor* Instigator)
+{
+	if (IsRunning())
+	{
+		return false;
+	}
+
+	UCPP_ActionComponent* Comp = GetOwningComponent();
+
+	// Проверка на наличие тега "Запрещено" (например, оглушение)
+	if (Comp && Comp->ActiveGameplayTags.HasTag(ActionTag))
+	{
+		return false;
+	}
+
+	// Проверка кулдауна
+	float TimeSinceStart = GetWorld()->GetTimeSeconds() - TimeStarted;
+	if (TimeSinceStart < CooldownTime)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void UCPP_Action::StartAction_Implementation(AActor* Instigator)
+{
+	// Log: Action Started
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString::Printf(TEXT("Action Started: %s"), *GetName()));
+
+	UCPP_ActionComponent* Comp = GetOwningComponent();
+	if (Comp)
+	{
+		Comp->ActiveGameplayTags.AddTag(ActionTag);
+	}
+
+	RepData.bIsRunning = true;
+	RepData.Instigator = Instigator;
+	TimeStarted = GetWorld()->GetTimeSeconds();
+}
+
+void UCPP_Action::StopAction_Implementation(AActor* Instigator)
+{
+	// Log: Action Stopped
+	// if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::White, FString::Printf(TEXT("Action Stopped: %s"), *GetName()));
+
+	UCPP_ActionComponent* Comp = GetOwningComponent();
+	if (Comp)
+	{
+		Comp->ActiveGameplayTags.RemoveTag(ActionTag);
+	}
+
+	RepData.bIsRunning = false;
+	RepData.Instigator = nullptr;
+}
+
+UWorld* UCPP_Action::GetWorld() const
+{
+	// Магия UE4: UObject сам по себе не знает про мир, берем его у владельца (Outer)
+	// Outer для этого объекта будет Component, а его Outer - Actor
+	if (UCPP_ActionComponent* Comp = Cast<UCPP_ActionComponent>(GetOuter()))
+	{
+		return Comp->GetWorld();
+	}
+	return nullptr;
+}
+
+UCPP_ActionComponent* UCPP_Action::GetOwningComponent() const
+{
+	return Cast<UCPP_ActionComponent>(GetOuter());
+}
+
+bool UCPP_Action::IsRunning() const
+{
+	return RepData.bIsRunning;
+}
