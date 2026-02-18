@@ -959,3 +959,13 @@ void ACPP_BaseCharacter::MagicAttack()
         ActionComp->StartActionByName(this, FGameplayTag::RequestGameplayTag("Ability.Fireball"));
     }
 }
+
+bool ACPP_BaseCharacter::GetIsAttacking() const
+{
+    if (ActionComp)
+    {
+        // ѕровер€ем наличие любого тега категории Ability
+        return ActionComp->ActiveGameplayTags.HasTag(FGameplayTag::RequestGameplayTag("Ability"));
+    }
+    return false;
+}

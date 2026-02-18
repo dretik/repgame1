@@ -4,6 +4,7 @@
 #include "CPP_Projectile.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperCharacter.h"
+#include "PaperFlipbook.h"
 #include "GameFramework/CharacterMovementComponent.h" 
 
 UCPP_Action_BossSkyfall::UCPP_Action_BossSkyfall()
@@ -20,33 +21,70 @@ void UCPP_Action_BossSkyfall::StartAction_Implementation(AActor* Instigator)
 
 	// Останавливаем босса
 	ACharacter* Char = Cast<ACharacter>(Instigator);
-	if (Char)
-	{
-		Char->GetCharacterMovement()->StopMovementImmediately();
+	if (!Char) return;
+	UCharacterMovementComponent* MoveComp = Char->GetCharacterMovement();
 
-		// Меняем анимацию (если нужно)
-		APaperCharacter* PaperChar = Cast<APaperCharacter>(Char);
-		if (PaperChar && LoopAnim)
-		{
-			PaperChar->GetSprite()->SetFlipbook(LoopAnim);
-		}
+	if (MoveComp)
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->SetMovementMode(MOVE_None);
 	}
 
-	// Запускаем таймер спавна
-	FTimerDelegate Del;
-	Del.BindUFunction(this, "SpawnMeteor", Instigator);
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle_Spawn, Del, SpawnRate, true);
+	APaperCharacter* PaperChar = Cast<APaperCharacter>(Char);
+	float IntroDuration = 0.1f; // Фоллбэк
+
+	if (PaperChar && IntroAnim)
+	{
+		PaperChar->GetSprite()->SetFlipbook(IntroAnim);
+		PaperChar->GetSprite()->SetLooping(false);
+		PaperChar->GetSprite()->PlayFromStart();
+
+		IntroDuration = IntroAnim->GetTotalDuration();
+	}
+
+	// 3. ТАЙМЕР НА ПЕРЕКЛЮЧЕНИЕ В ЦИКЛ (Loop)
+	FTimerHandle TimerHandle_Intro;
+	FTimerDelegate IntroDelegate;
+	IntroDelegate.BindUFunction(this, "SwitchToLoopAnim", Instigator);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_Intro, IntroDelegate, IntroDuration, false);
+
+	// 4. ОБЩИЙ ТАЙМЕР ЗАВЕРШЕНИЯ (используем ту самую Duration)
+	FTimerHandle TimerHandle_Total;
+	FTimerDelegate StopDelegate;
+	StopDelegate.BindUFunction(this, "StopAction", Instigator);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_Total, StopDelegate, Duration, false);
+}
+
+void UCPP_Action_BossSkyfall::SwitchToLoopAnim(AActor* Instigator)
+{
+	if (!IsRunning()) return; // Если действие уже прервано, ничего не делаем
+
+	APaperCharacter* PaperChar = Cast<APaperCharacter>(Instigator);
+	if (PaperChar && LoopAnim)
+	{
+		PaperChar->GetSprite()->SetFlipbook(LoopAnim);
+		PaperChar->GetSprite()->SetLooping(true);
+		PaperChar->GetSprite()->Play();
+	}
+
+	// ТОЛЬКО ТЕПЕРЬ ЗАПУСКАЕМ СПАВН МЕТЕОРОВ
+	MeteorsSpawned = 0;
+	FTimerDelegate SpawnDel;
+	SpawnDel.BindUFunction(this, "SpawnMeteor", Instigator);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_Spawn, SpawnDel, SpawnRate, true);
 }
 
 void UCPP_Action_BossSkyfall::StopAction_Implementation(AActor* Instigator)
 {
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red,
+		FString::Printf(TEXT("TAG REMOVED: %s at time %f"), *ActionTag.ToString(), GetWorld()->GetTimeSeconds()));
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Spawn);
 
 	// Возвращаем движение
 	ACharacter* Char = Cast<ACharacter>(Instigator);
 	if (Char)
 	{
-		// Вернуть MaxWalkSpeed или просто разблокировать движение
+		Char->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 
 	Super::StopAction_Implementation(Instigator);
@@ -114,7 +152,6 @@ void UCPP_Action_BossSkyfall::SpawnMeteor(AActor* Instigator)
 			Meteor->SetDamage(DamagePerMeteor);
 		}
 
-		// Лог для отладки (можно убрать на релизе)
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Purple, TEXT("Meteor Spawned via Action!"));
+		//if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Purple, TEXT("Meteor Spawned via Action!"));
 	}
 }

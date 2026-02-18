@@ -13,7 +13,10 @@ void UCPP_ActionComponent::BeginPlay()
 	// Создаем объекты из классов по умолчанию
 	for (TSubclassOf<UCPP_Action> ActionClass : DefaultActions)
 	{
-		AddAction(ActionClass);
+		if (ActionClass)
+		{
+			AddAction(ActionClass);
+		}
 	}
 }
 
@@ -74,4 +77,9 @@ bool UCPP_ActionComponent::StopActionByName(AActor* Instigator, FGameplayTag Act
 		}
 	}
 	return false;
+}
+
+bool UCPP_ActionComponent::HasAnyMatchingTag(FGameplayTagContainer TagContainer) const
+{
+	return ActiveGameplayTags.HasAny(TagContainer);
 }

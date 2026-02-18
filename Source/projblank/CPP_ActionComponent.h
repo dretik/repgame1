@@ -28,6 +28,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		bool StopActionByName(AActor* Instigator, FGameplayTag ActionTag);
 
+	UFUNCTION(BlueprintCallable, Category = "Actions")
+		bool HasAnyMatchingTag(FGameplayTagContainer TagContainer) const;
+
 protected:
 	virtual void BeginPlay() override;
 

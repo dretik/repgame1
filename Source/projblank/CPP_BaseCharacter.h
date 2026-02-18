@@ -140,6 +140,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "State")
         bool IsDead() const { return bIsDead; }
 
+    UFUNCTION(BlueprintCallable, Category = "State")
+        bool GetIsAttacking() const;
+
+    //attack trace box 
+    void PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount);
+
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
         UCharacterStats* CharacterStats;
@@ -285,8 +291,6 @@ protected:
     void DestroyCharacter();
 
     void InteractWithObject();
-
-    void PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount);
 
     virtual void BeginPlay() override;
 

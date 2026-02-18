@@ -39,7 +39,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Skyfall | Config")
 		float SpawnRadius = 300.0f;
 
-	// Анимации можно перенести сюда
+	UFUNCTION()
+		void SwitchToLoopAnim(AActor* Instigator);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Skyfall | Visuals")
+		class UPaperFlipbook* IntroAnim;
 	UPROPERTY(EditDefaultsOnly, Category = "Visuals")
 		class UPaperFlipbook* LoopAnim;
 

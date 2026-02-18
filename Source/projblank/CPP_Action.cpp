@@ -11,10 +11,31 @@ bool UCPP_Action::CanStart_Implementation(AActor* Instigator)
 
 	UCPP_ActionComponent* Comp = GetOwningComponent();
 
-	// Проверка на наличие тега "Запрещено" (например, оглушение)
-	if (Comp && Comp->ActiveGameplayTags.HasTag(ActionTag))
+	static const FGameplayTag StunTag = FGameplayTag::RequestGameplayTag("Status.Stunned");
+
+	if (Comp)
 	{
-		return false;
+		// Проверка на наличие тега "Запрещено" (например, оглушение)
+		if (Comp->ActiveGameplayTags.HasTag(StunTag))
+		{
+			return false;
+		}
+		//stun tag realisation
+		//UCPP_ActionComponent* ActionComp = Target->FindComponentByClass<UCPP_ActionComponent>();
+		//if (ActionComp)
+		//{
+		//	FGameplayTag StunTag = FGameplayTag::RequestGameplayTag("Status.Stunned");
+		//	ActionComp->ActiveGameplayTags.AddTag(StunTag);
+
+		//	// И через 2 секунды удалить его
+		//}
+		FGameplayTag BlockingTag = FGameplayTag::RequestGameplayTag("Ability");
+
+		if (Comp->ActiveGameplayTags.HasTag(BlockingTag))
+		{
+			// if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Orange, TEXT("Action Blocked: Actor is Busy!"));
+			return false;
+		}
 	}
 
 	// Проверка кулдауна
