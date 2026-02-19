@@ -127,6 +127,9 @@ public:
 
     const TMap<FGameplayTag, int32>& GetAbilityLevels() const { return AbilityLevels; }
 
+    UFUNCTION(BlueprintCallable, Category = "Stats")
+        class UCharacterStats* GetCharacterStats() const { return CharacterStats; }
+
     //SETTERS
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
         void SetStatsFromSave(float SavedHealth, float SavedMaxHealth, float SavedBaseDamage, int32 SavedLevel, float SavedXP, int32 SavedCoins);

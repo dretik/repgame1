@@ -21,12 +21,6 @@ public:
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
-		float DashImpulse = 2000.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Combat")
-		float DamageAmount = 20.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 		float HitDelay = 0.3f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Visuals")

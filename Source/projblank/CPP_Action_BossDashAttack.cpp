@@ -3,6 +3,7 @@
 
 #include "CPP_Action_BossDashAttack.h"
 #include "CPP_BaseCharacter.h"
+#include "CPP_BaseEnemy.h"
 #include "PaperFlipbookComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -15,10 +16,10 @@ UCPP_Action_BossDashAttack::UCPP_Action_BossDashAttack()
 void UCPP_Action_BossDashAttack::StartAction_Implementation(AActor* Instigator)
 {
 	Super::StartAction_Implementation(Instigator);
-
 	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
-	if (Char)
-	{
+	if (!Char) return;
+	UCharacterStats* Stats = Char->GetCharacterStats();
+	if (!Stats) return;
 		// 1. Анимация
 		if (DashAnim)
 		{
@@ -36,7 +37,7 @@ void UCPP_Action_BossDashAttack::StartAction_Implementation(AActor* Instigator)
 			DashDir *= -1.0f; // Влево
 		}
 
-		Char->LaunchCharacter(DashDir * DashImpulse, true, true);
+		Char->LaunchCharacter(DashDir * Stats->DashAttackImpulse, true, true);
 
 		// 3. Таймер удара в конце рывка
 		FTimerDelegate HitDelegate;
@@ -53,23 +54,31 @@ void UCPP_Action_BossDashAttack::StartAction_Implementation(AActor* Instigator)
 			Char->GetSprite()->SetLooping(true);
 
 		}
-	}
 }
 
 void UCPP_Action_BossDashAttack::MakeDashHit(AActor* Instigator)
 {
 	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
-	if (Char)
+	if (!Char) return;
+	ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Instigator);
+	UCharacterStats* Stats = Char->GetCharacterStats();
+	if (!Stats) return;
+	float DamageToApply = Stats->DashAttackDamage;
+
+	if (Enemy)
 	{
-		// Используем те же параметры хитбокса, что и в Melee (или можно вынести в переменные)
-		Char->PerformAttackTrace(200.0f, FVector(200.f, 80.f, 80.f), DamageAmount);
+		DamageToApply *= Enemy->GetEnemyDamageMultiplier();
 	}
+	Char->PerformAttackTrace(
+		Stats->DashAttackRange,
+		Stats->DashAttackBoxSize,
+		DamageToApply);
 }
 
 void UCPP_Action_BossDashAttack::StopAction_Implementation(AActor* Instigator)
 {
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red,
-		FString::Printf(TEXT("TAG REMOVED: %s at time %f"), *ActionTag.ToString(), GetWorld()->GetTimeSeconds()));
+	//if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red,
+		//FString::Printf(TEXT("TAG REMOVED: %s at time %f"), *ActionTag.ToString(), GetWorld()->GetTimeSeconds()));
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Hit);
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Duration);
 	Super::StopAction_Implementation(Instigator);

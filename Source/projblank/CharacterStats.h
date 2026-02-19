@@ -178,6 +178,8 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Scaling")
         float XPScalingFactor = 0.2f;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Scaling")
+        float CoinScalingFactor = 0.08f;
 
     //player scaling
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Player Progression")

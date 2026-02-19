@@ -24,6 +24,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "AI | Attack")
         virtual void AttackPlayer();
 
+    UFUNCTION(BlueprintCallable, Category = "Stats")
+        float GetEnemyDamageMultiplier() const { return EnemyLevelDamageMultiplier; }
+
     bool bIsDynamicallySpawned = false;
 
 protected:

@@ -343,7 +343,21 @@ void ACPP_BaseEnemy::SpawnCoins()
 {
     if (!CharacterStats || !CharacterStats->CoinClass) return;
 
-    int32 TotalValue = FMath::RandRange(CharacterStats->MinCoins, CharacterStats->MaxCoins);
+    float CoinScaler = 1.0f;
+    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    if (Player)
+    {
+        int32 PlayerLevel = Player->GetCharacterLevel();
+        if (PlayerLevel > 1)
+        {
+            CoinScaler = 1.0f + ((PlayerLevel - 1) * CharacterStats->CoinScalingFactor);
+        }
+    }
+
+    float ScaledMinCoins = (float)CharacterStats->MinCoins * CoinScaler;
+    float ScaledMaxCoins = (float)CharacterStats->MaxCoins * CoinScaler;
+
+    int32 TotalValue = FMath::RandRange(ScaledMinCoins, ScaledMaxCoins);
     if (TotalValue <= 0) return;
 
     FVector SpawnLocation = GetActorLocation();
@@ -379,7 +393,7 @@ void ACPP_BaseEnemy::SpawnXP()
 {
     if (!CharacterStats || !CharacterStats->XPItemClass) return;
 
-    float BaseAmount = (float)FMath::RandRange(CharacterStats->MinXP, CharacterStats->MaxXP);
+    
 
     float XPScaler = 1.0f;
     ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
@@ -391,6 +405,11 @@ void ACPP_BaseEnemy::SpawnXP()
             XPScaler = 1.0f + ((PlayerLevel - 1) * CharacterStats->XPScalingFactor);
         }
     }
+
+    float ScaledMinXP = (float)CharacterStats->MinXP * XPScaler;
+    float ScaledMaxXP = (float)CharacterStats->MaxXP * XPScaler;
+
+    float BaseAmount = (float)FMath::RandRange(ScaledMinXP, ScaledMaxXP);
 
     int32 FinalXPAmount = FMath::RoundToInt(BaseAmount * XPScaler);
 

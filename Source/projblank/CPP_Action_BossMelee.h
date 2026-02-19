@@ -20,16 +20,6 @@ public:
 	virtual void StopAction_Implementation(AActor* Instigator) override;
 
 protected:
-	// Настройки урона
-	UPROPERTY(EditDefaultsOnly, Category = "Combat")
-		float DamageAmount = 20.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Combat")
-		float AttackRange = 200.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Combat")
-		FVector AttackBoxSize = FVector(200.f, 80.f, 80.f);
-
 	// Тайминги
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 		float AttackDelay = 0.4f;

@@ -2,6 +2,7 @@
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "CPP_Projectile.h"
+#include "CPP_BaseEnemy.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperCharacter.h"
 #include "PaperFlipbook.h"
@@ -146,10 +147,11 @@ void UCPP_Action_BossSkyfall::SpawnMeteor(AActor* Instigator)
 	if (SpawnedActor)
 	{
 		ACPP_Projectile* Meteor = Cast<ACPP_Projectile>(SpawnedActor);
-		if (Meteor)
+		ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Instigator);
+		if (Meteor&&Enemy)
 		{
-			// Передаем урон, настроенный внутри Action (Data-Driven)
-			Meteor->SetDamage(DamagePerMeteor);
+			float DamageToApply = DamagePerMeteor * Enemy->GetEnemyDamageMultiplier();
+			Meteor->SetDamage(DamageToApply);
 		}
 
 		//if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Purple, TEXT("Meteor Spawned via Action!"));

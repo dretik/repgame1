@@ -3,6 +3,7 @@
 
 #include "CPP_Action_BossMelee.h"
 #include "CPP_BaseCharacter.h"
+#include "CPP_BaseEnemy.h"
 #include "PaperFlipbookComponent.h"
 
 UCPP_Action_BossMelee::UCPP_Action_BossMelee()
@@ -47,10 +48,21 @@ void UCPP_Action_BossMelee::StartAction_Implementation(AActor* Instigator)
 void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 {
 	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
-	if (Char)
+	if (!Char) return;
+	ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Instigator);
+	UCharacterStats* Stats = Char->GetCharacterStats();
+	if (!Stats) return;
+	float DamageToApply = Stats->LightAttackDamage;
+
+	if (Enemy)
 	{
-		Char->PerformAttackTrace(AttackRange, AttackBoxSize, DamageAmount);
+		DamageToApply *= Enemy->GetEnemyDamageMultiplier();
 	}
+		
+	Char->PerformAttackTrace(
+		Stats->LightAttackRange, 
+		Stats->LightAttackBoxSize, 
+		DamageToApply);
 }
 
 void UCPP_Action_BossMelee::StopAction_Implementation(AActor* Instigator)
