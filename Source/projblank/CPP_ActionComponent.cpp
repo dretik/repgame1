@@ -1,5 +1,6 @@
 #include "CPP_ActionComponent.h"
 #include "CPP_Action.h"
+#include "CPP_ActionSet.h"
 
 UCPP_ActionComponent::UCPP_ActionComponent()
 {
@@ -11,9 +12,8 @@ void UCPP_ActionComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// Создаем объекты из классов по умолчанию
-	for (TSubclassOf<UCPP_Action> ActionClass : DefaultActions)
-	{
-		if (ActionClass)
+	if (ActionSet){
+		for (TSubclassOf<UCPP_Action> ActionClass : ActionSet->Actions)
 		{
 			AddAction(ActionClass);
 		}

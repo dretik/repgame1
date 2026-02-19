@@ -43,11 +43,6 @@ void UCPP_Action_BossDashAttack::StartAction_Implementation(AActor* Instigator)
 		FTimerDelegate HitDelegate;
 		HitDelegate.BindUFunction(this, "MakeDashHit", Instigator);
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle_Hit, HitDelegate, HitDelay, false);
-
-		// 4. Таймер завершения
-		FTimerDelegate StopDelegate;
-		StopDelegate.BindUFunction(this, "StopAction", Instigator);
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_Duration, StopDelegate, Duration, false);
 	
 		if (DashAnim)
 		{

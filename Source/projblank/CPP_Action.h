@@ -37,8 +37,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		float CooldownTime = 1.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Action")
+	UPROPERTY(EditDefaultsOnly, Category = "Action", meta = (ClampMin = "0.01", UIMin = "0.01"))
 		float Duration = 1.0f;
+	//fallsafe const
+	static constexpr float MinActionDuration = 0.01f;
 
 	// Авто-запуск при получении компонентом (пассивки)
 	UPROPERTY(EditDefaultsOnly, Category = "Action")

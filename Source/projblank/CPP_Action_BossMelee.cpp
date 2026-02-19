@@ -32,11 +32,6 @@ void UCPP_Action_BossMelee::StartAction_Implementation(AActor* Instigator)
 		FTimerDelegate HitDelegate;
 		HitDelegate.BindUFunction(this, "MakeHit", Instigator);
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle_AttackDelay, HitDelegate, AttackDelay, false);
-
-		// 3. “аймер завершени€ действи€ (чтобы сн€ть тег и позволить боссу делать что-то еще)
-		FTimerDelegate StopDelegate;
-		StopDelegate.BindUFunction(this, "StopAction", Instigator);
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_Duration, StopDelegate, Duration, false);
 	
 		if (AttackAnim)
 		{

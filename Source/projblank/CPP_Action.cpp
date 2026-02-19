@@ -1,5 +1,6 @@
 #include "CPP_Action.h"
 #include "CPP_ActionComponent.h"
+#include "TimerManager.h"
 #include "Engine/World.h"
 
 bool UCPP_Action::CanStart_Implementation(AActor* Instigator)
@@ -53,15 +54,37 @@ void UCPP_Action::StartAction_Implementation(AActor* Instigator)
 	// Log: Action Started
 	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString::Printf(TEXT("Action Started: %s"), *GetName()));
 
+	float FinalDuration = Duration;
+	
 	UCPP_ActionComponent* Comp = GetOwningComponent();
 	if (Comp)
 	{
 		Comp->ActiveGameplayTags.AddTag(ActionTag);
 	}
 
+	if (FinalDuration <= 0.0f)
+	{
+		// ¬ыводим критическое предупреждение в лог (только в редакторе/дебаге)
+		UE_LOG(LogTemp, Error, TEXT("Action '%s' started with 0 Duration! Forcing safety fallback."), *GetName());
+
+		// ensureMsgf вызовет прерывание при отладке, чтобы разработчик заметил проблему
+		ensureMsgf(false, TEXT("Action %s has 0 duration! Check Blueprint settings."), *GetName());
+
+		FinalDuration = MinActionDuration;
+	}
+
 	RepData.bIsRunning = true;
 	RepData.Instigator = Instigator;
 	TimeStarted = GetWorld()->GetTimeSeconds();
+
+	if (Duration > 0.0f)
+	{
+		FTimerHandle TimerHandle_AutoStop;
+		FTimerDelegate StopDel;
+		StopDel.BindUFunction(this, "StopAction", Instigator);
+
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_AutoStop, StopDel, Duration, false);
+	}
 }
 
 void UCPP_Action::StopAction_Implementation(AActor* Instigator)

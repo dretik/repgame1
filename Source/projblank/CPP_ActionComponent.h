@@ -36,7 +36,7 @@ protected:
 
 	// Список дефолтных способностей (задается в редакторе)
 	UPROPERTY(EditAnywhere, Category = "Actions")
-		TArray<TSubclassOf<UCPP_Action>> DefaultActions;
+		class UCPP_ActionSet* ActionSet;
 
 	// Созданные объекты способностей
 	UPROPERTY(BlueprintReadOnly, Category = "Actions")

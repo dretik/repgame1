@@ -48,12 +48,6 @@ void UCPP_Action_BossSkyfall::StartAction_Implementation(AActor* Instigator)
 	FTimerDelegate IntroDelegate;
 	IntroDelegate.BindUFunction(this, "SwitchToLoopAnim", Instigator);
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle_Intro, IntroDelegate, IntroDuration, false);
-
-	// 4. ÎÁÙÈÉ ÒÀÉÌÅÐ ÇÀÂÅÐØÅÍÈß (èñïîëüçóåì òó ñàìóþ Duration)
-	FTimerHandle TimerHandle_Total;
-	FTimerDelegate StopDelegate;
-	StopDelegate.BindUFunction(this, "StopAction", Instigator);
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle_Total, StopDelegate, Duration, false);
 }
 
 void UCPP_Action_BossSkyfall::SwitchToLoopAnim(AActor* Instigator)
