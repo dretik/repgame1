@@ -49,15 +49,10 @@ protected:
 
     float EnemyLevelDamageMultiplier = 1.0f;
 
-    virtual void FinishAttack();
-
-    void PerformHitTrace();
-
 private:
     UFUNCTION()
         void OnPawnSeen(APawn* SeenPawn);
 
     virtual void BeginPlay() override;
     virtual bool CanDealDamageTo(AActor* TargetActor) const override;
-
 };

@@ -11,7 +11,7 @@
 
 UCPP_Action_Projectile::UCPP_Action_Projectile()
 {
-	ActionTag = FGameplayTag::RequestGameplayTag("Ability.Fireball");
+	ActionTag = FGameplayTag::RequestGameplayTag("Ability.Player.Range.Fireball");
 	CooldownTime = 2.0f;
 	AttackAnimDelay = 0.2f;
 }

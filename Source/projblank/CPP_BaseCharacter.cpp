@@ -134,77 +134,63 @@ void ACPP_BaseCharacter::StopJump()
 
 void ACPP_BaseCharacter::Attack()
 {
+    if (!ActionComp) return;
     if (bIsDead) return;
-    if (!CharacterStats) return;
-    if (bIsAttacking) return;
-    ComboCounter++;
-    bIsAttacking = true;
 
-    GetWorldTimerManager().ClearTimer(ComboResetTimer);
+    FGameplayTag SelectedTag;
 
-    float CurrentAttackDuration = 0.5f;
+    switch (ComboCounter)
+    {
+    case 0:
+        SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.LightAttack");
+        break;
+    case 1:
+        SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.DashAttack");
+        break;
+    case 2:
+        SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.HeavyAttack");
+        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->HeavyAttackWalkSpeed;
+        break;
+    default:
+        SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.LightAttack");
+        ComboCounter = 0;
+        break;
+    }
+
+    bool bStarted = ActionComp->StartActionByName(this, SelectedTag);
+
+    if (bStarted)
+    {
+        // Увеличиваем счетчик для следующего удара
+        ComboCounter++;
+
+        if (ComboCounter == 3)
+        {
+            GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
+        }
+
+        // Если комбо завершено (сделали 3 удара), сбрасываем счетчик
+        // (В играх часто сброс происходит после завершения анимации Heavy, 
+        // но здесь для простоты сбросим сразу, чтобы следующий клик начал серию заново)
+        if (ComboCounter > 2)
+        {
+            ComboCounter = 0;
+        }
+
+        // Сброс комбо по таймеру (если игрок перестал бить)
+        GetWorldTimerManager().ClearTimer(ComboResetTimer);
+        GetWorldTimerManager().SetTimer(ComboResetTimer, this, &ACPP_BaseCharacter::ResetCombo, CharacterStats ? CharacterStats->ComboResetTime : 1.0f, false);
+    }
 
     FVector RightDirection = GetActorRightVector();
     if (GetSprite()->GetRelativeScale3D().X < 0.0f)
     {
         RightDirection *= -1.0f;
     }
-
-    switch ((EAttackPhase)ComboCounter)
-    {
-    case EAttackPhase::LightAttack:
-        if (Attack1Flipbook) GetSprite()->SetFlipbook(Attack1Flipbook);
-
-        CurrentAttackDuration = CharacterStats->LightAttackDuration;
-
-        PerformAttackTrace(
-            CharacterStats->LightAttackRange,
-            CharacterStats->LightAttackBoxSize,
-            CurrentBaseDamage
-        );
-        break;
-
-    case EAttackPhase::DashAttack:
-        if (Attack2Flipbook) GetSprite()->SetFlipbook(Attack2Flipbook);
-
-        LaunchCharacter(RightDirection * CharacterStats->DashAttackImpulse, true, true);
-        CurrentAttackDuration = CharacterStats->DashAttackDuration;
-
-        PerformAttackTrace(
-            CharacterStats->DashAttackRange,
-            CharacterStats->DashAttackBoxSize,
-            CurrentBaseDamage
-        );
-        break;
-    case EAttackPhase::HeavyAttack:
-        if (Attack3Flipbook) GetSprite()->SetFlipbook(Attack3Flipbook);
-
-        if (GetCharacterMovement())
-        {
-            GetCharacterMovement()->MaxWalkSpeed = CharacterStats->HeavyAttackWalkSpeed;
-        }
-        CurrentAttackDuration = CharacterStats->HeavyAttackDuration;
-
-        PerformAttackTrace(
-            CharacterStats->HeavyAttackRange,
-            CharacterStats->HeavyAttackBoxSize,
-            CurrentBaseDamage
-        );
-        break;
-
-    default:
-        ResetCombo();
-        return;
-    }
-
-    FTimerHandle UnusedHandle;
-    GetWorldTimerManager().SetTimer(UnusedHandle, this, 
-        &ACPP_BaseCharacter::AttackEnd, CurrentAttackDuration, false);
 }
 
 void ACPP_BaseCharacter::AttackEnd()
 {
-    bIsAttacking = false;
 
     if (ComboCounter == 3)
     {
@@ -220,7 +206,6 @@ void ACPP_BaseCharacter::AttackEnd()
 void ACPP_BaseCharacter::ResetCombo()
 {
     ComboCounter = 0;
-    bIsAttacking = false;
 
     if (CharacterStats && GetCharacterMovement()) {
         GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
@@ -272,17 +257,15 @@ void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float 
 
     if (bHit)
     {
+        TSet<AActor*> DamagedActors;
         for (const FHitResult& Result : HitResults)
         {
             AActor* HitActor = Result.GetActor();
 
-            if (HitActor && CanDealDamageTo(HitActor))
+            if (HitActor && CanDealDamageTo(HitActor)&&!DamagedActors.Contains(HitActor))
             {
+                DamagedActors.Add(HitActor);
                 float DamageToApply = DamageAmount * CurrentDamageMultiplier;
-                if ((EAttackPhase)ComboCounter == EAttackPhase::HeavyAttack)
-                {
-                    DamageToApply *= CharacterStats->HeavyAttackMultiplier;
-                }
 
                 UGameplayStatics::ApplyDamage(
                     HitActor,
@@ -956,7 +939,7 @@ void ACPP_BaseCharacter::MagicAttack()
     {
         // Мы просим компонент: "Запусти действие с тегом Fireball".
         // Компонент сам проверит кулдаун, наличие маны (если добавим), состояние оглушения и т.д.
-        ActionComp->StartActionByName(this, FGameplayTag::RequestGameplayTag("Ability.Fireball"));
+        ActionComp->StartActionByName(this, FGameplayTag::RequestGameplayTag("Ability.Player.Range.Fireball"));
     }
 }
 

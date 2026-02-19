@@ -13,6 +13,7 @@
 #include "CPP_SaveGame.h"
 #include "CPP_Item_SkillUnlockable.h"
 #include "CPP_Action.h"   
+#include "CPP_ActionComponent.h"
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -59,8 +60,6 @@ void ACPP_BaseEnemy::BeginPlay()
             float HealthScale = 1.0f + ((PlayerLevel - 1) * CharacterStats->HealthScalingFactor);
             float NewMaxHealth = CharacterStats->MaxHealth * HealthScale;
 
-            // ИСПРАВЛЕНИЕ 1: Инициализируем компонент новыми статами
-            // Эта функция также вылечит врага до максимума (Health = NewMaxHealth)
             AttributeComp->InitializeStats(NewMaxHealth);
 
             EnemyLevelDamageMultiplier = 1.0f + ((PlayerLevel - 1) * CharacterStats->DamageScalingFactor);
@@ -149,46 +148,12 @@ void ACPP_BaseEnemy::Tick(float DeltaTime)
 void ACPP_BaseEnemy::AttackPlayer()
 {
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("AI Trying to Attack..."));
-    if (!CharacterStats) {
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("FAIL: No Stats!"));
-        return;
-    }
-    if (bIsAttacking) { 
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("FAIL: Already Attacking!"));
-        return; 
-    }
-
-    bIsAttacking = true;
-
-    float AttackDuration = 0.5f;
-
-    if (Attack1Flipbook) GetSprite()->SetFlipbook(Attack1Flipbook);
-    AttackDuration = CharacterStats->Attack1Duration;
-
-    FTimerHandle HitTimer;
-    GetWorldTimerManager().SetTimer(HitTimer, this, &ACPP_BaseEnemy::PerformHitTrace, AttackDuration*0.5f, false);
-
-    FTimerHandle FinishTimer;
-    GetWorldTimerManager().SetTimer(FinishTimer, this, &ACPP_BaseEnemy::FinishAttack, AttackDuration, false);
-}
-
-void ACPP_BaseEnemy::PerformHitTrace()
-{
     if (!CharacterStats) return;
+    if (IsDead() || GetIsAttacking()) return;
+    if (!ActionComp) return;
+    static FGameplayTag AttackTag = FGameplayTag::RequestGameplayTag("Ability.Enemy.Melee");
 
-    float ScaledDamage = CharacterStats->LightAttackDamage * EnemyLevelDamageMultiplier;
-
-    PerformAttackTrace(
-        CharacterStats->LightAttackRange,
-        CharacterStats->LightAttackBoxSize,
-        ScaledDamage);
-}
-
-void ACPP_BaseEnemy::FinishAttack()
-{
-    bIsAttacking = false;
-    GetSprite()->SetLooping(true);
-    GetSprite()->Play();
+    ActionComp->StartActionByName(this, AttackTag);
 }
 
 bool ACPP_BaseEnemy::CanDealDamageTo(AActor* TargetActor) const

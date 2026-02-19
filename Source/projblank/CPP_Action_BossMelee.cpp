@@ -44,15 +44,24 @@ void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 {
 	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
 	if (!Char) return;
-	ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Instigator);
 	UCharacterStats* Stats = Char->GetCharacterStats();
 	if (!Stats) return;
-	float DamageToApply = Stats->LightAttackDamage;
+	float DamageToApply = 0.f;
 
-	if (Enemy)
+	if (Char->IsPlayerControlled())
 	{
-		DamageToApply *= Enemy->GetEnemyDamageMultiplier();
+		DamageToApply = Char->GetCurrentBaseDamage();
 	}
+	else if (ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Char))
+	{
+		// Враг берет урон из DataAsset и умножает на свой множитель сложности
+		if (Stats)
+		{
+			// Здесь мы берем LightAttackDamage как базу, но можно вынести в переменную Action
+			DamageToApply = Stats->LightAttackDamage * Enemy->GetEnemyDamageMultiplier();
+		}
+	}
+	DamageToApply *= ActionDamageMultiplier;
 		
 	Char->PerformAttackTrace(
 		Stats->LightAttackRange, 
