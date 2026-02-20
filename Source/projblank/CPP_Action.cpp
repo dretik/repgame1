@@ -100,6 +100,11 @@ void UCPP_Action::StopAction_Implementation(AActor* Instigator)
 
 	RepData.bIsRunning = false;
 	RepData.Instigator = nullptr;
+
+	if (OnActionStopped.IsBound())
+	{
+		OnActionStopped.Broadcast(this);
+	}
 }
 
 UWorld* UCPP_Action::GetWorld() const

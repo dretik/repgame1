@@ -23,6 +23,9 @@ public:
 		void AddAction(TSubclassOf<UCPP_Action> ActionClass);
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
+		UCPP_Action* GetAction(FGameplayTag ActionTag) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Actions")
 		bool StartActionByName(AActor* Instigator, FGameplayTag ActionTag);
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")

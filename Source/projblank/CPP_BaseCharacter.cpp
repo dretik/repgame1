@@ -132,54 +132,81 @@ void ACPP_BaseCharacter::StopJump()
     bIsJumping = false;
 }
 
-void ACPP_BaseCharacter::Attack()
+void ACPP_BaseCharacter::ExecuteMeleeAttack()
 {
     if (!ActionComp) return;
     if (bIsDead) return;
 
     FGameplayTag SelectedTag;
 
+    // Выбор тега (как у тебя было)
     switch (ComboCounter)
     {
-    case 0:
-        SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.LightAttack");
-        break;
-    case 1:
-        SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.DashAttack");
-        break;
-    case 2:
-        SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.HeavyAttack");
-        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->HeavyAttackWalkSpeed;
-        break;
-    default:
-        SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.LightAttack");
-        ComboCounter = 0;
-        break;
+    case 0: SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.LightAttack"); break;
+    case 1: SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.DashAttack"); break;
+    case 2: SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.HeavyAttack"); break;
+    default: SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.LightAttack"); break;
     }
 
+    // Запускаем действие
+    // ВНИМАНИЕ: Мы НЕ вызываем StopActionByName. Пусть старое действие закончится само!
     bool bStarted = ActionComp->StartActionByName(this, SelectedTag);
 
     if (bStarted)
     {
-        // Увеличиваем счетчик для следующего удара
-        ComboCounter++;
+        // Сброс буфера, так как мы только что исполнили желание игрока
+        bInputBuffered = false;
 
-        if (ComboCounter == 3)
+        // ИЩЕМ ЗАПУЩЕННЫЙ ЭКШЕН, ЧТОБЫ ПОДПИСАТЬСЯ
+        // (Нам нужно получить указатель на сам объект Action)
+        UCPP_Action* ActiveAction = ActionComp->GetAction(SelectedTag); // <-- Эту функцию надо добавить в ActionComp (см. ниже)
+
+        if (ActiveAction)
         {
-            GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
+            // Подписываемся на его завершение
+            ActiveAction->OnActionStopped.AddDynamic(this, &ACPP_BaseCharacter::OnAttackActionStopped);
         }
 
-        // Если комбо завершено (сделали 3 удара), сбрасываем счетчик
-        // (В играх часто сброс происходит после завершения анимации Heavy, 
-        // но здесь для простоты сбросим сразу, чтобы следующий клик начал серию заново)
-        if (ComboCounter > 2)
-        {
-            ComboCounter = 0;
-        }
-
-        // Сброс комбо по таймеру (если игрок перестал бить)
+        // Таймер сброса комбо очищаем, пока мы в бою
         GetWorldTimerManager().ClearTimer(ComboResetTimer);
-        GetWorldTimerManager().SetTimer(ComboResetTimer, this, &ACPP_BaseCharacter::ResetCombo, CharacterStats ? CharacterStats->ComboResetTime : 1.0f, false);
+    }
+}
+void ACPP_BaseCharacter::OnAttackActionStopped(UCPP_Action* Action)
+{
+    // Отписываемся, чтобы не вызывать это повторно для того же экшена
+    if (Action)
+    {
+        Action->OnActionStopped.RemoveDynamic(this, &ACPP_BaseCharacter::OnAttackActionStopped);
+    }
+
+    // Если игрок нажал кнопку во время удара (в буфере есть заказ)
+    if (bInputBuffered)
+    {
+        // Переходим к следующему шагу
+        ComboCounter++;
+        if (ComboCounter > 2) ComboCounter = 0; // Цикл или сброс
+
+        ExecuteMeleeAttack();
+    }
+    else
+    {
+        // Если игрок ничего не нажимал - запускаем таймер сброса комбо
+        // (чтобы если он нажмет через 0.2 сек, комбо продолжилось, а не сбросилось сразу)
+        float ResetTime = (CharacterStats) ? CharacterStats->ComboResetTime : 1.0f;
+        GetWorldTimerManager().SetTimer(ComboResetTimer, this, &ACPP_BaseCharacter::ResetCombo, ResetTime, false);
+    }
+}
+void ACPP_BaseCharacter::Attack()
+{
+    if (bIsDead) return;
+    if (GetIsAttacking())
+    {
+        bInputBuffered = true;
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("Input Buffered!"));
+    }
+    else {
+        ComboCounter = 0;
+        ExecuteMeleeAttack();
     }
 
     FVector RightDirection = GetActorRightVector();
@@ -187,20 +214,6 @@ void ACPP_BaseCharacter::Attack()
     {
         RightDirection *= -1.0f;
     }
-}
-
-void ACPP_BaseCharacter::AttackEnd()
-{
-
-    if (ComboCounter == 3)
-    {
-        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
-    }
-
-    float ResetTime = CharacterStats->ComboResetTime;
-
-    GetWorldTimerManager().SetTimer(ComboResetTimer, this,
-        &ACPP_BaseCharacter::ResetCombo, ResetTime, false);
 }
 
 void ACPP_BaseCharacter::ResetCombo()

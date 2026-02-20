@@ -5,6 +5,8 @@
 #include "GameplayTagContainer.h"
 #include "CPP_Action.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActionStateChanged, class UCPP_Action*, Action);
+
 class UWorld;
 class UCPP_ActionComponent;
 
@@ -29,6 +31,9 @@ class PROJBLANK_API UCPP_Action : public UObject
 	GENERATED_BODY()
 
 public:
+	//delegate
+	UPROPERTY(BlueprintAssignable)
+		FOnActionStateChanged OnActionStopped;
 	// Тег для запуска (например, "Ability.Fireball")
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		FGameplayTag ActionTag;

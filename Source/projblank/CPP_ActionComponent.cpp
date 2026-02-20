@@ -83,3 +83,15 @@ bool UCPP_ActionComponent::HasAnyMatchingTag(FGameplayTagContainer TagContainer)
 {
 	return ActiveGameplayTags.HasAny(TagContainer);
 }
+
+UCPP_Action* UCPP_ActionComponent::GetAction(FGameplayTag ActionTag) const
+{
+	for (UCPP_Action* Action : Actions)
+	{
+		if (Action && Action->ActionTag == ActionTag)
+		{
+			return Action;
+		}
+	}
+	return nullptr;
+}

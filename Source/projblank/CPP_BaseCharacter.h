@@ -150,6 +150,11 @@ public:
     void PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount);
 
 protected:
+    bool bInputBuffered = false;
+    UFUNCTION()
+        void OnAttackActionStopped(UCPP_Action* Action);
+    void ExecuteMeleeAttack();
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
         UCharacterStats* CharacterStats;
 
