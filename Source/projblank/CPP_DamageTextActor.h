@@ -24,7 +24,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 		UWidgetComponent* DamageWidgetComp;
 
-	// Время жизни текста перед уничтожением
 	UPROPERTY(EditDefaultsOnly, Category = "Config")
 		float LifeTime = 1.5f;
 

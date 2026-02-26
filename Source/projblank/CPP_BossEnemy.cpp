@@ -17,21 +17,17 @@ ACPP_BossEnemy::ACPP_BossEnemy(const FObjectInitializer& ObjectInitializer)
     GetCharacterMovement()->MaxWalkSpeed = 200.0f;
     GetCharacterMovement()->JumpZVelocity = 500.0f;
 
-    // Увеличим капсулу, если нужно
-    // GetCapsuleComponent()->SetCapsuleSize(...);
+    GetSprite()->SetRelativeScale3D(FVector(2.5f));
 }
 
 void ACPP_BossEnemy::AttackPlayer()
 {
-    // 1. Проверка на пустоту конфига (защита от краша) - должна быть первой
     if (AttackConfigs.Num() == 0) return;
 
-    // 2. Проверка состояния: Мертв или Занят (через модульную систему тегов)
     if (IsDead() || GetIsAttacking()) return;
 
     if (!ActionComp) return;
 
-    // 2. ВЫБОР АТАКИ ПО ВЕСАМ (Weighted Random)
     float TotalWeight = 0.0f;
     for (const FBossAttackConfig& Config : AttackConfigs)
     {
@@ -54,16 +50,12 @@ void ACPP_BossEnemy::AttackPlayer()
         }
     }
 
-    // 3. ЗАПУСК ВЫБРАННОГО ДЕЙСТВИЯ
     if (SelectedTag.IsValid())
     {
-        // Пытаемся запустить экшен. 
-        // ActionComponent сам проверит кулдауны и возможность старта.
         bool bSuccess = ActionComp->StartActionByName(this, SelectedTag);
 
         if (bSuccess)
         {
-            // Можно вызвать логику анимации ожидания или лог
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
                 FString::Printf(TEXT("Boss starting attack: %s"), *SelectedTag.ToString()));
         }

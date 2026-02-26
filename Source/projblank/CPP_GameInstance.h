@@ -22,10 +22,10 @@ public:
         void CreateNewSave();
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
-        void SaveGame(class ACPP_BaseCharacter* PlayerCharacter);
+        void SaveGame(class ACPP_PlayerCharacter* PlayerCharacter);
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
-        bool LoadGame(class ACPP_BaseCharacter* PlayerCharacter);
+        bool LoadGame(class ACPP_PlayerCharacter* PlayerCharacter);
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
         bool HasSaveGame();

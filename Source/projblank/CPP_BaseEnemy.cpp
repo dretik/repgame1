@@ -14,6 +14,7 @@
 #include "CPP_Item_SkillUnlockable.h"
 #include "CPP_Action.h"   
 #include "CPP_ActionComponent.h"
+#include "CPP_PlayerCharacter.h"
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -32,6 +33,8 @@ ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     bUseControllerRotationPitch = false;
     bUseControllerRotationRoll = false;
 
+    GetSprite()->SetRelativeScale3D(FVector(2.f));
+
     if (GetCharacterMovement())
     {
         GetCharacterMovement()->bOrientRotationToMovement = false;
@@ -42,15 +45,13 @@ void ACPP_BaseEnemy::BeginPlay()
 {
     Super::BeginPlay();
 
-    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
     if (PawnSensingComp)
     {
         PawnSensingComp->OnSeePawn.AddDynamic(this, &ACPP_BaseEnemy::OnPawnSeen);
     }
 
-    // --- ЛОГИКА АВТОЛЕВЕЛИНГА (SCALING) ---
-    // Добавили проверку AttributeComp
     if (Player && CharacterStats && AttributeComp)
     {
         int32 PlayerLevel = Player->GetCharacterLevel();
@@ -66,9 +67,6 @@ void ACPP_BaseEnemy::BeginPlay()
         }
     }
 
-    // Broadcast здесь не нужен, он произойдет внутри InitializeStats -> OnHealthChangedCallback
-
-    // --- ЛОГИКА ЗАГРУЗКИ СОХРАНЕНИЯ ---
     UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
     if (GI && GI->bIsLoadingSave)
     {
@@ -90,16 +88,11 @@ void ACPP_BaseEnemy::BeginPlay()
                 {
                     SetActorLocation(Data.Location);
 
-                    // ИСПРАВЛЕНИЕ 2: Восстанавливаем здоровье из сохранения
                     if (AttributeComp)
                     {
-                        // Сейчас у врага полное здоровье (из-за InitializeStats или дефолта).
-                        // Нам нужно выставить ровно столько, сколько было в сейве.
-                        // Вычисляем разницу и применяем её.
                         float CurrentHP = AttributeComp->GetHealth();
                         float Diff = Data.CurrentHealth - CurrentHP;
 
-                        // Применяем изменение (это может быть отрицательное число, если враг был ранен)
                         AttributeComp->ApplyHealthChange(nullptr, Diff);
                     }
                 }
@@ -125,24 +118,6 @@ void ACPP_BaseEnemy::OnPawnSeen(APawn* SeenPawn)
 void ACPP_BaseEnemy::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-
-    const FVector Velocity = GetVelocity();
-
-    if (!Velocity.IsNearlyZero())
-    {
-        FVector CurrentScale = GetSprite()->GetRelativeScale3D();
-
-        if (Velocity.Y > 0.1f)
-        {
-            CurrentScale.X = FMath::Abs(CurrentScale.X); 
-        }
-        else if (Velocity.Y < -0.1f)
-        {
-            CurrentScale.X = -FMath::Abs(CurrentScale.X); 
-        }
-
-        GetSprite()->SetRelativeScale3D(CurrentScale);
-    }
 }
 
 void ACPP_BaseEnemy::AttackPlayer()
@@ -191,9 +166,8 @@ void ACPP_BaseEnemy::SpawnLoot()
     int32 ItemsToSpawn = FMath::RandRange(CharacterStats->MinLootCount, CharacterStats->MaxLootCount);
 
     //assuming singleplayer
-    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
     if (!Player) return;
-    //
 
     for (int32 i = 0; i < ItemsToSpawn; i++)
     {
@@ -210,15 +184,12 @@ void ACPP_BaseEnemy::SpawnLoot()
 
             if (DefaultItem)
             {
-                // Пытаемся привести предмет к типу "Предмет с Навыком"
                 ACPP_Item_SkillUnlockable* SkillItem = Cast<ACPP_Item_SkillUnlockable>(DefaultItem);
 
                 if (SkillItem)
                 {
-                    // Если это книга навыков, проверяем ActionClass
                     if (SkillItem->GetActionClass())
                     {
-                        // Достаем тег прямо из класса Action
                         UCPP_Action* DefaultAction = SkillItem->GetActionClass()->GetDefaultObject<UCPP_Action>();
 
                         if (DefaultAction)
@@ -228,10 +199,6 @@ void ACPP_BaseEnemy::SpawnLoot()
                             if (Tag.IsValid())
                             {
                                 int32 CurrentLevel = Player->GetAbilityLevel(Tag);
-
-                                // ВНИМАНИЕ: Так как мы убрали MaxLevel из предмета, 
-                                // для диплома зададим константу или добавим свойство обратно в SkillItem.
-                                // Пока используем константу 3 как "Магическое число" (можно вынести в const int32)
 
                                 if (CurrentLevel >= SkillItem->GlobalMaxSkillLevel)
                                 {
@@ -309,7 +276,7 @@ void ACPP_BaseEnemy::SpawnCoins()
     if (!CharacterStats || !CharacterStats->CoinClass) return;
 
     float CoinScaler = 1.0f;
-    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
     if (Player)
     {
         int32 PlayerLevel = Player->GetCharacterLevel();
@@ -357,11 +324,8 @@ void ACPP_BaseEnemy::SpawnCoins()
 void ACPP_BaseEnemy::SpawnXP()
 {
     if (!CharacterStats || !CharacterStats->XPItemClass) return;
-
-    
-
     float XPScaler = 1.0f;
-    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
     if (Player)
     {
         int32 PlayerLevel = Player->GetCharacterLevel();
@@ -402,7 +366,7 @@ void ACPP_BaseEnemy::SpawnXP()
         UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedXP->GetRootComponent());
         if (RootPrim)
         {
-            FVector Impulse = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), 1.5f); // Z выше
+            FVector Impulse = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), 1.5f);
             RootPrim->AddImpulse(Impulse.GetSafeNormal() * 450.0f, NAME_None, true);
         }
     }

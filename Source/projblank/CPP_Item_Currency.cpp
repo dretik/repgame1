@@ -3,6 +3,7 @@
 
 #include "CPP_Item_Currency.h"
 #include "CPP_BaseCharacter.h"
+#include "CPP_PlayerCharacter.h"
 
 ACPP_Item_Currency::ACPP_Item_Currency()
 {
@@ -18,7 +19,7 @@ void ACPP_Item_Currency::SetValue(int32 NewValue)
 
 void ACPP_Item_Currency::Interact_Implementation(AActor* Interactor)
 {
-    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(Interactor);
+    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(Interactor);
     if (Player)
     {
         Player->AddCoins(CoinValue);

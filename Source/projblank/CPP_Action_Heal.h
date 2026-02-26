@@ -26,7 +26,6 @@ public:
 
 	virtual void StartAction_Implementation(AActor* Instigator) override;
 
-	// ѕереопредел€ем проверку старта, чтобы босс не лечилс€, если он полон здоровь€
 	virtual bool CanStart_Implementation(AActor* Instigator) override;
 
 protected:
@@ -39,7 +38,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Heal | Config")
 		bool bApplyLevelScaling = true;
 
-	// «адержка перед применением лечени€ (чтобы совпало с анимацией)
 	UPROPERTY(EditDefaultsOnly, Category = "Heal | Config")
 		float HealDelay = 0.5f;
 

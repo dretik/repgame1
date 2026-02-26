@@ -20,7 +20,6 @@ void UCPP_Action_BossSkyfall::StartAction_Implementation(AActor* Instigator)
 
 	MeteorsSpawned = 0;
 
-	// Останавливаем босса
 	ACharacter* Char = Cast<ACharacter>(Instigator);
 	if (!Char) return;
 	UCharacterMovementComponent* MoveComp = Char->GetCharacterMovement();
@@ -32,7 +31,7 @@ void UCPP_Action_BossSkyfall::StartAction_Implementation(AActor* Instigator)
 	}
 
 	APaperCharacter* PaperChar = Cast<APaperCharacter>(Char);
-	float IntroDuration = 0.1f; // Фоллбэк
+	float IntroDuration = 0.1f; // fallback
 
 	if (PaperChar && IntroAnim)
 	{
@@ -43,7 +42,6 @@ void UCPP_Action_BossSkyfall::StartAction_Implementation(AActor* Instigator)
 		IntroDuration = IntroAnim->GetTotalDuration();
 	}
 
-	// 3. ТАЙМЕР НА ПЕРЕКЛЮЧЕНИЕ В ЦИКЛ (Loop)
 	FTimerHandle TimerHandle_Intro;
 	FTimerDelegate IntroDelegate;
 	IntroDelegate.BindUFunction(this, "SwitchToLoopAnim", Instigator);
@@ -52,7 +50,7 @@ void UCPP_Action_BossSkyfall::StartAction_Implementation(AActor* Instigator)
 
 void UCPP_Action_BossSkyfall::SwitchToLoopAnim(AActor* Instigator)
 {
-	if (!IsRunning()) return; // Если действие уже прервано, ничего не делаем
+	if (!IsRunning()) return;
 
 	APaperCharacter* PaperChar = Cast<APaperCharacter>(Instigator);
 	if (PaperChar && LoopAnim)
@@ -62,7 +60,6 @@ void UCPP_Action_BossSkyfall::SwitchToLoopAnim(AActor* Instigator)
 		PaperChar->GetSprite()->Play();
 	}
 
-	// ТОЛЬКО ТЕПЕРЬ ЗАПУСКАЕМ СПАВН МЕТЕОРОВ
 	MeteorsSpawned = 0;
 	FTimerDelegate SpawnDel;
 	SpawnDel.BindUFunction(this, "SpawnMeteor", Instigator);
@@ -75,7 +72,6 @@ void UCPP_Action_BossSkyfall::StopAction_Implementation(AActor* Instigator)
 		FString::Printf(TEXT("TAG REMOVED: %s at time %f"), *ActionTag.ToString(), GetWorld()->GetTimeSeconds()));
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Spawn);
 
-	// Возвращаем движение
 	ACharacter* Char = Cast<ACharacter>(Instigator);
 	if (Char)
 	{
@@ -95,7 +91,7 @@ void UCPP_Action_BossSkyfall::SpawnMeteor(AActor* Instigator)
 	
 	if (MeteorsSpawned >= MeteorsCount)
 	{
-		StopAction(Instigator); // Сами останавливаем действие
+		StopAction(Instigator);
 		return;
 	}
 
@@ -110,34 +106,27 @@ void UCPP_Action_BossSkyfall::SpawnMeteor(AActor* Instigator)
 	}
 	else
 	{
-		// Fallback: Если игрока нет (умер), спавним вокруг Босса (Instigator), чтобы не было ошибок
 		if (Instigator)
 		{
 			TargetLocation = Instigator->GetActorLocation();
 		}
 	}
 
-	// 4. Расчет позиции спавна (2.5D логика)
 	FVector SpawnLocation = TargetLocation;
-	SpawnLocation.Z += SpawnHeight; // Поднимаем вверх
+	SpawnLocation.Z += SpawnHeight; 
 
-	// Рандомный разброс (как в твоем старом коде)
 	SpawnLocation.X += FMath::RandRange(-SpawnRadius, SpawnRadius);
 	SpawnLocation.Y += FMath::RandRange(-SpawnRadius, SpawnRadius);
 
-	// 5. Ротация (Вниз)
 	FRotator SpawnRotation = FRotator(-90.0f, 0.0f, 0.0f);
 
-	// 6. Параметры спавна
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	Params.Owner = Instigator;           // Владелец снаряда - Босс
-	Params.Instigator = Cast<APawn>(Instigator); // Инстигатор урона - Босс
+	Params.Owner = Instigator;
+	Params.Instigator = Cast<APawn>(Instigator); 
 
-	// 7. Спавн
 	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation, Params);
 
-	// 8. Настройка снаряда
 	if (SpawnedActor)
 	{
 		ACPP_Projectile* Meteor = Cast<ACPP_Projectile>(SpawnedActor);

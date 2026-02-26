@@ -22,9 +22,6 @@ struct FActionRepData
 		class AActor* Instigator;
 };
 
-/**
- * ability base class
- */
 UCLASS(Blueprintable)
 class PROJBLANK_API UCPP_Action : public UObject
 {
@@ -34,11 +31,9 @@ public:
 	//delegate
 	UPROPERTY(BlueprintAssignable)
 		FOnActionStateChanged OnActionStopped;
-	// Тег для запуска (например, "Ability.Fireball")
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		FGameplayTag ActionTag;
 
-	// Время перезарядки
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		float CooldownTime = 1.0f;
 
@@ -47,7 +42,7 @@ public:
 	//fallsafe const
 	static constexpr float MinActionDuration = 0.01f;
 
-	// Авто-запуск при получении компонентом (пассивки)
+	//autostart (for passives?)
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		bool bAutoStart = false;
 
@@ -60,7 +55,7 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Action")
 		void StopAction(AActor* Instigator);
 
-	// Нужно для работы таймеров и спавна акторов внутри UObject
+	//for timers
 	virtual UWorld* GetWorld() const override;
 
 	bool IsRunning() const;

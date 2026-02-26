@@ -3,6 +3,7 @@
 
 #include "CPP_BaseItem.h"
 #include "CPP_BaseCharacter.h"
+#include "CPP_PlayerCharacter.h"
 #include "Components/SphereComponent.h"
 #include "CPP_InventoryComponent.h" 
 #include "PaperSpriteComponent.h"
@@ -92,20 +93,17 @@ void ACPP_BaseItem::BeginPlay()
     }
 
     UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
-    // Если мы загружаемся ИЛИ продолжаем играть
     if (GI)
     {
-        // Сначала грузим список из файла, если это загрузка
         if (GI->bIsLoadingSave)
         {
             UCPP_SaveGame* LoadInst = Cast<UCPP_SaveGame>(UGameplayStatics::LoadGameFromSlot(GI->SaveSlotName, 0));
             if (LoadInst) GI->CurrentSessionCollectedItems = LoadInst->CollectedItems;
         }
 
-        // Проверяем, не собрали ли меня
         if (GI->CurrentSessionCollectedItems.Contains(GetName()))
         {
-            Destroy(); // Меня уже нет
+            Destroy();
             return;
         }
     }
@@ -113,7 +111,7 @@ void ACPP_BaseItem::BeginPlay()
 
 void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
 {
-    ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(Interactor);
+    ACPP_PlayerCharacter* BaseChar = Cast<ACPP_PlayerCharacter>(Interactor);
 
     if (BaseChar && BaseChar->IsPlayerControlled())
     {

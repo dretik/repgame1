@@ -20,7 +20,6 @@ void UCPP_Action_BossMelee::StartAction_Implementation(AActor* Instigator)
 	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
 	if (Char)
 	{
-		// 1. Анимация
 		if (AttackAnim)
 		{
 			Char->GetSprite()->SetFlipbook(AttackAnim);
@@ -28,7 +27,6 @@ void UCPP_Action_BossMelee::StartAction_Implementation(AActor* Instigator)
 			Char->GetSprite()->PlayFromStart();
 		}
 
-		// 2. Таймер удара (через 0.4 сек)
 		FTimerDelegate HitDelegate;
 		HitDelegate.BindUFunction(this, "MakeHit", Instigator);
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle_AttackDelay, HitDelegate, AttackDelay, false);
@@ -54,10 +52,9 @@ void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 	}
 	else if (ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Char))
 	{
-		// Враг берет урон из DataAsset и умножает на свой множитель сложности
 		if (Stats)
 		{
-			// Здесь мы берем LightAttackDamage как базу, но можно вынести в переменную Action
+			// lightattackdamage as base but could be replaced as action variable
 			DamageToApply = Stats->LightAttackDamage * Enemy->GetEnemyDamageMultiplier();
 		}
 	}

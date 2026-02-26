@@ -20,7 +20,6 @@ void UCPP_Action_BossDashAttack::StartAction_Implementation(AActor* Instigator)
 	if (!Char) return;
 	UCharacterStats* Stats = Char->GetCharacterStats();
 	if (!Stats) return;
-		// 1. Анимация
 		if (DashAnim)
 		{
 			Char->GetSprite()->SetFlipbook(DashAnim);
@@ -28,18 +27,15 @@ void UCPP_Action_BossDashAttack::StartAction_Implementation(AActor* Instigator)
 			Char->GetSprite()->PlayFromStart();
 		}
 
-		// 2. Логика Рывка (Launch Character)
-		FVector DashDir = FVector(0.0f, 1.0f, 0.0f); // Вправо по Y
+		FVector DashDir = FVector(0.0f, 1.0f, 0.0f);
 
-		// Проверяем направление спрайта
 		if (Char->GetSprite()->GetRelativeScale3D().X < 0.0f)
 		{
-			DashDir *= -1.0f; // Влево
+			DashDir *= -1.0f;
 		}
 
 		Char->LaunchCharacter(DashDir * Stats->DashAttackImpulse, true, true);
 
-		// 3. Таймер удара в конце рывка
 		FTimerDelegate HitDelegate;
 		HitDelegate.BindUFunction(this, "MakeDashHit", Instigator);
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle_Hit, HitDelegate, HitDelay, false);

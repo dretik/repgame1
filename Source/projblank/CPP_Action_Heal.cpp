@@ -8,7 +8,6 @@
 
 UCPP_Action_Heal::UCPP_Action_Heal()
 {
-	// Настраиваем тег и длительность
 	ActionTag = FGameplayTag::RequestGameplayTag("Ability.Boss.Heal");
 	Duration = 2.0f;
 	HealDelay = 0.5f;
@@ -17,7 +16,6 @@ UCPP_Action_Heal::UCPP_Action_Heal()
 
 bool UCPP_Action_Heal::CanStart_Implementation(AActor* Instigator)
 {
-	// 1. Стандартные проверки (кулдаун, станы, занятость)
 	if (!Super::CanStart_Implementation(Instigator))
 	{
 		return false;
@@ -26,7 +24,6 @@ bool UCPP_Action_Heal::CanStart_Implementation(AActor* Instigator)
 	UCPP_AttributeComponent* AttrComp = Instigator->FindComponentByClass<UCPP_AttributeComponent>();
 	if (AttrComp)
 	{
-		// Если здоровья и так максимум - запрещаем действие
 		if (AttrComp->GetHealth() >= AttrComp->GetMaxHealth())
 		{
 			return false;
@@ -40,7 +37,6 @@ void UCPP_Action_Heal::StartAction_Implementation(AActor* Instigator)
 {
 	Super::StartAction_Implementation(Instigator);
 
-	// 1. Анимация
 	APaperCharacter* PaperChar = Cast<APaperCharacter>(Instigator);
 	if (PaperChar && HealAnim)
 	{
@@ -49,7 +45,6 @@ void UCPP_Action_Heal::StartAction_Implementation(AActor* Instigator)
 		PaperChar->GetSprite()->PlayFromStart();
 	}
 
-	// 2. Таймер применения эффекта
 	FTimerDelegate Del;
 	Del.BindUFunction(this, "ExecuteHeal", Instigator);
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle_HealDelay, Del, HealDelay, false);
@@ -84,7 +79,6 @@ void UCPP_Action_Heal::ExecuteHeal(AActor* Instigator)
 
 		if (bHealed)
 		{
-			// Визуальный эффект
 			if (HealVFX)
 			{
 				UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HealVFX, Instigator->GetActorLocation());

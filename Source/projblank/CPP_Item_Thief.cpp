@@ -3,6 +3,7 @@
 
 #include "CPP_Item_Thief.h"
 #include "CPP_BaseCharacter.h"
+#include "CPP_PlayerCharacter.h"
 #include "CPP_InventoryComponent.h"
 #include "CPP_Item_Currency.h"
 #include "CPP_Item_XP.h"
@@ -18,7 +19,7 @@ ACPP_Item_Thief::ACPP_Item_Thief()
 
 void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
 {
-	ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(Interactor);
+	ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(Interactor);
 	if (!Player) return;
 
 	UCPP_InventoryComponent* InventoryComp = Player->FindComponentByClass<UCPP_InventoryComponent>();

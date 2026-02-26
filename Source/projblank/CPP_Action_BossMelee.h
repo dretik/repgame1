@@ -20,14 +20,12 @@ public:
 	virtual void StopAction_Implementation(AActor* Instigator) override;
 
 protected:
-	// Тайминги
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 		float AttackDelay = 0.4f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 		float ActionDamageMultiplier = 1.0f;
 
-		// Анимация
 	UPROPERTY(EditDefaultsOnly, Category = "Visuals")
 		UPaperFlipbook* AttackAnim;
 

@@ -11,7 +11,7 @@ void UCPP_ActionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Создаем объекты из классов по умолчанию
+	// creating classes objects by default
 	if (ActionSet){
 		for (TSubclassOf<UCPP_Action> ActionClass : ActionSet->Actions)
 		{
@@ -24,14 +24,14 @@ void UCPP_ActionComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// Здесь можно добавить обновление кулдаунов или эффектов
+	//cooldown or effects reset could be added
 }
 
 void UCPP_ActionComponent::AddAction(TSubclassOf<UCPP_Action> ActionClass)
 {
 	if (!ActionClass) return;
 
-	// Создаем объект Action. Важно: Outer = this (компонент)
+	// creating Action object. Outer = this
 	UCPP_Action* NewAction = NewObject<UCPP_Action>(this, ActionClass);
 	if (NewAction)
 	{

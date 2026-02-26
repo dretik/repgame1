@@ -16,7 +16,6 @@ bool UCPP_Action::CanStart_Implementation(AActor* Instigator)
 
 	if (Comp)
 	{
-		// Проверка на наличие тега "Запрещено" (например, оглушение)
 		if (Comp->ActiveGameplayTags.HasTag(StunTag))
 		{
 			return false;
@@ -28,7 +27,7 @@ bool UCPP_Action::CanStart_Implementation(AActor* Instigator)
 		//	FGameplayTag StunTag = FGameplayTag::RequestGameplayTag("Status.Stunned");
 		//	ActionComp->ActiveGameplayTags.AddTag(StunTag);
 
-		//	// И через 2 секунды удалить его
+		//
 		//}
 		FGameplayTag BlockingTag = FGameplayTag::RequestGameplayTag("Ability");
 
@@ -39,7 +38,6 @@ bool UCPP_Action::CanStart_Implementation(AActor* Instigator)
 		}
 	}
 
-	// Проверка кулдауна
 	float TimeSinceStart = GetWorld()->GetTimeSeconds() - TimeStarted;
 	if (TimeSinceStart < CooldownTime)
 	{
@@ -64,10 +62,8 @@ void UCPP_Action::StartAction_Implementation(AActor* Instigator)
 
 	if (FinalDuration <= 0.0f)
 	{
-		// Выводим критическое предупреждение в лог (только в редакторе/дебаге)
 		UE_LOG(LogTemp, Error, TEXT("Action '%s' started with 0 Duration! Forcing safety fallback."), *GetName());
 
-		// ensureMsgf вызовет прерывание при отладке, чтобы разработчик заметил проблему
 		ensureMsgf(false, TEXT("Action %s has 0 duration! Check Blueprint settings."), *GetName());
 
 		FinalDuration = MinActionDuration;
@@ -109,8 +105,7 @@ void UCPP_Action::StopAction_Implementation(AActor* Instigator)
 
 UWorld* UCPP_Action::GetWorld() const
 {
-	// Магия UE4: UObject сам по себе не знает про мир, берем его у владельца (Outer)
-	// Outer для этого объекта будет Component, а его Outer - Actor
+	//taking from outer (component)
 	if (UCPP_ActionComponent* Comp = Cast<UCPP_ActionComponent>(GetOuter()))
 	{
 		return Comp->GetWorld();

@@ -4,9 +4,8 @@
 #include "CPP_Projectile.h"
 #include "PaperFlipbookComponent.h" 
 #include "PaperCharacter.h" 
-
-// Для доступа к статам персонажа (урон), если нужно
 #include "CPP_BaseCharacter.h" 
+#include "CPP_PlayerCharacter.h"
 #include "CPP_AttributeComponent.h" 
 
 UCPP_Action_Projectile::UCPP_Action_Projectile()
@@ -23,15 +22,12 @@ void UCPP_Action_Projectile::StartAction_Implementation(AActor* Instigator)
 	ACharacter* Character = Cast<ACharacter>(Instigator);
 	if (Character)
 	{
-		// Проигрываем анимацию, если есть (через PaperCharacter)
 		APaperCharacter* PaperChar = Cast<APaperCharacter>(Character);
 		if (PaperChar && CastAnim)
 		{
 			PaperChar->GetSprite()->SetFlipbook(CastAnim);
-			// В идеале: вернуть Idle анимацию после окончания, но это уже детали анимации
 		}
 
-		// Запускаем таймер на спавн (чтобы снаряд вылетел не мгновенно, а в нужный кадр анимации)
 		FTimerHandle TimerHandle_AttackDelay;
 		FTimerDelegate Delegate;
 		Delegate.BindUFunction(this, "AttackDelay_Elapsed", Character);
@@ -48,7 +44,7 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 		return;
 	}
 
-	ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(InstigatorCharacter);
+	ACPP_PlayerCharacter* BaseChar = Cast<ACPP_PlayerCharacter>(InstigatorCharacter);
 	if (!BaseChar) return;
 
 	int32 CurrentLevel = BaseChar->GetAbilityLevel(ActionTag);
@@ -58,7 +54,6 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 	FVector SpawnLocation = InstigatorCharacter->GetActorLocation();
 	SpawnLocation.Z += 20.0f;
 
-	// Определяем направление по скейлу спрайта (как у тебя в BaseCharacter)
 	FRotator SpawnRotation = FRotator::ZeroRotator;
 	APaperCharacter* PaperChar = Cast<APaperCharacter>(InstigatorCharacter);
 	if (PaperChar)
@@ -82,12 +77,10 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 
 	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
 
-	// Настройка урона (берем из статов персонажа)
 	ACPP_Projectile* Proj = Cast<ACPP_Projectile>(SpawnedActor);
 
 	if (Proj && BaseChar)
 	{
-		// Используем твой геттер базового урона
 		float Dmg = BaseChar->GetCurrentBaseDamage();
 		Proj->SetDamage(Dmg);
 	}

@@ -15,7 +15,6 @@ class PROJBLANK_API UCPP_ActionComponent : public UActorComponent
 public:
 	UCPP_ActionComponent();
 
-	// Теги, которые сейчас активны (например, "Ability.Casting", "State.Stunned")
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tags")
 		FGameplayTagContainer ActiveGameplayTags;
 
@@ -37,11 +36,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	// Список дефолтных способностей (задается в редакторе)
 	UPROPERTY(EditAnywhere, Category = "Actions")
 		class UCPP_ActionSet* ActionSet;
 
-	// Созданные объекты способностей
 	UPROPERTY(BlueprintReadOnly, Category = "Actions")
 		TArray<UCPP_Action*> Actions;
 

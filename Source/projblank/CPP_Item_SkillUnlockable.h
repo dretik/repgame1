@@ -6,9 +6,6 @@
 #include "CPP_BaseItem.h"
 #include "CPP_Item_SkillUnlockable.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class PROJBLANK_API ACPP_Item_SkillUnlockable : public ACPP_BaseItem
 {
@@ -23,8 +20,6 @@ public:
     const int32 GlobalMaxSkillLevel = 3;
 
 protected:
-    // Класс способности (например, BP_Action_Fireball)
-    // Раньше тут был тег, теперь полноценный класс
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
         TSubclassOf<UCPP_Action> ActionClass;
 };

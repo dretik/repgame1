@@ -3,6 +3,7 @@
 
 #include "CPP_Item_XP.h"
 #include "CPP_BaseCharacter.h"
+#include "CPP_PlayerCharacter.h"
 
 ACPP_Item_XP::ACPP_Item_XP()
 {
@@ -12,7 +13,7 @@ ACPP_Item_XP::ACPP_Item_XP()
 
 void ACPP_Item_XP::Interact_Implementation(AActor* Interactor)
 {
-    ACPP_BaseCharacter* Player = Cast<ACPP_BaseCharacter>(Interactor);
+    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(Interactor);
     if (Player)
     {
         Player->AddExperience((float)CoinValue);

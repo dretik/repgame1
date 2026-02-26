@@ -1,24 +1,22 @@
 #include "CPP_Item_SkillUnlockable.h"
 #include "CPP_BaseCharacter.h"
+#include "CPP_PlayerCharacter.h"
 #include "CPP_Action.h"
 
 ACPP_Item_SkillUnlockable::ACPP_Item_SkillUnlockable()
 {
-    // Настраиваем дефолты
-    bAutoPickup = false; // Книги обычно не подбираются сами
-    bIsInventoryItem = false; // Обычно книга используется сразу, а не кладется в инвентарь
+    bAutoPickup = false;
+    bIsInventoryItem = false;
 
-    // Имя по умолчанию
     ItemName = NSLOCTEXT("Items", "SkillBookName", "Skill Tome");
 }
 
 void ACPP_Item_SkillUnlockable::Interact_Implementation(AActor* Interactor)
 {
-    ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(Interactor);
+    ACPP_PlayerCharacter* BaseChar = Cast<ACPP_PlayerCharacter>(Interactor);
 
     if (BaseChar && ActionClass)
     {
-        // Вызываем НОВУЮ версию GrantAbility, которая принимает класс
         bool bSuccess = BaseChar->GrantAbility(ActionClass);
 
         if (bSuccess)
@@ -27,9 +25,7 @@ void ACPP_Item_SkillUnlockable::Interact_Implementation(AActor* Interactor)
         }
     }
 
-    // Вызываем Super, чтобы сработала остальная логика BaseItem:
-    // 1. Применились StatModifiers (если есть)
-    // 2. Показалось уведомление
-    // 3. Предмет уничтожился (Destroy)
+    // calling super to exec:
+    // statmodifiers -> notification -> destroy
     Super::Interact_Implementation(Interactor);
 }

@@ -7,6 +7,7 @@
 #include "CPP_BaseItem.h"
 #include "Kismet/GameplayStatics.h"
 #include "CPP_BaseCharacter.h"
+#include "CPP_PlayerCharacter.h"
 #include "CPP_InventoryComponent.h"
 #include "CPP_BaseEnemy.h" 
 
@@ -23,7 +24,7 @@ bool UCPP_GameInstance::HasSaveGame()
     return UGameplayStatics::DoesSaveGameExist(SaveSlotName, 0);
 }
 
-void UCPP_GameInstance::SaveGame(ACPP_BaseCharacter* Player)
+void UCPP_GameInstance::SaveGame(ACPP_PlayerCharacter* Player)
 {
     if (!Player) return;
 
@@ -98,7 +99,7 @@ void UCPP_GameInstance::SaveGame(ACPP_BaseCharacter* Player)
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Game Saved!"));
 }
 
-bool UCPP_GameInstance::LoadGame(ACPP_BaseCharacter* Player)
+bool UCPP_GameInstance::LoadGame(ACPP_PlayerCharacter* Player)
 {
     if (!Player) return false;
     if (!HasSaveGame()) return false;
