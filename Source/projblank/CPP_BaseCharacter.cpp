@@ -107,7 +107,12 @@ void ACPP_BaseCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    BaseSpriteScale = FMath::Abs(GetSprite()->GetRelativeScale3D().X);
+    //BaseSpriteScale = FMath::Abs(GetSprite()->GetRelativeScale3D().X);
+    FVector StartScale = GetSprite()->GetRelativeScale3D();
+    StartScale.X = BaseSpriteScale;
+    StartScale.Y = BaseSpriteScale;
+    StartScale.Z = BaseSpriteScale;
+    GetSprite()->SetRelativeScale3D(StartScale);
 
     if (CharacterStats)
     {
@@ -419,6 +424,11 @@ bool ACPP_BaseCharacter::GetIsAttacking() const
 void ACPP_BaseCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
+    if (bIsDead || bIsDodging || GetIsAttacking())
+    {
+        return;
+    }
 
     if (GetCharacterMovement())
     {

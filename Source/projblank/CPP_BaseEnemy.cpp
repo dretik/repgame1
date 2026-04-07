@@ -33,7 +33,6 @@ ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     bUseControllerRotationPitch = false;
     bUseControllerRotationRoll = false;
 
-    GetSprite()->SetRelativeScale3D(FVector(2.f));
 
     if (GetCharacterMovement())
     {

@@ -322,9 +322,12 @@ void ACPP_PlayerCharacter::PrimaryAttack()
 
     if (GetIsAttacking())
     {
-        bInputBuffered = true;
+        if (ComboCounter < 2)
+        {
+            bInputBuffered = true;
 
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("Input Buffered!"));
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("Input Buffered!"));
+        }
     }
     else
     {
@@ -403,6 +406,13 @@ void ACPP_PlayerCharacter::ExecuteMeleeAttack()
 
         GetWorldTimerManager().ClearTimer(ComboResetTimer);
     }
+    else
+    {
+        if (CharacterStats && GetCharacterMovement())
+        {
+            GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
+        }
+    }
 }
 
 void ACPP_PlayerCharacter::OnAttackActionStopped(UCPP_Action* Action)
@@ -410,6 +420,11 @@ void ACPP_PlayerCharacter::OnAttackActionStopped(UCPP_Action* Action)
     if (Action)
     {
         Action->OnActionStopped.RemoveDynamic(this, &ACPP_PlayerCharacter::OnAttackActionStopped);
+    }
+
+    if (CharacterStats && GetCharacterMovement())
+    {
+        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
     }
 
     if (bInputBuffered)

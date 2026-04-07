@@ -24,7 +24,24 @@ protected:
 		float AttackDelay = 0.4f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+		float AttackRange = 100.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+		FVector AttackBoxSize = FVector(90.0f, 40.0f, 40.0f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 		float ActionDamageMultiplier = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat | Movement")
+		float DashImpulse = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat | Movement")
+		FVector DashDirection = FVector(0.0f, 1.0f, 0.0f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat | Movement")
+		float WalkSpeedModifier = -1.0f;
+
+	float OriginalWalkSpeed = -1.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Visuals")
 		UPaperFlipbook* AttackAnim;

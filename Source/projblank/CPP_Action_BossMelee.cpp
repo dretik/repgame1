@@ -18,51 +18,62 @@ void UCPP_Action_BossMelee::StartAction_Implementation(AActor* Instigator)
 	Super::StartAction_Implementation(Instigator);
 
 	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
-	if (Char)
+	if (!Char) return;
+
+	if (AttackAnim)
 	{
-		if (AttackAnim)
+		Char->GetSprite()->SetFlipbook(AttackAnim);
+		Char->GetSprite()->SetLooping(false);
+		Char->GetSprite()->PlayFromStart();
+	}
+
+	if (DashImpulse > 0.0f)
+	{
+		FVector ActualDashDir = DashDirection;
+
+		if (Char->GetSprite()->GetRelativeScale3D().X < 0.0f)
 		{
-			Char->GetSprite()->SetFlipbook(AttackAnim);
-			Char->GetSprite()->SetLooping(false);
-			Char->GetSprite()->PlayFromStart();
+			ActualDashDir.X *= -1.0f;
+			ActualDashDir.Y *= -1.0f;
 		}
 
-		FTimerDelegate HitDelegate;
-		HitDelegate.BindUFunction(this, "MakeHit", Instigator);
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_AttackDelay, HitDelegate, AttackDelay, false);
-	
-		if (AttackAnim)
-		{
-			Char->GetSprite()->SetLooping(true);
-		}
+		ActualDashDir.Normalize();
+
+		Char->LaunchCharacter(ActualDashDir * DashImpulse, true, true);
 	}
+
+	if (WalkSpeedModifier >= 0.0f && Char->GetCharacterMovement())
+	{
+		OriginalWalkSpeed = Char->GetCharacterMovement()->MaxWalkSpeed;
+		Char->GetCharacterMovement()->MaxWalkSpeed = WalkSpeedModifier;
+	}
+
+	FTimerDelegate HitDelegate;
+	HitDelegate.BindUFunction(this, "MakeHit", Instigator);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_AttackDelay, HitDelegate, AttackDelay, false);
+	
+	if (AttackAnim)
+	{
+		Char->GetSprite()->SetLooping(true);
+	}	
 }
 
 void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 {
 	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
 	if (!Char) return;
-	UCharacterStats* Stats = Char->GetCharacterStats();
-	if (!Stats) return;
-	float DamageToApply = 0.f;
+	float DamageToApply = Char->GetCurrentBaseDamage();
 
-	if (Char->IsPlayerControlled())
+	if (ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Char))
 	{
-		DamageToApply = Char->GetCurrentBaseDamage();
+		DamageToApply *= Enemy->GetEnemyDamageMultiplier();
 	}
-	else if (ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Char))
-	{
-		if (Stats)
-		{
-			// lightattackdamage as base but could be replaced as action variable
-			DamageToApply = Stats->LightAttackDamage * Enemy->GetEnemyDamageMultiplier();
-		}
-	}
+
 	DamageToApply *= ActionDamageMultiplier;
 		
 	Char->PerformAttackTrace(
-		Stats->LightAttackRange, 
-		Stats->LightAttackBoxSize, 
+		AttackRange,
+		AttackBoxSize,
 		DamageToApply);
 }
 
@@ -72,6 +83,13 @@ void UCPP_Action_BossMelee::StopAction_Implementation(AActor* Instigator)
 		FString::Printf(TEXT("TAG REMOVED: %s at time %f"), *ActionTag.ToString(), GetWorld()->GetTimeSeconds()));
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_AttackDelay);
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Duration);
-
+	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
+	if (Char)
+	{
+		if (WalkSpeedModifier >= 0.0f && OriginalWalkSpeed >= 0.0f)
+		{
+			Char->GetCharacterMovement()->MaxWalkSpeed = OriginalWalkSpeed;
+		}
+	}
 	Super::StopAction_Implementation(Instigator);
 }

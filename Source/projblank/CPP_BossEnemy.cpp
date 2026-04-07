@@ -13,11 +13,8 @@
 ACPP_BossEnemy::ACPP_BossEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
 {
-    GetSprite()->SetRelativeScale3D(FVector(2.5f));
     GetCharacterMovement()->MaxWalkSpeed = 200.0f;
     GetCharacterMovement()->JumpZVelocity = 500.0f;
-
-    GetSprite()->SetRelativeScale3D(FVector(2.5f));
 }
 
 void ACPP_BossEnemy::AttackPlayer()
