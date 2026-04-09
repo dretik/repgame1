@@ -29,6 +29,10 @@ public:
 
     bool bIsDynamicallySpawned = false;
 
+    // ISaveableInterface
+    virtual void OnSaveGame_Implementation(UCPP_SaveGame* SaveObject) override;
+    virtual void OnLoadGame_Implementation(UCPP_SaveGame* SaveObject) override;
+
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
         UPawnSensingComponent* PawnSensingComp;

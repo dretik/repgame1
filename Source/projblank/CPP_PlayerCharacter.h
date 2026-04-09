@@ -62,8 +62,12 @@ public:
         void RemoveExperience(float Amount);
 
     // --- SAVES ---
-    UFUNCTION(BlueprintCallable, Category = "SaveSystem")
-        void SetStatsFromSave(float SavedHealth, float SavedMaxHealth, float SavedBaseDamage, int32 SavedLevel, float SavedXP, int32 SavedCoins);
+    //UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+    //    void SetStatsFromSave(float SavedHealth, float SavedMaxHealth, float SavedBaseDamage, int32 SavedLevel, float SavedXP, int32 SavedCoins);
+    // ISaveableInterface
+    virtual void OnSaveGame_Implementation(UCPP_SaveGame* SaveObject) override;
+    virtual void OnLoadGame_Implementation(UCPP_SaveGame* SaveObject) override;
+
 
     // virtual for gold
     virtual void ApplyStatModifier(FStatModifier Modifier);

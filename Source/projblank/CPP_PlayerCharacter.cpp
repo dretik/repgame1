@@ -14,6 +14,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "CPP_DamageTextActor.h"
 #include "CPP_SaveGame.h"
+#include "CPP_InventoryComponent.h"
 #include "CPP_Action.h"
 #include "CPP_ActionComponent.h"
 #include "CharacterStats.h"
@@ -228,31 +229,6 @@ void ACPP_PlayerCharacter::RemoveExperience(float Amount)
         GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Purple, FString::Printf(TEXT("XP Spent: -%.0f"), Amount));
 }
 
-void ACPP_PlayerCharacter::SetStatsFromSave(float SavedHealth, float SavedMaxHealth, float SavedBaseDamage, int32 SavedLevel, float SavedXP, int32 SavedCoins)
-{
-    if (AttributeComp)
-    {
-        // could need ForceSetHealth in component, 
-        // or InitializeStats(SavedMaxHealth) + ApplyHealthChange.
-        // but can add SetHealthDirectly method in Component for loading.
-
-        AttributeComp->InitializeStats(SavedMaxHealth);
-
-        float Diff = SavedHealth - AttributeComp->GetHealth();
-        AttributeComp->ApplyHealthChange(nullptr, Diff);
-    }
-    CurrentBaseDamage = SavedBaseDamage;
-    CharacterLevel = SavedLevel;
-    CurrentXP = SavedXP;
-    CoinCount = SavedCoins;
-
-    //OnHealthChanged.Broadcast(CurrentHealth, CurrentMaxHealth);
-    OnXPUpdated.Broadcast(CurrentXP, XPToNextLevel, CharacterLevel);
-    OnCoinsUpdated.Broadcast(CoinCount);
-
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Stats Restored from Save!"));
-}
-
 void ACPP_PlayerCharacter::BeginPlay()
 {
     Super::BeginPlay(); // will call AttributeComp from BaseCharacter
@@ -263,8 +239,7 @@ void ACPP_PlayerCharacter::BeginPlay()
         if (GI->bIsLoadingSave && IsPlayerControlled())
         {
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, TEXT("Loading Save Data..."));
-            GI->LoadGame(this);
-            GI->RespawnDynamicEnemies(GetWorld());
+            GI->LoadGame();
         }
         else
         {
@@ -492,4 +467,49 @@ void ACPP_PlayerCharacter::LevelUp()
     }
 
     // Broadcast called in InitializeStats -> OnHealthChangedCallback, 
+}
+
+void ACPP_PlayerCharacter::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
+{
+    if (!SaveObject || !AttributeComp) return;
+
+    SaveObject->Health = AttributeComp->GetHealth();
+    SaveObject->MaxHealth = AttributeComp->GetMaxHealth();
+    SaveObject->BaseDamage = CurrentBaseDamage;
+    SaveObject->Level = CharacterLevel;
+    SaveObject->CurrentXP = CurrentXP;
+    SaveObject->Coins = CoinCount;
+    SaveObject->PlayerLocation = GetActorLocation();
+    SaveObject->LevelName = FName(*GetWorld()->GetName());
+    SaveObject->AbilityLevels = AbilityLevels;
+
+    if (UCPP_InventoryComponent* InvComp = FindComponentByClass<UCPP_InventoryComponent>())
+    {
+        SaveObject->InventoryData = InvComp->GetInventory();
+    }
+}
+
+void ACPP_PlayerCharacter::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
+{
+    if (!SaveObject || !AttributeComp) return;
+
+    AttributeComp->InitializeStats(SaveObject->MaxHealth);
+    float Diff = SaveObject->Health - AttributeComp->GetHealth();
+    AttributeComp->ApplyHealthChange(nullptr, Diff);
+
+    CurrentBaseDamage = SaveObject->BaseDamage;
+    CharacterLevel = SaveObject->Level;
+    CurrentXP = SaveObject->CurrentXP;
+    CoinCount = SaveObject->Coins;
+    AbilityLevels = SaveObject->AbilityLevels;
+
+    SetActorLocation(SaveObject->PlayerLocation, false, nullptr, ETeleportType::TeleportPhysics);
+
+    if (UCPP_InventoryComponent* InvComp = FindComponentByClass<UCPP_InventoryComponent>())
+    {
+        InvComp->SetInventory(SaveObject->InventoryData);
+    }
+
+    OnXPUpdated.Broadcast(CurrentXP, XPToNextLevel, CharacterLevel);
+    OnCoinsUpdated.Broadcast(CoinCount);
 }

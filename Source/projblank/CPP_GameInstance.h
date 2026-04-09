@@ -22,10 +22,10 @@ public:
         void CreateNewSave();
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
-        void SaveGame(class ACPP_PlayerCharacter* PlayerCharacter);
+        void SaveGame();
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
-        bool LoadGame(class ACPP_PlayerCharacter* PlayerCharacter);
+        bool LoadGame();
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
         bool HasSaveGame();
@@ -44,5 +44,4 @@ public:
 
     void AddCollectedItem(FString ItemNameID) { CurrentSessionCollectedItems.Add(ItemNameID); }
 
-    void RespawnDynamicEnemies(UWorld* World);
 };

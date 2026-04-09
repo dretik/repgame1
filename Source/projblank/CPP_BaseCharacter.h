@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "CharacterStats.h"
 #include "InteractableInterface.h"
+#include "SaveableInterface.h"
 #include "GameplayTagContainer.h"
 #include "NiagaraSystem.h"
 #include "CPP_AttributeComponent.h"
@@ -36,7 +37,7 @@ struct FStatModifier
 };
 
 UCLASS()
-class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter
+class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter, public ISaveableInterface
 {
 	GENERATED_BODY()
 
@@ -59,17 +60,17 @@ public:
         float GetCurrentMaxHealth() const;
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
-        float GetCurrentBaseDamage() const { return CurrentBaseDamage; }
+       float GetCurrentBaseDamage() const { return CurrentBaseDamage; }
 
     UFUNCTION(BlueprintCallable, Category = "Stats")
         class UCharacterStats* GetCharacterStats() const { return CharacterStats; }
 
     //SETTERS
-    void SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities);
+    //void SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities);
 
-    void SetLocationFromSave(FVector SavedLocation);
+    //void SetLocationFromSave(FVector SavedLocation);
 
-    void SetCurrentHealth(float NewHealth);
+    //void SetCurrentHealth(float NewHealth);
 
     UFUNCTION(BlueprintCallable, Category = "State")
         bool IsDead() const { return bIsDead; }
@@ -79,6 +80,10 @@ public:
 
     //attack trace box 
     void PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount);
+
+    //saves
+    virtual void OnSaveGame_Implementation(UCPP_SaveGame* SaveObject);
+    virtual void OnLoadGame_Implementation(UCPP_SaveGame* SaveObject);
 
 protected:
 

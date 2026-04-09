@@ -370,3 +370,64 @@ void ACPP_BaseEnemy::SpawnXP()
         }
     }
 }
+
+void ACPP_BaseEnemy::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
+{
+    if (!SaveObject) return;
+
+    if (IsDead())
+    {
+        if (!bIsDynamicallySpawned)
+        {
+            FEnemySaveData Data;
+            Data.bIsDead = true;
+            SaveObject->WorldEnemies.Add(GetName(), Data);
+        }
+    }
+    else
+    {
+        if (bIsDynamicallySpawned)
+        {
+            FDynamicEnemyData DynData;
+            DynData.EnemyClass = GetClass();
+            DynData.Transform = GetActorTransform();
+            DynData.CurrentHealth = AttributeComp ? AttributeComp->GetHealth() : 0.0f;
+            SaveObject->SpawnedEnemies.Add(DynData);
+        }
+        else
+        {
+            FEnemySaveData Data;
+            Data.CurrentHealth = AttributeComp ? AttributeComp->GetHealth() : 0.0f;
+            Data.Location = GetActorLocation();
+            Data.bIsDead = false;
+            SaveObject->WorldEnemies.Add(GetName(), Data);
+        }
+    }
+}
+
+void ACPP_BaseEnemy::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
+{
+    if (!SaveObject) return;
+
+    FString MyID = GetName();
+
+    if (SaveObject->WorldEnemies.Contains(MyID))
+    {
+        FEnemySaveData Data = SaveObject->WorldEnemies[MyID];
+
+        if (Data.bIsDead)
+        {
+            Destroy();
+        }
+        else
+        {
+            SetActorLocation(Data.Location);
+            if (AttributeComp)
+            {
+                float CurrentHP = AttributeComp->GetHealth();
+                float Diff = Data.CurrentHealth - CurrentHP;
+                AttributeComp->ApplyHealthChange(nullptr, Diff);
+            }
+        }
+    }
+}

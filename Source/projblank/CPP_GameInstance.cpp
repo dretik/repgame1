@@ -3,13 +3,9 @@
 
 #include "CPP_GameInstance.h"
 #include "CPP_SaveGame.h"
-#include "CPP_BaseEnemy.h"
-#include "CPP_BaseItem.h"
 #include "Kismet/GameplayStatics.h"
-#include "CPP_BaseCharacter.h"
-#include "CPP_PlayerCharacter.h"
-#include "CPP_InventoryComponent.h"
-#include "CPP_BaseEnemy.h" 
+#include "SaveableInterface.h"
+#include "CPP_AttributeComponent.h"
 
 void UCPP_GameInstance::CreateNewSave()
 {
@@ -24,118 +20,71 @@ bool UCPP_GameInstance::HasSaveGame()
     return UGameplayStatics::DoesSaveGameExist(SaveSlotName, 0);
 }
 
-void UCPP_GameInstance::SaveGame(ACPP_PlayerCharacter* Player)
+void UCPP_GameInstance::SaveGame()
 {
-    if (!Player) return;
-
     UCPP_SaveGame* SaveInst = Cast<UCPP_SaveGame>(UGameplayStatics::CreateSaveGameObject(UCPP_SaveGame::StaticClass()));
 
-    SaveInst->Health = Player->GetCurrentHealth();
-    SaveInst->MaxHealth = Player->GetCurrentMaxHealth();
-    SaveInst->BaseDamage = Player->GetCurrentBaseDamage(); 
-    SaveInst->Level = Player->GetCharacterLevel();
-    SaveInst->CurrentXP = Player->GetCurrentXP();
-    SaveInst->Coins = Player->GetCoinCount();
-
-    SaveInst->PlayerLocation = Player->GetActorLocation();
-    SaveInst->LevelName = FName(*GetWorld()->GetName());
-
-    UCPP_InventoryComponent* InvComp = Player->FindComponentByClass<UCPP_InventoryComponent>();
-    if (InvComp)
-    {
-        SaveInst->InventoryData = InvComp->GetInventory(); 
-    }
-
-    SaveInst->AbilityLevels = Player->GetAbilityLevels(); 
-
-    TArray<AActor*> FoundEnemies;
-    UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACPP_BaseEnemy::StaticClass(), FoundEnemies);
-
-    for (AActor* Actor : FoundEnemies)
-    {
-        ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Actor);
-        if (!Enemy) continue;
-
-        if (Enemy->IsDead())
-        {
-            if (Enemy->bIsDynamicallySpawned)
-            {
-                continue;
-            }
-            else
-            {
-                FEnemySaveData Data;
-                Data.bIsDead = true;
-                SaveInst->WorldEnemies.Add(Enemy->GetName(), Data);
-            }
-        }
-        else
-        {
-            if (Enemy->bIsDynamicallySpawned)
-            {
-                FDynamicEnemyData DynData;
-                DynData.EnemyClass = Enemy->GetClass();
-                DynData.Transform = Enemy->GetActorTransform();
-                DynData.CurrentHealth = Enemy->GetCurrentHealth();
-
-                SaveInst->SpawnedEnemies.Add(DynData);
-            }
-            else
-            {
-                FEnemySaveData Data;
-                Data.CurrentHealth = Enemy->GetCurrentHealth();
-                Data.Location = Enemy->GetActorLocation();
-                Data.bIsDead = false;
-
-                SaveInst->WorldEnemies.Add(Enemy->GetName(), Data);
-            }
-        }
-    }
-
+    // saving general data
     SaveInst->CollectedItems = this->CurrentSessionCollectedItems;
+
+    // gathering all actors, who do utilize ISaveableInterface
+    TArray<AActor*> SaveableActors;
+    UGameplayStatics::GetAllActorsWithInterface(GetWorld(), USaveableInterface::StaticClass(), SaveableActors);
+
+    for (AActor* Actor : SaveableActors)
+    {
+        // call to every actor to save
+        ISaveableInterface::Execute_OnSaveGame(Actor, SaveInst);
+    }
 
     UGameplayStatics::SaveGameToSlot(SaveInst, SaveSlotName, 0);
 
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Game Saved!"));
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Modular Game Saved!"));
 }
 
-bool UCPP_GameInstance::LoadGame(ACPP_PlayerCharacter* Player)
+bool UCPP_GameInstance::LoadGame()
 {
-    if (!Player) return false;
     if (!HasSaveGame()) return false;
 
     UCPP_SaveGame* LoadInst = Cast<UCPP_SaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName, 0));
+    if (!LoadInst) return false;
+    
+    //global data
+    this->CurrentSessionCollectedItems = LoadInst->CollectedItems;
 
-    if (LoadInst)
+    //dynamic actors
+    for (const FDynamicEnemyData& Data : LoadInst->SpawnedEnemies)
     {
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow,
-            FString::Printf(TEXT("Loading from file... HP: %f, Coins: %d"), LoadInst->Health, LoadInst->Coins));
-
-        Player->SetStatsFromSave(
-            LoadInst->Health,
-            LoadInst->MaxHealth,
-            LoadInst->BaseDamage,
-            LoadInst->Level,
-            LoadInst->CurrentXP,
-            LoadInst->Coins
-        );
-
-        Player->SetLocationFromSave(LoadInst->PlayerLocation);
-
-        UCPP_InventoryComponent* InvComp = Player->FindComponentByClass<UCPP_InventoryComponent>();
-        if (InvComp)
+        if (Data.EnemyClass)
         {
-            InvComp->SetInventory(LoadInst->InventoryData);
+            FActorSpawnParameters Params;
+            Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+            AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(Data.EnemyClass, Data.Transform, Params);
+
+            if (SpawnedActor)
+            {
+                UCPP_AttributeComponent* AttrComp = SpawnedActor->FindComponentByClass<UCPP_AttributeComponent>();
+                if (AttrComp)
+                {
+                    float Diff = Data.CurrentHealth - AttrComp->GetHealth();
+                    AttrComp->ApplyHealthChange(nullptr, Diff);
+                }
+            }
         }
-
-        Player->SetAbilityLevels(LoadInst->AbilityLevels);
-
-        this->CurrentSessionCollectedItems = LoadInst->CollectedItems;
-
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Game Loaded!"));
-        return true;
     }
-    return false;
+
+    // call to every actor to restore
+    TArray<AActor*> SaveableActors;
+    UGameplayStatics::GetAllActorsWithInterface(GetWorld(), USaveableInterface::StaticClass(), SaveableActors);
+
+    for (AActor* Actor : SaveableActors)
+    {
+        ISaveableInterface::Execute_OnLoadGame(Actor, LoadInst);
+    }
+
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Modules Loaded!"));
+    return true;
 }
 
 void UCPP_GameInstance::LaunchNewGame(FName MapName)
@@ -168,30 +117,4 @@ bool UCPP_GameInstance::ContinueGame()
         return true;
     }
     return false;
-}
-
-void UCPP_GameInstance::RespawnDynamicEnemies(UWorld* World)
-{
-    if (!World) return;
-
-    UCPP_SaveGame* LoadInst = Cast<UCPP_SaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName, 0));
-    if (!LoadInst) return;
-
-    for (const FDynamicEnemyData& Data : LoadInst->SpawnedEnemies)
-    {
-        if (Data.EnemyClass)
-        {
-            FActorSpawnParameters Params;
-            Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-            AActor* SpawnedActor = World->SpawnActor<AActor>(Data.EnemyClass, Data.Transform, Params);
-
-            ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(SpawnedActor);
-            if (Enemy)
-            {
-                Enemy->bIsDynamicallySpawned = true;
-                Enemy->SetCurrentHealth(Data.CurrentHealth); 
-            }
-        }
-    }
 }

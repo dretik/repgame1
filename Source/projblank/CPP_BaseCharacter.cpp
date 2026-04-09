@@ -103,6 +103,14 @@ void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float 
     }
 }
 
+void ACPP_BaseCharacter::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
+{
+}
+
+void ACPP_BaseCharacter::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
+{
+}
+
 void ACPP_BaseCharacter::BeginPlay()
 {
     Super::BeginPlay();
@@ -361,23 +369,6 @@ void ACPP_BaseCharacter::SpawnParticle(UNiagaraSystem* Effect, FVector Location,
             true // PreCullCheck
         );
     }
-}
-
-
-
-void ACPP_BaseCharacter::SetLocationFromSave(FVector SavedLocation)
-{
-    SetActorLocation(SavedLocation, false, nullptr, ETeleportType::TeleportPhysics);
-}
-
-void ACPP_BaseCharacter::SetCurrentHealth(float NewHealth)
-{
-    if (AttributeComp)
-    {
-        float Diff = NewHealth - AttributeComp->GetHealth();
-        AttributeComp->ApplyHealthChange(nullptr, Diff);
-    }
-
 }
 
 void ACPP_BaseCharacter::OnHealthChangedCallback(AActor* InstigatorActor, UCPP_AttributeComponent* OwningComp, float NewHealth, float Delta)
