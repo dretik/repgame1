@@ -17,14 +17,20 @@ struct FEnemySaveData
 {
     GENERATED_BODY()
 
-        UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere)
         float CurrentHealth = 0.0f;
+
+    UPROPERTY(VisibleAnywhere) 
+        float MaxHealth = 0.0f;
 
     UPROPERTY(VisibleAnywhere)
         FVector Location = FVector::ZeroVector;
 
     UPROPERTY(VisibleAnywhere)
         bool bIsDead = false;
+
+    UPROPERTY(VisibleAnywhere)
+        float SavedDamageMultiplier=1.f;
 };
 
 USTRUCT(BlueprintType)
@@ -40,6 +46,12 @@ struct FDynamicEnemyData
 
     UPROPERTY(VisibleAnywhere)
         float CurrentHealth = 0.0f;
+
+    UPROPERTY(VisibleAnywhere)
+        float MaxHealth = 0.0f;
+
+    UPROPERTY(VisibleAnywhere)
+        float SavedDamageMultiplier=1.f;
 };
 
 UCLASS()

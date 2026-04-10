@@ -16,6 +16,7 @@
 #include "CPP_SaveGame.h"
 #include "CPP_InventoryComponent.h"
 #include "CPP_Action.h"
+#include "CPP_ActionSet.h"
 #include "CPP_ActionComponent.h"
 #include "CharacterStats.h"
 
@@ -331,9 +332,17 @@ void ACPP_PlayerCharacter::PrimaryAttack()
 
 void ACPP_PlayerCharacter::MagicAttack()
 {
+    FGameplayTag FireballTag = FGameplayTag::RequestGameplayTag("Ability.Player.Range.Fireball");
+
+    if (GetAbilityLevel(FireballTag) <= 0)
+    {
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Ability Locked! Find the Skill Book first."));
+        return;
+    }
+
     if (ActionComp)
     {
-        ActionComp->StartActionByName(this, FGameplayTag::RequestGameplayTag("Ability.Player.Range.Fireball"));
+        ActionComp->StartActionByName(this, FireballTag);
     }
 }
 
@@ -502,6 +511,39 @@ void ACPP_PlayerCharacter::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
     CurrentXP = SaveObject->CurrentXP;
     CoinCount = SaveObject->Coins;
     AbilityLevels = SaveObject->AbilityLevels;
+
+    if (ActionComp && ActionComp->GetActionSet())
+    {
+        UCPP_ActionSet* CurrentSet = ActionComp->GetActionSet();
+
+        for (auto& It : AbilityLevels)
+        {
+            FGameplayTag SavedTag = It.Key;
+            int32 SavedLevel = It.Value;
+
+            if (SavedLevel > 0)
+            {
+                if (ActionComp->GetAction(SavedTag) != nullptr) continue;
+
+                for (TSubclassOf<UCPP_Action> ActionClass : CurrentSet->Actions)
+                {
+                    if (ActionClass)
+                    {
+                        UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
+                        if (DefaultObj && DefaultObj->ActionTag == SavedTag)
+                        {
+                            ActionComp->AddAction(ActionClass);
+
+                            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
+                                FString::Printf(TEXT("Restored Ability: %s (Level %d)"), *SavedTag.ToString(), SavedLevel));
+
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     SetActorLocation(SaveObject->PlayerLocation, false, nullptr, ETeleportType::TeleportPhysics);
 

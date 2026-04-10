@@ -113,7 +113,8 @@ void ACPP_EnemySpawner::Interact_Implementation(AActor* Interactor)
             ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(SpawnedActor);
             if (Enemy)
             {
-                Enemy->bIsDynamicallySpawned = true;
+                SpawnedActor->Tags.Add(FName("Dynamic"));
+                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Spawned Dynamic Enemy"));
             }
         }
 

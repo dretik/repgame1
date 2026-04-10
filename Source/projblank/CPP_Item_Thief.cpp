@@ -75,7 +75,7 @@ void ACPP_Item_Thief::Interact_Implementation(AActor* Interactor)
 			);
 			Player->ShowNotification(Msg, FColor::Yellow);
 
-			Destroy();
+			Super::Interact_Implementation(Interactor);
 		}
 		else
 		{

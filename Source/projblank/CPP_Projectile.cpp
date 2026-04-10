@@ -39,6 +39,11 @@ void ACPP_Projectile::BeginPlay()
 
     CollisionComp->OnComponentHit.AddDynamic(this, &ACPP_Projectile::OnHit);
 
+    if (GetOwner())
+    {
+        CollisionComp->IgnoreActorWhenMoving(GetOwner(), true);
+    }
+
     if (SpawnAnim)
     {
         ProjectileSprite->SetFlipbook(SpawnAnim);

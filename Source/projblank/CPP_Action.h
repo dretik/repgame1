@@ -55,6 +55,9 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Action")
 		void StopAction(AActor* Instigator);
 
+	UPROPERTY(EditDefaultsOnly, Category = "Action")
+		bool bAutoUnlock = false;
+
 	//for timers
 	virtual UWorld* GetWorld() const override;
 

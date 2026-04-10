@@ -7,6 +7,23 @@
 class ACPP_Projectile;
 class UPaperFlipbook;
 
+USTRUCT(BlueprintType)
+struct FProjectileLevelData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "LevelData")
+		TSubclassOf<ACPP_Projectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, Category = "LevelData")
+		float DamageMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "LevelData")
+		float ProjectileScale = 1.0f;
+
+	// projectile amount or speed could be added
+};
+
 UCLASS()
 class PROJBLANK_API UCPP_Action_Projectile : public UCPP_Action
 {
@@ -19,7 +36,7 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Combat")
-		TSubclassOf<ACPP_Projectile> ProjectileClass;
+		TArray<FProjectileLevelData> LevelConfigs;
 
 	UPROPERTY(EditAnywhere, Category = "Visuals")
 		UPaperFlipbook* CastAnim;

@@ -42,6 +42,9 @@ public:
     UPROPERTY()
         TSet<FString> CurrentSessionCollectedItems;
 
+    UPROPERTY()
+        TSet<FString> DestroyedStaticActors;
+
     void AddCollectedItem(FString ItemNameID) { CurrentSessionCollectedItems.Add(ItemNameID); }
 
 };

@@ -139,8 +139,8 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats | Dynamic")
         float CurrentBaseDamage = 0.f;;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats | Dynamic")
-        float CurrentDamageMultiplier = 1.0f;
+    //UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats | Dynamic")
+        //float CurrentDamageMultiplier = 1.0f;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
         bool bIsDead = false;

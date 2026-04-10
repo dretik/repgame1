@@ -101,7 +101,8 @@ void ACPP_BaseItem::BeginPlay()
             if (LoadInst) GI->CurrentSessionCollectedItems = LoadInst->CollectedItems;
         }
 
-        if (GI->CurrentSessionCollectedItems.Contains(GetName()))
+        if (!Tags.Contains(FName("Dynamic")) &&
+            GI->CurrentSessionCollectedItems.Contains(GetName()))
         {
             Destroy();
             return;
@@ -146,7 +147,8 @@ void ACPP_BaseItem::Interact_Implementation(AActor* Interactor)
         UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
         if (GI)
         {
-            GI->AddCollectedItem(GetName());
+            if(!Tags.Contains(FName("Dynamic")))
+                GI->AddCollectedItem(GetName());
         }
 
         Destroy();

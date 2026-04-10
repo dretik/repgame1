@@ -25,6 +25,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attributes", meta = (AllowPrivateAccess = "true"))
 		float MaxHealth;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attributes", meta = (AllowPrivateAccess = "true"))
+		float DamageMultiplier=1.0f;
+
 	bool bIsDead = false;
 
 public:
@@ -42,6 +45,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 		void InitializeStats(float NewMaxHealth);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+		void SetDamageMultiplier(float NewMultiplier) { DamageMultiplier = NewMultiplier; }
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+		float GetDamageMultiplier() const { return DamageMultiplier; }
 
 	UPROPERTY(BlueprintAssignable, Category = "Attributes")
 		FOnAttributeChanged OnHealthChanged;

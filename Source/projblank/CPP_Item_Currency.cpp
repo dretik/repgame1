@@ -32,6 +32,6 @@ void ACPP_Item_Currency::Interact_Implementation(AActor* Interactor)
         );
         Player->ShowNotification(FinalMessage, FColor::Yellow);
 
-        Destroy();
+        Super::Interact_Implementation(Interactor);
     }
 }

@@ -89,11 +89,10 @@ void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float 
             if (HitActor && CanDealDamageTo(HitActor)&&!DamagedActors.Contains(HitActor))
             {
                 DamagedActors.Add(HitActor);
-                float DamageToApply = DamageAmount * CurrentDamageMultiplier;
 
                 UGameplayStatics::ApplyDamage(
                     HitActor,
-                    DamageToApply,
+                    DamageAmount,
                     GetController(),
                     this,
                     UDamageType::StaticClass()
@@ -326,30 +325,40 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
 
     if (Modifier.StatTag.MatchesTagExact(Tag_Damage))
     {
-        StatToModify = Modifier.bIsMultiplier ? &CurrentDamageMultiplier : &CurrentBaseDamage;
-    }
-    else if (Modifier.StatTag.MatchesTagExact(Tag_Speed))
-    {
-        if (GetCharacterMovement())
-        {
-            StatToModify = &GetCharacterMovement()->MaxWalkSpeed;
-        }
-    }
-
-    if (StatToModify)
-    {
         if (Modifier.bIsMultiplier)
         {
-            *StatToModify *= Modifier.Value;
+            if (AttributeComp)
+            {
+                float OldMult = AttributeComp->GetDamageMultiplier();
+                float NewMult = OldMult * Modifier.Value;
+                AttributeComp->SetDamageMultiplier(NewMult);
+
+                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Damage Multiplier Updated: %f"), NewMult));
+            }
         }
         else
         {
-            *StatToModify += Modifier.Value;
+            CurrentBaseDamage += Modifier.Value;
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Base Damage Updated: %f"), CurrentBaseDamage));
         }
+        return;
+    }
 
-        if (GEngine)
-            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
-                FString::Printf(TEXT("Stat Changed! New Value: %f"), *StatToModify));
+    if (Modifier.StatTag.MatchesTagExact(Tag_Speed))
+    {
+        if (GetCharacterMovement())
+        {
+            if (Modifier.bIsMultiplier)
+            {
+                GetCharacterMovement()->MaxWalkSpeed *= Modifier.Value;
+            }
+            else
+            {
+                GetCharacterMovement()->MaxWalkSpeed += Modifier.Value;
+            }
+
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Speed Updated: %f"), GetCharacterMovement()->MaxWalkSpeed));
+        }
     }
 }
 
@@ -386,7 +395,15 @@ void ACPP_BaseCharacter::OnHealthChangedCallback(AActor* InstigatorActor, UCPP_A
 void ACPP_BaseCharacter::OnDeathStarted(AActor* Killer)
 {
     OnDeath();
-
+    //if actor is static (located in editor) he does not have dynamic tag
+    if (!Tags.Contains(FName("Dynamic")))
+    {
+        UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
+        if (GI)
+        {
+            GI->DestroyedStaticActors.Add(GetName());
+        }
+    }
     if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%s died!"), *GetName()));

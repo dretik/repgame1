@@ -24,8 +24,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "AI | Attack")
         virtual void AttackPlayer();
 
-    UFUNCTION(BlueprintCallable, Category = "Stats")
-        float GetEnemyDamageMultiplier() const { return EnemyLevelDamageMultiplier; }
+    //UFUNCTION(BlueprintCallable, Category = "Stats")
+        //float GetEnemyDamageMultiplier() const { return EnemyLevelDamageMultiplier; }
 
     bool bIsDynamicallySpawned = false;
 
@@ -51,7 +51,9 @@ protected:
     void SpawnCoins();
     void SpawnXP();
 
-    float EnemyLevelDamageMultiplier = 1.0f;
+    void InitializeEnemyScaling();
+
+    bool bStatsRestoredFromSave = false;
 
 private:
     UFUNCTION()

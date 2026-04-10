@@ -38,7 +38,14 @@ void UCPP_Action_Projectile::StartAction_Implementation(AActor* Instigator)
 
 void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter)
 {
-	if (!ProjectileClass || !InstigatorCharacter)
+	if (!InstigatorCharacter)
+	{
+		StopAction(InstigatorCharacter);
+		return;
+	}
+
+	ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(InstigatorCharacter);
+	if (!Player)
 	{
 		StopAction(InstigatorCharacter);
 		return;
@@ -49,40 +56,65 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 
 	int32 CurrentLevel = BaseChar->GetAbilityLevel(ActionTag);
 
-	if (CurrentLevel <= 0) CurrentLevel = 1;
+	int32 ConfigIndex = FMath::Clamp(CurrentLevel - 1, 0, LevelConfigs.Num() - 1);
+
+	if (LevelConfigs.Num() == 0)
+	{
+		StopAction(InstigatorCharacter);
+		return;
+	}
+
+	const FProjectileLevelData& CurrentConfig = LevelConfigs[ConfigIndex];
 
 	FVector SpawnLocation = InstigatorCharacter->GetActorLocation();
 	SpawnLocation.Z += 20.0f;
 
 	FRotator SpawnRotation = FRotator::ZeroRotator;
+
+	float BaseOffset = 40.0f;
+	float FinalOffset = BaseOffset * CurrentConfig.ProjectileScale;
+
 	APaperCharacter* PaperChar = Cast<APaperCharacter>(InstigatorCharacter);
 	if (PaperChar)
 	{
 		if (PaperChar->GetSprite()->GetRelativeScale3D().X > 0.0f)
 		{
 			SpawnRotation.Yaw = 90.0f;
-			SpawnLocation.Y += 40.0f;
+			SpawnLocation.Y += FinalOffset;
 		}
 		else
 		{
 			SpawnRotation.Yaw = -90.0f;
-			SpawnLocation.Y -= 40.0f;
+			SpawnLocation.Y -= FinalOffset;
 		}
 	}
 
 	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	//SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnParams.Instigator = InstigatorCharacter;
 	SpawnParams.Owner = InstigatorCharacter;
 
-	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(CurrentConfig.ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
 
-	ACPP_Projectile* Proj = Cast<ACPP_Projectile>(SpawnedActor);
-
-	if (Proj && BaseChar)
+	if (SpawnedActor)
 	{
-		float Dmg = BaseChar->GetCurrentBaseDamage();
-		Proj->SetDamage(Dmg);
+		InstigatorCharacter->MoveIgnoreActorAdd(SpawnedActor);
+	}
+
+	if (ACPP_Projectile* Proj = Cast<ACPP_Projectile>(SpawnedActor))
+	{
+		// Расчет урона: Базовый * Множитель уровня * Множитель атрибутов
+		float TotalDmg = Player->GetCurrentBaseDamage() * CurrentConfig.DamageMultiplier;
+
+		if (UCPP_AttributeComponent* AttrComp = Player->FindComponentByClass<UCPP_AttributeComponent>())
+		{
+			TotalDmg *= AttrComp->GetDamageMultiplier();
+		}
+
+		Proj->SetDamage(TotalDmg);
+
+        // Установка размера снаряда (если добавил это поле в структуру)
+        Proj->SetActorScale3D(FVector(CurrentConfig.ProjectileScale));
 	}
 
 	StopAction(InstigatorCharacter);

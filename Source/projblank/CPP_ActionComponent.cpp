@@ -11,11 +11,18 @@ void UCPP_ActionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// creating classes objects by default
-	if (ActionSet){
+	if (ActionSet)
+	{
 		for (TSubclassOf<UCPP_Action> ActionClass : ActionSet->Actions)
 		{
-			AddAction(ActionClass);
+			if (ActionClass)
+			{
+				UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
+				if (DefaultObj && DefaultObj->bAutoUnlock)
+				{
+					AddAction(ActionClass);
+				}
+			}
 		}
 	}
 }
@@ -53,12 +60,19 @@ bool UCPP_ActionComponent::StartActionByName(AActor* Instigator, FGameplayTag Ac
 			if (!Action->CanStart(Instigator))
 			{
 				if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::Printf(TEXT("Failed to start: %s (Cooldown or blocked)"), *ActionTag.ToString()));
-				continue;
+				return false;
 			}
 
 			Action->StartAction(Instigator);
 			return true;
 		}
+	}
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red,
+			FString::Printf(TEXT("Error: Action [%s] NOT FOUND in Component on Actor [%s]!"),
+				*ActionTag.ToString(), *GetOwner()->GetName()));
 	}
 	return false;
 }

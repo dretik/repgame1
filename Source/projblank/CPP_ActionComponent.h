@@ -33,6 +33,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		bool HasAnyMatchingTag(FGameplayTagContainer TagContainer) const;
 
+	class UCPP_ActionSet* GetActionSet() const { return ActionSet; }
+
 protected:
 	virtual void BeginPlay() override;
 

@@ -27,6 +27,13 @@ void UCPP_GameInstance::SaveGame()
     // saving general data
     SaveInst->CollectedItems = this->CurrentSessionCollectedItems;
 
+    for (const FString& DeadActorName : DestroyedStaticActors)
+    {
+        FEnemySaveData Data;
+        Data.bIsDead = true;
+        SaveInst->WorldEnemies.Add(DeadActorName, Data);
+    }
+
     // gathering all actors, who do utilize ISaveableInterface
     TArray<AActor*> SaveableActors;
     UGameplayStatics::GetAllActorsWithInterface(GetWorld(), USaveableInterface::StaticClass(), SaveableActors);
@@ -49,6 +56,16 @@ bool UCPP_GameInstance::LoadGame()
     UCPP_SaveGame* LoadInst = Cast<UCPP_SaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName, 0));
     if (!LoadInst) return false;
     
+    DestroyedStaticActors.Empty();
+
+    for (auto& It : LoadInst->WorldEnemies)
+    {
+        if (It.Value.bIsDead)
+        {
+            DestroyedStaticActors.Add(It.Key);
+        }
+    }
+
     //global data
     this->CurrentSessionCollectedItems = LoadInst->CollectedItems;
 
@@ -64,9 +81,17 @@ bool UCPP_GameInstance::LoadGame()
 
             if (SpawnedActor)
             {
+                SpawnedActor->Tags.Add(FName("Dynamic"));
+
                 UCPP_AttributeComponent* AttrComp = SpawnedActor->FindComponentByClass<UCPP_AttributeComponent>();
                 if (AttrComp)
                 {
+                    float MaxHP = (Data.MaxHealth > 0.0f) ? Data.MaxHealth : AttrComp->GetMaxHealth();
+                    AttrComp->InitializeStats(MaxHP);
+
+                    float Mult = (Data.SavedDamageMultiplier > 0.0f) ? Data.SavedDamageMultiplier : 1.0f;
+                    AttrComp->SetDamageMultiplier(Mult);
+
                     float Diff = Data.CurrentHealth - AttrComp->GetHealth();
                     AttrComp->ApplyHealthChange(nullptr, Diff);
                 }
@@ -84,6 +109,9 @@ bool UCPP_GameInstance::LoadGame()
     }
 
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Modules Loaded!"));
+    
+    bIsLoadingSave = false;
+    
     return true;
 }
 

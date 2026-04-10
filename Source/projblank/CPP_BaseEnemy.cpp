@@ -51,52 +51,9 @@ void ACPP_BaseEnemy::BeginPlay()
         PawnSensingComp->OnSeePawn.AddDynamic(this, &ACPP_BaseEnemy::OnPawnSeen);
     }
 
-    if (Player && CharacterStats && AttributeComp)
+    if (!bStatsRestoredFromSave)
     {
-        int32 PlayerLevel = Player->GetCharacterLevel();
-
-        if (PlayerLevel > 1)
-        {
-            float HealthScale = 1.0f + ((PlayerLevel - 1) * CharacterStats->HealthScalingFactor);
-            float NewMaxHealth = CharacterStats->MaxHealth * HealthScale;
-
-            AttributeComp->InitializeStats(NewMaxHealth);
-
-            EnemyLevelDamageMultiplier = 1.0f + ((PlayerLevel - 1) * CharacterStats->DamageScalingFactor);
-        }
-    }
-
-    UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
-    if (GI && GI->bIsLoadingSave)
-    {
-        UCPP_SaveGame* LoadInst = Cast<UCPP_SaveGame>(UGameplayStatics::LoadGameFromSlot(GI->SaveSlotName, 0));
-
-        if (LoadInst)
-        {
-            FString MyID = GetName();
-
-            if (LoadInst->WorldEnemies.Contains(MyID))
-            {
-                FEnemySaveData Data = LoadInst->WorldEnemies[MyID];
-
-                if (Data.bIsDead)
-                {
-                    Destroy();
-                }
-                else
-                {
-                    SetActorLocation(Data.Location);
-
-                    if (AttributeComp)
-                    {
-                        float CurrentHP = AttributeComp->GetHealth();
-                        float Diff = Data.CurrentHealth - CurrentHP;
-
-                        AttributeComp->ApplyHealthChange(nullptr, Diff);
-                    }
-                }
-            }
-        }
+        InitializeEnemyScaling();
     }
 }
 
@@ -252,6 +209,7 @@ void ACPP_BaseEnemy::SpawnLoot()
 
             if (DroppedItem)
             {
+                DroppedItem->Tags.Add(FName("Dynamic"));
                 UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedItem->GetRootComponent());
                 if (RootPrim)
                 {
@@ -309,6 +267,7 @@ void ACPP_BaseEnemy::SpawnCoins()
 
     if (DroppedCoin)
     {
+        DroppedCoin->Tags.Add(FName("Dynamic"));
         DroppedCoin->SetValue(TotalValue);
 
         UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedCoin->GetRootComponent());
@@ -360,6 +319,7 @@ void ACPP_BaseEnemy::SpawnXP()
 
     if (DroppedXP)
     {
+        DroppedXP->Tags.Add(FName("Dynamic"));
         DroppedXP->SetValue(FinalXPAmount);
 
         UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedXP->GetRootComponent());
@@ -371,44 +331,58 @@ void ACPP_BaseEnemy::SpawnXP()
     }
 }
 
+void ACPP_BaseEnemy::InitializeEnemyScaling()
+{
+    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    if (Player && CharacterStats && AttributeComp)
+    {
+        int32 PlayerLevel = Player->GetCharacterLevel();
+        if (PlayerLevel > 1)
+        {
+            float HealthScale = 1.0f + ((PlayerLevel - 1) * CharacterStats->HealthScalingFactor);
+            float NewMaxHealth = CharacterStats->MaxHealth * HealthScale;
+            AttributeComp->InitializeStats(NewMaxHealth);
+
+            float NewMult = 1.0f + ((PlayerLevel - 1) * CharacterStats->DamageScalingFactor);
+            AttributeComp->SetDamageMultiplier(NewMult);
+        }
+    }
+}
+
 void ACPP_BaseEnemy::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
 {
     if (!SaveObject) return;
 
-    if (IsDead())
-    {
-        if (!bIsDynamicallySpawned)
+        if (Tags.Contains(FName("Dynamic")))
         {
-            FEnemySaveData Data;
-            Data.bIsDead = true;
-            SaveObject->WorldEnemies.Add(GetName(), Data);
-        }
-    }
-    else
-    {
-        if (bIsDynamicallySpawned)
-        {
-            FDynamicEnemyData DynData;
-            DynData.EnemyClass = GetClass();
-            DynData.Transform = GetActorTransform();
-            DynData.CurrentHealth = AttributeComp ? AttributeComp->GetHealth() : 0.0f;
-            SaveObject->SpawnedEnemies.Add(DynData);
+            if (!IsDead()) {
+                FDynamicEnemyData DynData;
+                DynData.EnemyClass = GetClass();
+                DynData.Transform = GetActorTransform();
+                DynData.CurrentHealth = AttributeComp ? AttributeComp->GetHealth() : 0.0f;
+                DynData.MaxHealth = AttributeComp ? AttributeComp->GetMaxHealth() : 0.0f;
+                DynData.SavedDamageMultiplier = AttributeComp ? AttributeComp->GetDamageMultiplier() : 1.0f;
+                SaveObject->SpawnedEnemies.Add(DynData);
+            }
         }
         else
         {
-            FEnemySaveData Data;
-            Data.CurrentHealth = AttributeComp ? AttributeComp->GetHealth() : 0.0f;
-            Data.Location = GetActorLocation();
-            Data.bIsDead = false;
-            SaveObject->WorldEnemies.Add(GetName(), Data);
+            if (!IsDead()) {
+                FEnemySaveData Data;
+                Data.CurrentHealth = AttributeComp ? AttributeComp->GetHealth() : 0.0f;
+                Data.MaxHealth = AttributeComp ? AttributeComp->GetMaxHealth() : 0.0f;
+                Data.SavedDamageMultiplier = AttributeComp ? AttributeComp->GetDamageMultiplier() : 1.0f;
+                Data.Location = GetActorLocation();
+                Data.bIsDead = false;
+                SaveObject->WorldEnemies.Add(GetName(), Data);
+            }
         }
-    }
 }
 
 void ACPP_BaseEnemy::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
 {
     if (!SaveObject) return;
-
+    bStatsRestoredFromSave = true;
     FString MyID = GetName();
 
     if (SaveObject->WorldEnemies.Contains(MyID))
@@ -424,8 +398,13 @@ void ACPP_BaseEnemy::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
             SetActorLocation(Data.Location);
             if (AttributeComp)
             {
-                float CurrentHP = AttributeComp->GetHealth();
-                float Diff = Data.CurrentHealth - CurrentHP;
+                float MaxHP = (Data.MaxHealth > 0.0f) ? Data.MaxHealth : (CharacterStats ? CharacterStats->MaxHealth : 100.0f);
+                AttributeComp->InitializeStats(MaxHP);
+
+                float Mult = (Data.SavedDamageMultiplier > 0.0f) ? Data.SavedDamageMultiplier : 1.0f;
+                AttributeComp->SetDamageMultiplier(Mult);
+
+                float Diff = Data.CurrentHealth - AttributeComp->GetHealth();
                 AttributeComp->ApplyHealthChange(nullptr, Diff);
             }
         }

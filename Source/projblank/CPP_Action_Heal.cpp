@@ -1,7 +1,6 @@
 #include "CPP_Action_Heal.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_BaseCharacter.h"
-#include "CPP_BaseEnemy.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperCharacter.h"
 #include "NiagaraFunctionLibrary.h"
@@ -55,7 +54,6 @@ void UCPP_Action_Heal::ExecuteHeal(AActor* Instigator)
 	if (!Instigator) return;
 
 	UCPP_AttributeComponent* AttrComp = Instigator->FindComponentByClass<UCPP_AttributeComponent>();
-	ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Instigator);
 	if (AttrComp)
 	{
 		float FinalHealAmount = 0.f;
@@ -63,16 +61,16 @@ void UCPP_Action_Heal::ExecuteHeal(AActor* Instigator)
 		if (HealType == EHealType::Percentage)
 		{
 			const float PercentageFactor = 100.0f;
-			FinalHealAmount = Enemy->GetCurrentMaxHealth() * (HealAmount / PercentageFactor);
+			FinalHealAmount = AttrComp->GetMaxHealth() * (HealAmount / PercentageFactor);
 		}
 		else
 		{
 			FinalHealAmount = HealAmount;
 		}
 
-		if (bApplyLevelScaling && Enemy)
+		if (bApplyLevelScaling)
 		{
-			FinalHealAmount *= Enemy->GetEnemyDamageMultiplier();
+			FinalHealAmount *= AttrComp->GetDamageMultiplier();
 		}
 
 		bool bHealed = AttrComp->ApplyHealthChange(Instigator, FinalHealAmount);

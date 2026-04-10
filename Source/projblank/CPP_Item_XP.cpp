@@ -21,6 +21,6 @@ void ACPP_Item_XP::Interact_Implementation(AActor* Interactor)
         FText Msg = FText::Format(NSLOCTEXT("HUD", "XPMsg", "+{0} XP"), FText::AsNumber(CoinValue));
         Player->ShowNotification(Msg, FColor::Purple);
 
-        Destroy();
+        Super::Interact_Implementation(Interactor);
     }
 }

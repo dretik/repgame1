@@ -4,6 +4,7 @@
 #include "CPP_Action_BossMelee.h"
 #include "CPP_BaseCharacter.h"
 #include "CPP_BaseEnemy.h"
+#include "CPP_AttributeComponent.h"
 #include "PaperFlipbookComponent.h"
 
 UCPP_Action_BossMelee::UCPP_Action_BossMelee()
@@ -64,9 +65,9 @@ void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 	if (!Char) return;
 	float DamageToApply = Char->GetCurrentBaseDamage();
 
-	if (ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Char))
+	if (UCPP_AttributeComponent* AttrComp = Char->FindComponentByClass<UCPP_AttributeComponent>())
 	{
-		DamageToApply *= Enemy->GetEnemyDamageMultiplier();
+		DamageToApply *= AttrComp->GetDamageMultiplier();
 	}
 
 	DamageToApply *= ActionDamageMultiplier;

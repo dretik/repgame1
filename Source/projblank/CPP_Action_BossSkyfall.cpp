@@ -130,10 +130,15 @@ void UCPP_Action_BossSkyfall::SpawnMeteor(AActor* Instigator)
 	if (SpawnedActor)
 	{
 		ACPP_Projectile* Meteor = Cast<ACPP_Projectile>(SpawnedActor);
-		ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(Instigator);
-		if (Meteor&&Enemy)
+		if (Meteor && Instigator)
 		{
-			float DamageToApply = DamagePerMeteor * Enemy->GetEnemyDamageMultiplier();
+			float DamageToApply = DamagePerMeteor;
+
+			if (UCPP_AttributeComponent* AttrComp = Instigator->FindComponentByClass<UCPP_AttributeComponent>())
+			{
+				DamageToApply *= AttrComp->GetDamageMultiplier();
+			}
+
 			Meteor->SetDamage(DamageToApply);
 		}
 
