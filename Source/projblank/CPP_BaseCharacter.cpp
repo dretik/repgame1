@@ -36,71 +36,71 @@ ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializ
     }
 }
 
-void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount)
-{
-    if (CharacterStats && CharacterStats->AttackEffect)
-    {
-        FRotator EffectRotation = FRotator::ZeroRotator;
-
-        if (GetSprite()->GetRelativeScale3D().X > 0.0f)
-        {
-            EffectRotation.Yaw = 90.0f;
-        }
-        else {
-            EffectRotation.Yaw = -90.0f;
-        }
-
-        SpawnParticle(CharacterStats->AttackEffect, GetActorLocation(), EffectRotation);
-    }
-
-    float DirectionSign = (GetSprite()->GetRelativeScale3D().X > 0.0f) ? 1.0f : -1.0f;
-
-    FVector AttackDirection = FVector(0.0f, 1.0f, 0.0f) * DirectionSign;
-
-    const FVector Start = GetActorLocation();
-    const FVector End = Start + (AttackDirection * Range);
-    const FVector HalfSize = BoxSize;
-
-    TArray<AActor*> ActorsToIgnore;
-    ActorsToIgnore.Add(this);
-    TArray<FHitResult> HitResults;
-
-    bool bHit = UKismetSystemLibrary::BoxTraceMulti(
-        GetWorld(),
-        Start,
-        End,
-        HalfSize,
-        FRotator::ZeroRotator,
-        UEngineTypes::ConvertToTraceType(ECC_WorldDynamic),
-        false,
-        ActorsToIgnore,
-        EDrawDebugTrace::ForDuration,
-        HitResults,
-        true
-    ); 
-
-    if (bHit)
-    {
-        TSet<AActor*> DamagedActors;
-        for (const FHitResult& Result : HitResults)
-        {
-            AActor* HitActor = Result.GetActor();
-
-            if (HitActor && CanDealDamageTo(HitActor)&&!DamagedActors.Contains(HitActor))
-            {
-                DamagedActors.Add(HitActor);
-
-                UGameplayStatics::ApplyDamage(
-                    HitActor,
-                    DamageAmount,
-                    GetController(),
-                    this,
-                    UDamageType::StaticClass()
-                );
-            }
-        }
-    }
-}
+//void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount)
+//{
+//    if (CharacterStats && CharacterStats->AttackEffect)
+//    {
+//        FRotator EffectRotation = FRotator::ZeroRotator;
+//
+//        if (GetSprite()->GetRelativeScale3D().X > 0.0f)
+//        {
+//            EffectRotation.Yaw = 90.0f;
+//        }
+//        else {
+//            EffectRotation.Yaw = -90.0f;
+//        }
+//
+//        SpawnParticle(CharacterStats->AttackEffect, GetActorLocation(), EffectRotation);
+//    }
+//
+//    float DirectionSign = (GetSprite()->GetRelativeScale3D().X > 0.0f) ? 1.0f : -1.0f;
+//
+//    FVector AttackDirection = FVector(0.0f, 1.0f, 0.0f) * DirectionSign;
+//
+//    const FVector Start = GetActorLocation();
+//    const FVector End = Start + (AttackDirection * Range);
+//    const FVector HalfSize = BoxSize;
+//
+//    TArray<AActor*> ActorsToIgnore;
+//    ActorsToIgnore.Add(this);
+//    TArray<FHitResult> HitResults;
+//
+//    bool bHit = UKismetSystemLibrary::BoxTraceMulti(
+//        GetWorld(),
+//        Start,
+//        End,
+//        HalfSize,
+//        FRotator::ZeroRotator,
+//        UEngineTypes::ConvertToTraceType(ECC_WorldDynamic),
+//        false,
+//        ActorsToIgnore,
+//        EDrawDebugTrace::ForDuration,
+//        HitResults,
+//        true
+//    ); 
+//
+//    if (bHit)
+//    {
+//        TSet<AActor*> DamagedActors;
+//        for (const FHitResult& Result : HitResults)
+//        {
+//            AActor* HitActor = Result.GetActor();
+//
+//            if (HitActor && CanDealDamageTo(HitActor)&&!DamagedActors.Contains(HitActor))
+//            {
+//                DamagedActors.Add(HitActor);
+//
+//                UGameplayStatics::ApplyDamage(
+//                    HitActor,
+//                    DamageAmount,
+//                    GetController(),
+//                    this,
+//                    UDamageType::StaticClass()
+//                );
+//            }
+//        }
+//    }
+//}
 
 void ACPP_BaseCharacter::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
 {

@@ -6,7 +6,14 @@
 #include "CPP_ActionComponent.generated.h"
 
 class UCPP_Action;
-
+UENUM(BlueprintType)
+enum class EActionGrantResult : uint8
+{
+	Failed,
+	Unlocked,
+	Upgraded,
+	MaxLevelReached
+};
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJBLANK_API UCPP_ActionComponent : public UActorComponent
 {
@@ -20,7 +27,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void AddAction(TSubclassOf<UCPP_Action> ActionClass);
-
+	UFUNCTION(BlueprintCallable, Category = "Actions|Levels")
+		EActionGrantResult GrantAction(TSubclassOf<UCPP_Action> ActionClass);
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		UCPP_Action* GetAction(FGameplayTag ActionTag) const;
 
@@ -35,6 +43,16 @@ public:
 
 	class UCPP_ActionSet* GetActionSet() const { return ActionSet; }
 
+	UFUNCTION(BlueprintCallable, Category = "Actions")
+		int32 GetActionLevel(FGameplayTag ActionTag) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Actions")
+		void SetActionLevel(FGameplayTag ActionTag, int32 NewLevel);
+
+	const TMap<FGameplayTag, int32>& GetAllActionLevels() const { return ActionLevels; }
+
+	void RestoreActionLevels(const TMap<FGameplayTag, int32>& LoadedLevels);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -43,6 +61,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Actions")
 		TArray<UCPP_Action*> Actions;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Actions|Levels")
+		TMap<FGameplayTag, int32> ActionLevels;
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

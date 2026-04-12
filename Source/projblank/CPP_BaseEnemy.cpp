@@ -138,28 +138,32 @@ void ACPP_BaseEnemy::SpawnLoot()
 
             bool bIsItemValid = true;
 
-            if (DefaultItem)
+            if (Entry.ItemClass->IsChildOf(ACPP_Item_SkillUnlockable::StaticClass()))
             {
-                ACPP_Item_SkillUnlockable* SkillItem = Cast<ACPP_Item_SkillUnlockable>(DefaultItem);
-
-                if (SkillItem)
+                //taking default object to know what action it grants
+                ACPP_Item_SkillUnlockable* SkillItem = Entry.ItemClass->GetDefaultObject<ACPP_Item_SkillUnlockable>();
+                if (SkillItem && SkillItem->GetActionClass())
                 {
-                    if (SkillItem->GetActionClass())
+                    UCPP_Action* DefaultAction = SkillItem->GetActionClass()->GetDefaultObject<UCPP_Action>();
+                    if (DefaultAction)
                     {
-                        UCPP_Action* DefaultAction = SkillItem->GetActionClass()->GetDefaultObject<UCPP_Action>();
-
-                        if (DefaultAction)
+                        UCPP_ActionComponent* PlayerActionComp = Player->FindComponentByClass<UCPP_ActionComponent>();
+                        if (PlayerActionComp)
                         {
-                            FGameplayTag Tag = DefaultAction->ActionTag;
+                            FGameplayTag SearchedTag = DefaultAction->ActionTag;
+                            int32 CurrentLvl = PlayerActionComp->GetActionLevel(SearchedTag);
+                            int32 MaxLvl = DefaultAction->MaxLevel;
 
-                            if (Tag.IsValid())
+                            if (GEngine)
                             {
-                                int32 CurrentLevel = Player->GetAbilityLevel(Tag);
+                                GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange,
+                                    FString::Printf(TEXT("Enemy Checking Item: %s | Player Level: %d | Max Level: %d"),
+                                        *SearchedTag.ToString(), CurrentLvl, MaxLvl));
+                            }
 
-                                if (CurrentLevel >= SkillItem->GlobalMaxSkillLevel)
-                                {
-                                    bIsItemValid = false;
-                                }
+                            if (CurrentLvl >= MaxLvl)
+                            {
+                                bIsItemValid = false;
                             }
                         }
                     }
@@ -309,6 +313,13 @@ void ACPP_BaseEnemy::SpawnXP()
 
     FActorSpawnParameters Params;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan,
+            FString::Printf(TEXT("Enemy Death: Player Lvl %d | Scaler: %f | Final XP: %d"),
+                Player->GetCharacterLevel(), XPScaler, FinalXPAmount));
+    }
 
     ACPP_Item_XP* DroppedXP = GetWorld()->SpawnActor<ACPP_Item_XP>(
         CharacterStats->XPItemClass,

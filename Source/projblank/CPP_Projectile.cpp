@@ -10,6 +10,7 @@
 #include "CPP_BaseCharacter.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h" 
+#include "CPP_CombatStatics.h"
 
 ACPP_Projectile::ACPP_Projectile()
 {
@@ -117,30 +118,39 @@ void ACPP_Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 
         if (GEngine) DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadius, 12, FColor::Orange, false, 2.0f);
         
-        if (bResult)
-        {
-            ACPP_BaseCharacter* OwnerChar = Cast<ACPP_BaseCharacter>(GetOwner());
+        //if (bResult)
+        //{
+        //    ACPP_BaseCharacter* OwnerChar = Cast<ACPP_BaseCharacter>(GetOwner());
 
-            for (AActor* Target : OverlappedActors)
-            {
-                bool bCanDamage = true;
-                if (OwnerChar)
-                {
-                    bCanDamage = OwnerChar->CanDealDamageTo(Target);
-                }
+        //    for (AActor* Target : OverlappedActors)
+        //    {
+        //        bool bCanDamage = true;
+        //        if (OwnerChar)
+        //        {
+        //            bCanDamage = OwnerChar->CanDealDamageTo(Target);
+        //        }
 
-                if (bCanDamage)
-                {
-                    UGameplayStatics::ApplyDamage(
-                        Target,
-                        Damage,
-                        GetInstigatorController(),
-                        this, // damage dealt
-                        UDamageType::StaticClass()
-                    );
-                }
-            }
-        }
+        //        if (bCanDamage)
+        //        {
+        //            UGameplayStatics::ApplyDamage(
+        //                Target,
+        //                Damage,
+        //                GetInstigatorController(),
+        //                this, // damage dealt
+        //                UDamageType::StaticClass()
+        //            );
+        //        }
+        //    }
+        //}
+
+        UCPP_CombatStatics::ExecuteAreaDamage(
+            this,       //causer
+            GetOwner(),
+            GetActorLocation(),
+            ExplosionRadius,
+            Damage,
+            true // bDrawDebug
+        );
 
         FTimerHandle TimerHandle;
         GetWorldTimerManager().SetTimer(TimerHandle, this, &ACPP_Projectile::DestroyProjectile, DestroyDelay, false);

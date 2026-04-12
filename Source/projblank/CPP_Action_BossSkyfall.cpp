@@ -130,16 +130,10 @@ void UCPP_Action_BossSkyfall::SpawnMeteor(AActor* Instigator)
 	if (SpawnedActor)
 	{
 		ACPP_Projectile* Meteor = Cast<ACPP_Projectile>(SpawnedActor);
-		if (Meteor && Instigator)
+		if (Meteor)
 		{
-			float DamageToApply = DamagePerMeteor;
 
-			if (UCPP_AttributeComponent* AttrComp = Instigator->FindComponentByClass<UCPP_AttributeComponent>())
-			{
-				DamageToApply *= AttrComp->GetDamageMultiplier();
-			}
-
-			Meteor->SetDamage(DamageToApply);
+			Meteor->SetDamage(DamagePerMeteor);
 		}
 
 		//if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Purple, TEXT("Meteor Spawned via Action!"));

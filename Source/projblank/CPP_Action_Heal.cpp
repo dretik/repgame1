@@ -4,6 +4,7 @@
 #include "PaperFlipbookComponent.h"
 #include "PaperCharacter.h"
 #include "NiagaraFunctionLibrary.h"
+#include "CPP_CombatStatics.h"
 
 UCPP_Action_Heal::UCPP_Action_Heal()
 {
@@ -53,27 +54,12 @@ void UCPP_Action_Heal::ExecuteHeal(AActor* Instigator)
 {
 	if (!Instigator) return;
 
-	UCPP_AttributeComponent* AttrComp = Instigator->FindComponentByClass<UCPP_AttributeComponent>();
-	if (AttrComp)
-	{
-		float FinalHealAmount = 0.f;
-
-		if (HealType == EHealType::Percentage)
-		{
-			const float PercentageFactor = 100.0f;
-			FinalHealAmount = AttrComp->GetMaxHealth() * (HealAmount / PercentageFactor);
-		}
-		else
-		{
-			FinalHealAmount = HealAmount;
-		}
-
-		if (bApplyLevelScaling)
-		{
-			FinalHealAmount *= AttrComp->GetDamageMultiplier();
-		}
-
-		bool bHealed = AttrComp->ApplyHealthChange(Instigator, FinalHealAmount);
+		bool bHealed = UCPP_CombatStatics::ExecuteHealing(
+			Instigator,
+			Instigator,
+			HealAmount,
+			(HealType == EHealType::Percentage)
+		);
 
 		if (bHealed)
 		{
@@ -84,8 +70,7 @@ void UCPP_Action_Heal::ExecuteHeal(AActor* Instigator)
 
 			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green,
 				FString::Printf(TEXT("Healed: %f (Type: %s)"),
-					FinalHealAmount,
+					HealAmount,
 					HealType == EHealType::Flat ? TEXT("Flat") : TEXT("Percentage")));
 		}
-	}
 }

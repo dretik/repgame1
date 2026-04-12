@@ -58,6 +58,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		bool bAutoUnlock = false;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Action", meta = (ClampMin = "1"))
+		int32 MaxLevel = 3;
+
 	//for timers
 	virtual UWorld* GetWorld() const override;
 

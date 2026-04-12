@@ -6,6 +6,9 @@
 #include "CPP_BaseEnemy.h"
 #include "CPP_AttributeComponent.h"
 #include "PaperFlipbookComponent.h"
+#include "CPP_CombatStatics.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 
 UCPP_Action_BossMelee::UCPP_Action_BossMelee()
 {
@@ -72,10 +75,34 @@ void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 
 	DamageToApply *= ActionDamageMultiplier;
 		
-	Char->PerformAttackTrace(
+	float DirectionSign = (Char->GetSprite()->GetRelativeScale3D().X > 0.0f) ? 1.0f : -1.0f;
+	FVector AttackDirection = FVector(0.0f, 1.0f, 0.0f) * DirectionSign;
+
+	if (Char->GetCharacterStats() && Char->GetCharacterStats()->AttackEffect)
+	{
+		FRotator EffectRotation = FRotator::ZeroRotator;
+		EffectRotation.Yaw = (DirectionSign > 0.0f) ? 90.0f : -90.0f;
+
+		// can create UCPP_VisualStatics::SpawnParticleAtLocation module
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			Instigator->GetWorld(),
+			Char->GetCharacterStats()->AttackEffect,
+			Instigator->GetActorLocation(),
+			EffectRotation
+		);
+	}
+
+	// performing attack via statics
+	UCPP_CombatStatics::ExecuteBoxTraceAttack(
+		Instigator,             // DamageCauser
+		Instigator,             // Instigator
+		Instigator->GetActorLocation(),
+		AttackDirection,
 		AttackRange,
 		AttackBoxSize,
-		DamageToApply);
+		DamageToApply,
+		true                    // bDrawDebug (could be in UPROPERTY)
+	);
 }
 
 void UCPP_Action_BossMelee::StopAction_Implementation(AActor* Instigator)

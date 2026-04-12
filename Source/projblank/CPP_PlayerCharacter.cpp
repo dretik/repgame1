@@ -134,62 +134,60 @@ void ACPP_PlayerCharacter::ShowNotification(FText Text, FLinearColor Color)
 
 bool ACPP_PlayerCharacter::GrantAbility(TSubclassOf<UCPP_Action> ActionClass)
 {
-    if (!ActionClass || !ActionComp) return false;
+    if (!ActionComp) return false;
 
-    // getting Default Object for requesting tag without creating it
+    EActionGrantResult Result = ActionComp->GrantAction(ActionClass);
+
     UCPP_Action* DefaultAction = ActionClass->GetDefaultObject<UCPP_Action>();
-    if (!DefaultAction) return false;
-
     FGameplayTag ActionTag = DefaultAction->ActionTag;
 
-    int32 CurrentLevel = 0;
-    if (AbilityLevels.Contains(ActionTag))
+    switch (Result)
     {
-        CurrentLevel = AbilityLevels[ActionTag];
-    }
-
-    if (CurrentLevel == 0)
+    case EActionGrantResult::Unlocked:
     {
-        ActionComp->AddAction(ActionClass);
-
-        AbilityLevels.Add(ActionTag, 1);
-
         if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
             FString::Printf(TEXT("Ability Unlocked: %s (Level 1)"), *ActionTag.ToString()));
 
         ShowNotification(NSLOCTEXT("Abilities", "Unlock", "New Ability Unlocked!"), FColor::Purple);
+        return true;
     }
-    else
+    case EActionGrantResult::Upgraded:
     {
-        AbilityLevels[ActionTag] = CurrentLevel + 1;
-
+        int32 NewLevel = ActionComp->GetActionLevel(ActionTag);
         if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green,
-            FString::Printf(TEXT("Ability Upgraded: %s (Level %d)"), *ActionTag.ToString(), CurrentLevel + 1));
+            FString::Printf(TEXT("Ability Upgraded: %s (Level %d)"), *ActionTag.ToString(), NewLevel));
 
         ShowNotification(NSLOCTEXT("Abilities", "Upgrade", "Ability Level Up!"), FColor::Cyan);
+        return true;
     }
-
-    return true;
-}
-
-int32 ACPP_PlayerCharacter::GetAbilityLevel(FGameplayTag AbilityTag) const
-{
-    if (AbilityLevels.Contains(AbilityTag))
+    case EActionGrantResult::MaxLevelReached:
     {
-        return AbilityLevels[AbilityTag];
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("Ability is already at Max Level!"));
+        return false;
     }
-    return 0;
+    default:
+        return false;
+    }
 }
 
-bool ACPP_PlayerCharacter::HasAbility(FGameplayTag AbilityTag) const
-{
-    return GetAbilityLevel(AbilityTag) > 0;
-}
+//int32 ACPP_PlayerCharacter::GetAbilityLevel(FGameplayTag AbilityTag) const
+//{
+//    if (AbilityLevels.Contains(AbilityTag))
+//    {
+//        return AbilityLevels[AbilityTag];
+//    }
+//    return 0;
+//}
 
-void ACPP_PlayerCharacter::SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities)
-{
-    AbilityLevels = LoadedAbilities;
-}
+//bool ACPP_PlayerCharacter::HasAbility(FGameplayTag AbilityTag) const
+//{
+//    return GetAbilityLevel(AbilityTag) > 0;
+//}
+
+//void ACPP_PlayerCharacter::SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities)
+//{
+//    AbilityLevels = LoadedAbilities;
+//}
 
 void ACPP_PlayerCharacter::AddCoins(int32 Amount)
 {
@@ -334,16 +332,13 @@ void ACPP_PlayerCharacter::MagicAttack()
 {
     FGameplayTag FireballTag = FGameplayTag::RequestGameplayTag("Ability.Player.Range.Fireball");
 
-    if (GetAbilityLevel(FireballTag) <= 0)
+    if (!ActionComp || ActionComp->GetActionLevel(FireballTag)<=0)
     {
         if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Ability Locked! Find the Skill Book first."));
         return;
     }
 
-    if (ActionComp)
-    {
-        ActionComp->StartActionByName(this, FireballTag);
-    }
+    ActionComp->StartActionByName(this, FireballTag);
 }
 
 void ACPP_PlayerCharacter::ExecuteMeleeAttack()
@@ -485,12 +480,14 @@ void ACPP_PlayerCharacter::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
     SaveObject->Health = AttributeComp->GetHealth();
     SaveObject->MaxHealth = AttributeComp->GetMaxHealth();
     SaveObject->BaseDamage = CurrentBaseDamage;
-    SaveObject->Level = CharacterLevel;
     SaveObject->CurrentXP = CurrentXP;
+    SaveObject->XPToNextLevel = XPToNextLevel;
+    SaveObject->Level = CharacterLevel;
     SaveObject->Coins = CoinCount;
     SaveObject->PlayerLocation = GetActorLocation();
     SaveObject->LevelName = FName(*GetWorld()->GetName());
-    SaveObject->AbilityLevels = AbilityLevels;
+    if (ActionComp)
+    SaveObject->AbilityLevels = ActionComp->GetAllActionLevels();
 
     if (UCPP_InventoryComponent* InvComp = FindComponentByClass<UCPP_InventoryComponent>())
     {
@@ -509,41 +506,43 @@ void ACPP_PlayerCharacter::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
     CurrentBaseDamage = SaveObject->BaseDamage;
     CharacterLevel = SaveObject->Level;
     CurrentXP = SaveObject->CurrentXP;
+    XPToNextLevel = (SaveObject->XPToNextLevel > 0) ? SaveObject->XPToNextLevel : 100.0f;
     CoinCount = SaveObject->Coins;
-    AbilityLevels = SaveObject->AbilityLevels;
+    if (ActionComp)
+    ActionComp->RestoreActionLevels(SaveObject->AbilityLevels);
 
-    if (ActionComp && ActionComp->GetActionSet())
-    {
-        UCPP_ActionSet* CurrentSet = ActionComp->GetActionSet();
+    //if (ActionComp && ActionComp->GetActionSet())
+    //{
+    //    UCPP_ActionSet* CurrentSet = ActionComp->GetActionSet();
 
-        for (auto& It : AbilityLevels)
-        {
-            FGameplayTag SavedTag = It.Key;
-            int32 SavedLevel = It.Value;
+    //    for (auto& It : AbilityLevels)
+    //    {
+    //        FGameplayTag SavedTag = It.Key;
+    //        int32 SavedLevel = It.Value;
 
-            if (SavedLevel > 0)
-            {
-                if (ActionComp->GetAction(SavedTag) != nullptr) continue;
+    //        if (SavedLevel > 0)
+    //        {
+    //            if (ActionComp->GetAction(SavedTag) != nullptr) continue;
 
-                for (TSubclassOf<UCPP_Action> ActionClass : CurrentSet->Actions)
-                {
-                    if (ActionClass)
-                    {
-                        UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
-                        if (DefaultObj && DefaultObj->ActionTag == SavedTag)
-                        {
-                            ActionComp->AddAction(ActionClass);
+    //            for (TSubclassOf<UCPP_Action> ActionClass : CurrentSet->Actions)
+    //            {
+    //                if (ActionClass)
+    //                {
+    //                    UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
+    //                    if (DefaultObj && DefaultObj->ActionTag == SavedTag)
+    //                    {
+    //                        ActionComp->AddAction(ActionClass);
 
-                            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
-                                FString::Printf(TEXT("Restored Ability: %s (Level %d)"), *SavedTag.ToString(), SavedLevel));
+    //                        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
+    //                            FString::Printf(TEXT("Restored Ability: %s (Level %d)"), *SavedTag.ToString(), SavedLevel));
 
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    //                        break;
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
 
     SetActorLocation(SaveObject->PlayerLocation, false, nullptr, ETeleportType::TeleportPhysics);
 

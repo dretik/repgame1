@@ -44,17 +44,10 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 		return;
 	}
 
-	ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(InstigatorCharacter);
-	if (!Player)
-	{
-		StopAction(InstigatorCharacter);
-		return;
-	}
+	UCPP_ActionComponent* Comp = GetOwningComponent();
+	if (!Comp) { StopAction(InstigatorCharacter); return; }
 
-	ACPP_PlayerCharacter* BaseChar = Cast<ACPP_PlayerCharacter>(InstigatorCharacter);
-	if (!BaseChar) return;
-
-	int32 CurrentLevel = BaseChar->GetAbilityLevel(ActionTag);
+	int32 CurrentLevel = Comp->GetActionLevel(ActionTag);
 
 	int32 ConfigIndex = FMath::Clamp(CurrentLevel - 1, 0, LevelConfigs.Num() - 1);
 
@@ -103,17 +96,12 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 
 	if (ACPP_Projectile* Proj = Cast<ACPP_Projectile>(SpawnedActor))
 	{
-		// Расчет урона: Базовый * Множитель уровня * Множитель атрибутов
-		float TotalDmg = Player->GetCurrentBaseDamage() * CurrentConfig.DamageMultiplier;
-
-		if (UCPP_AttributeComponent* AttrComp = Player->FindComponentByClass<UCPP_AttributeComponent>())
-		{
-			TotalDmg *= AttrComp->GetDamageMultiplier();
+		float TotalDmg = 0.f;
+		if (ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(InstigatorCharacter)) {
+			TotalDmg = BaseChar->GetCurrentBaseDamage() * CurrentConfig.DamageMultiplier;
 		}
 
 		Proj->SetDamage(TotalDmg);
-
-        // Установка размера снаряда (если добавил это поле в структуру)
         Proj->SetActorScale3D(FVector(CurrentConfig.ProjectileScale));
 	}
 

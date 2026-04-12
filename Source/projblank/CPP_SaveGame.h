@@ -79,6 +79,9 @@ public:
         float CurrentXP;
 
     UPROPERTY(VisibleAnywhere, Category = "SaveData")
+        float XPToNextLevel;
+
+    UPROPERTY(VisibleAnywhere, Category = "SaveData")
         int32 Coins;
 
     // --- POSITION ---

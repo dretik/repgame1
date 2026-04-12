@@ -51,6 +51,35 @@ void UCPP_ActionComponent::AddAction(TSubclassOf<UCPP_Action> ActionClass)
 	}
 }
 
+EActionGrantResult UCPP_ActionComponent::GrantAction(TSubclassOf<UCPP_Action> ActionClass)
+{
+	if (!ActionClass) return EActionGrantResult::Failed;
+
+	UCPP_Action* DefaultAction = ActionClass->GetDefaultObject<UCPP_Action>();
+	if (!DefaultAction) return EActionGrantResult::Failed;
+
+	FGameplayTag ActionTag = DefaultAction->ActionTag;
+	int32 MaxAllowedLevel = DefaultAction->MaxLevel;
+
+	int32 CurrentLevel = GetActionLevel(ActionTag);
+
+	if (CurrentLevel >= MaxAllowedLevel)
+	{
+		return EActionGrantResult::MaxLevelReached;
+	}
+	if (CurrentLevel == 0)
+	{
+		AddAction(ActionClass);
+		ActionLevels.Add(ActionTag, 1);
+		return EActionGrantResult::Unlocked;
+	}
+	else
+	{
+		ActionLevels.Add(ActionTag, CurrentLevel + 1);
+		return EActionGrantResult::Upgraded;
+	}
+}
+
 bool UCPP_ActionComponent::StartActionByName(AActor* Instigator, FGameplayTag ActionTag)
 {
 	for (UCPP_Action* Action : Actions)
@@ -108,4 +137,42 @@ UCPP_Action* UCPP_ActionComponent::GetAction(FGameplayTag ActionTag) const
 		}
 	}
 	return nullptr;
+}
+
+int32 UCPP_ActionComponent::GetActionLevel(FGameplayTag ActionTag) const
+{
+	if (const int32* FoundLevel = ActionLevels.Find(ActionTag))
+	{
+		return *FoundLevel;
+	}
+	return 0;
+}
+
+void UCPP_ActionComponent::SetActionLevel(FGameplayTag ActionTag, int32 NewLevel)
+{
+	ActionLevels.Add(ActionTag, NewLevel);
+}
+
+void UCPP_ActionComponent::RestoreActionLevels(const TMap<FGameplayTag, int32>& LoadedLevels)
+{
+	ActionLevels = LoadedLevels;
+
+	if (ActionSet)
+	{
+		for (TSubclassOf<UCPP_Action> ActionClass : ActionSet->Actions)
+		{
+			if (ActionClass)
+			{
+				UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
+
+				if (DefaultObj && GetActionLevel(DefaultObj->ActionTag) > 0)
+				{
+					if (!GetAction(DefaultObj->ActionTag))
+					{
+						AddAction(ActionClass);
+					}
+				}
+			}
+		}
+	}
 }

@@ -2,6 +2,7 @@
 #include "CPP_BaseCharacter.h"
 #include "CPP_PlayerCharacter.h"
 #include "CPP_Action.h"
+#include "CPP_ActionComponent.h"
 
 ACPP_Item_SkillUnlockable::ACPP_Item_SkillUnlockable()
 {
@@ -13,19 +14,29 @@ ACPP_Item_SkillUnlockable::ACPP_Item_SkillUnlockable()
 
 void ACPP_Item_SkillUnlockable::Interact_Implementation(AActor* Interactor)
 {
-    ACPP_PlayerCharacter* BaseChar = Cast<ACPP_PlayerCharacter>(Interactor);
+    if (bIsPickedUp) return;
+    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(Interactor);
+    if (!Player || !ActionClass) return;
 
-    if (BaseChar && ActionClass)
+    UCPP_Action* DefaultAction = ActionClass->GetDefaultObject<UCPP_Action>();
+    if (!DefaultAction) return;
+    UCPP_ActionComponent* ActionComp = Player->FindComponentByClass<UCPP_ActionComponent>();
+    if (!ActionComp) return;
+
+    //if level of ability is maxed - shownotif or addgold or smth
+    if (ActionComp->GetActionLevel(DefaultAction->ActionTag) >= DefaultAction->MaxLevel)
     {
-        bool bSuccess = BaseChar->GrantAbility(ActionClass);
-
-        if (bSuccess)
-        {
-            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Purple, TEXT("Skill Item Used!"));
-        }
+        Player->ShowNotification(NSLOCTEXT("Abilities", "MaxLevel", "Skill already at maximum level!"), FLinearColor::Red);
+        return; // item remains
     }
 
-    // calling super to exec:
-    // statmodifiers -> notification -> destroy
-    Super::Interact_Implementation(Interactor);
+    bool bSuccess = Player->GrantAbility(ActionClass);
+
+    if (bSuccess)
+    {
+        bIsPickedUp = true;
+        // calling super to exec:
+        // statmodifiers -> notification -> destroy
+        Super::Interact_Implementation(Interactor);
+    }
 }

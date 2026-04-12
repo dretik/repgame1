@@ -10,6 +10,7 @@
 #include "CharacterStats.h"
 #include "InteractableInterface.h"
 #include "SaveableInterface.h"
+#include "CPP_CombatInterface.h"
 #include "GameplayTagContainer.h"
 #include "NiagaraSystem.h"
 #include "CPP_AttributeComponent.h"
@@ -37,7 +38,7 @@ struct FStatModifier
 };
 
 UCLASS()
-class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter, public ISaveableInterface
+class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter, public ISaveableInterface, public ICPP_CombatInterface
 {
 	GENERATED_BODY()
 
@@ -51,7 +52,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Events")
         FOnHealthChangedSignature OnHealthChanged;
 
-    virtual bool CanDealDamageTo(AActor* TargetActor) const;
+    virtual bool CanDealDamageTo(AActor* TargetActor) const override;
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
         float GetCurrentHealth() const;
@@ -79,7 +80,7 @@ public:
         bool GetIsAttacking() const;
 
     //attack trace box 
-    void PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount);
+    //is now from (combat interface)
 
     //saves
     virtual void OnSaveGame_Implementation(UCPP_SaveGame* SaveObject);

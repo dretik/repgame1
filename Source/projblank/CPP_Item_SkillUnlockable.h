@@ -22,4 +22,6 @@ public:
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
         TSubclassOf<UCPP_Action> ActionClass;
+
+    bool bIsPickedUp = false;
 };

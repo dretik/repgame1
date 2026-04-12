@@ -35,12 +35,12 @@ public:
     // --- ABILITIES ---
     UFUNCTION(BlueprintCallable, Category = "Abilities")
         bool GrantAbility(TSubclassOf<class UCPP_Action> ActionClass);
-    UFUNCTION(BlueprintCallable, Category = "Abilities")
-        bool HasAbility(FGameplayTag AbilityTag) const;
-    UFUNCTION(BlueprintCallable, Category = "Abilities")
-        int32 GetAbilityLevel(FGameplayTag AbilityTag) const;
-    const TMap<FGameplayTag, int32>& GetAbilityLevels() const { return AbilityLevels; }
-    void SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities);
+    //UFUNCTION(BlueprintCallable, Category = "Abilities")
+    //    bool HasAbility(FGameplayTag AbilityTag) const;
+    //UFUNCTION(BlueprintCallable, Category = "Abilities")
+    //    int32 GetAbilityLevel(FGameplayTag AbilityTag) const;
+    //const TMap<FGameplayTag, int32>& GetAbilityLevels() const { return AbilityLevels; }
+    //void SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities);
 
     // --- ECONOMY ---
     UPROPERTY(BlueprintAssignable, Category = "Events")
@@ -115,8 +115,8 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Progression")
         float LevelUpMultiplier = 1.2f;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
-        TMap<FGameplayTag, int32> AbilityLevels;
+    //UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
+    //    TMap<FGameplayTag, int32> AbilityLevels;
 
     void LevelUp();
 };
