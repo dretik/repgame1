@@ -14,7 +14,7 @@
 #include "CPP_Item_SkillUnlockable.h"
 #include "CPP_Action.h"   
 #include "CPP_ActionComponent.h"
-#include "CPP_PlayerCharacter.h"
+#include "CPP_ProgressionStatics.h"
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -43,8 +43,6 @@ ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
 void ACPP_BaseEnemy::BeginPlay()
 {
     Super::BeginPlay();
-
-    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
     if (PawnSensingComp)
     {
@@ -121,9 +119,7 @@ void ACPP_BaseEnemy::SpawnLoot()
 
     int32 ItemsToSpawn = FMath::RandRange(CharacterStats->MinLootCount, CharacterStats->MaxLootCount);
 
-    //assuming singleplayer
-    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
-    if (!Player) return;
+    ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(this, 0);
 
     for (int32 i = 0; i < ItemsToSpawn; i++)
     {
@@ -145,9 +141,9 @@ void ACPP_BaseEnemy::SpawnLoot()
                 if (SkillItem && SkillItem->GetActionClass())
                 {
                     UCPP_Action* DefaultAction = SkillItem->GetActionClass()->GetDefaultObject<UCPP_Action>();
-                    if (DefaultAction)
+                    if (DefaultAction && PlayerChar)
                     {
-                        UCPP_ActionComponent* PlayerActionComp = Player->FindComponentByClass<UCPP_ActionComponent>();
+                        UCPP_ActionComponent* PlayerActionComp = PlayerChar->FindComponentByClass<UCPP_ActionComponent>();
                         if (PlayerActionComp)
                         {
                             FGameplayTag SearchedTag = DefaultAction->ActionTag;
@@ -236,21 +232,9 @@ void ACPP_BaseEnemy::SpawnCoins()
 {
     if (!CharacterStats || !CharacterStats->CoinClass) return;
 
-    float CoinScaler = 1.0f;
-    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
-    if (Player)
-    {
-        int32 PlayerLevel = Player->GetCharacterLevel();
-        if (PlayerLevel > 1)
-        {
-            CoinScaler = 1.0f + ((PlayerLevel - 1) * CharacterStats->CoinScalingFactor);
-        }
-    }
+    int32 DiffLevel = UCPP_ProgressionStatics::GetCurrentDifficultyLevel(this);
+    int32 TotalValue = UCPP_ProgressionStatics::CalculateDroppedCoins(CharacterStats->MinCoins, CharacterStats->MaxCoins, CharacterStats->CoinScalingFactor, DiffLevel);
 
-    float ScaledMinCoins = (float)CharacterStats->MinCoins * CoinScaler;
-    float ScaledMaxCoins = (float)CharacterStats->MaxCoins * CoinScaler;
-
-    int32 TotalValue = FMath::RandRange(ScaledMinCoins, ScaledMaxCoins);
     if (TotalValue <= 0) return;
 
     FVector SpawnLocation = GetActorLocation();
@@ -286,23 +270,9 @@ void ACPP_BaseEnemy::SpawnCoins()
 void ACPP_BaseEnemy::SpawnXP()
 {
     if (!CharacterStats || !CharacterStats->XPItemClass) return;
-    float XPScaler = 1.0f;
-    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
-    if (Player)
-    {
-        int32 PlayerLevel = Player->GetCharacterLevel();
-        if (PlayerLevel > 1)
-        {
-            XPScaler = 1.0f + ((PlayerLevel - 1) * CharacterStats->XPScalingFactor);
-        }
-    }
 
-    float ScaledMinXP = (float)CharacterStats->MinXP * XPScaler;
-    float ScaledMaxXP = (float)CharacterStats->MaxXP * XPScaler;
-
-    float BaseAmount = (float)FMath::RandRange(ScaledMinXP, ScaledMaxXP);
-
-    int32 FinalXPAmount = FMath::RoundToInt(BaseAmount * XPScaler);
+    int32 DiffLevel = UCPP_ProgressionStatics::GetCurrentDifficultyLevel(this);
+    int32 FinalXPAmount = UCPP_ProgressionStatics::CalculateDroppedXP(CharacterStats->MinXP, CharacterStats->MaxXP, CharacterStats->XPScalingFactor, DiffLevel);
 
     if (FinalXPAmount <= 0) return;
 
@@ -313,13 +283,6 @@ void ACPP_BaseEnemy::SpawnXP()
 
     FActorSpawnParameters Params;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-    if (GEngine)
-    {
-        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan,
-            FString::Printf(TEXT("Enemy Death: Player Lvl %d | Scaler: %f | Final XP: %d"),
-                Player->GetCharacterLevel(), XPScaler, FinalXPAmount));
-    }
 
     ACPP_Item_XP* DroppedXP = GetWorld()->SpawnActor<ACPP_Item_XP>(
         CharacterStats->XPItemClass,
@@ -344,19 +307,15 @@ void ACPP_BaseEnemy::SpawnXP()
 
 void ACPP_BaseEnemy::InitializeEnemyScaling()
 {
-    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
-    if (Player && CharacterStats && AttributeComp)
+    if (CharacterStats && AttributeComp)
     {
-        int32 PlayerLevel = Player->GetCharacterLevel();
-        if (PlayerLevel > 1)
-        {
-            float HealthScale = 1.0f + ((PlayerLevel - 1) * CharacterStats->HealthScalingFactor);
-            float NewMaxHealth = CharacterStats->MaxHealth * HealthScale;
-            AttributeComp->InitializeStats(NewMaxHealth);
+        int32 DiffLevel = UCPP_ProgressionStatics::GetCurrentDifficultyLevel(this);
 
-            float NewMult = 1.0f + ((PlayerLevel - 1) * CharacterStats->DamageScalingFactor);
-            AttributeComp->SetDamageMultiplier(NewMult);
-        }
+        float NewMaxHealth = UCPP_ProgressionStatics::CalculateEnemyHealth(CharacterStats->MaxHealth, CharacterStats->HealthScalingFactor, DiffLevel);
+        AttributeComp->InitializeStats(NewMaxHealth);
+
+        float NewMult = UCPP_ProgressionStatics::CalculateEnemyDamageMultiplier(CharacterStats->DamageScalingFactor, DiffLevel);
+        AttributeComp->SetDamageMultiplier(NewMult);
     }
 }
 

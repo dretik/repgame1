@@ -18,6 +18,7 @@
 #include "CPP_Action.h"
 #include "CPP_ActionSet.h"
 #include "CPP_ActionComponent.h"
+#include "CPP_ProgressionStatics.h"
 #include "CharacterStats.h"
 
 ACPP_PlayerCharacter::ACPP_PlayerCharacter(const FObjectInitializer& ObjectInitializer)
@@ -441,7 +442,7 @@ void ACPP_PlayerCharacter::LevelUp()
 {
     CharacterLevel++;
 
-    XPToNextLevel *= LevelUpMultiplier;
+    XPToNextLevel = UCPP_ProgressionStatics::CalculateRequiredXPForNextLevel(XPToNextLevel, LevelUpMultiplier);
 
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("LEVEL UP! Level: %d"), CharacterLevel));
 
