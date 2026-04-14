@@ -32,7 +32,7 @@ public:
     UFUNCTION(BlueprintPure, Category = "Progression")
         static int32 CalculateDroppedCoins(int32 MinCoins, int32 MaxCoins, float ScalingFactor, int32 DifficultyLevel);
 
-    // --- Скейлинг Игрока ---
+    //player scaling
     UFUNCTION(BlueprintPure, Category = "Progression")
         static float CalculateRequiredXPForNextLevel(float CurrentRequiredXP, float LevelUpMultiplier);
 };

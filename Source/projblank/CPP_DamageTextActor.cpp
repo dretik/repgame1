@@ -33,3 +33,8 @@ void ACPP_DamageTextActor::Tick(float DeltaTime)
 	NewLoc.Z += 50.0f * DeltaTime;
 	SetActorLocation(NewLoc);
 }
+
+void ACPP_DamageTextActor::SetValue_Implementation(float Value)
+{
+	UpdateDamageText(Value);
+}

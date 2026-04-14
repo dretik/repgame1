@@ -12,7 +12,6 @@
 #include "SaveableInterface.h"
 #include "CPP_CombatInterface.h"
 #include "GameplayTagContainer.h"
-#include "NiagaraSystem.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_Action.h"   
 #include "CPP_ActionComponent.h"
@@ -66,13 +65,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Stats")
         class UCharacterStats* GetCharacterStats() const { return CharacterStats; }
 
-    //SETTERS
-    //void SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities);
-
-    //void SetLocationFromSave(FVector SavedLocation);
-
-    //void SetCurrentHealth(float NewHealth);
-
     UFUNCTION(BlueprintCallable, Category = "State")
         bool IsDead() const { return bIsDead; }
 
@@ -93,6 +85,9 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
         class UCPP_AttributeComponent* AttributeComp;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+        class UCPP_VisualComponent* VisualComp;
 
     //flipbook
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations")
@@ -160,10 +155,6 @@ protected:
 
     UFUNCTION()
         void OnHealthChangedCallback(AActor* InstigatorActor, UCPP_AttributeComponent* OwningComp, float NewHealth, float Delta);
-    
-    void SpawnParticle(UNiagaraSystem* Effect, FVector Location, 
-        FRotator Rotation = FRotator::ZeroRotator);
-
 
     UPROPERTY(EditDefaultsOnly, Category = "Combat | UI")
         TSubclassOf<class ACPP_DamageTextActor> DamageTextClass;

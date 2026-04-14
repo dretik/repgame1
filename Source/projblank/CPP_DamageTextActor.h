@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "CPP_VisualTextInterface.h"
 #include "CPP_DamageTextActor.generated.h"
 
 class UWidgetComponent;
 
 UCLASS()
-class PROJBLANK_API ACPP_DamageTextActor : public AActor
+class PROJBLANK_API ACPP_DamageTextActor : public AActor, public ICPP_VisualTextInterface
 {
 	GENERATED_BODY()
 	
@@ -20,6 +21,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 		void UpdateDamageText(float DamageAmount);
 
+	virtual void SetValue_Implementation(float Value) override;
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 		UWidgetComponent* DamageWidgetComp;

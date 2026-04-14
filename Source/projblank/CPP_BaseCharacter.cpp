@@ -10,12 +10,15 @@
 #include "CPP_Projectile.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "CPP_DamageTextActor.h"
 #include "CPP_GameInstance.h"
 #include "CPP_SaveGame.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_Action.h"   
 #include "CPP_ActionComponent.h"
+#include "CPP_VisualComponent.h"
+#include "CPP_VisualStatics.h"
 #include "Engine/Engine.h"
 
 ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializer)
@@ -27,12 +30,20 @@ ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializ
 
     ActionComp = CreateDefaultSubobject<UCPP_ActionComponent>(TEXT("ActionComp"));
 
+    VisualComp = CreateDefaultSubobject<UCPP_VisualComponent>(TEXT("VisualComp"));
+
     if (MoveComponent)
     {
         MoveComponent->GravityScale = 1.0f;
         MoveComponent->AirControl = 0.5f;
         MoveComponent->MaxWalkSpeed = 450.0f;
         MoveComponent->JumpZVelocity = 600.0f;
+    }
+    if (GetSprite())
+    {
+        GetSprite()->CastShadow = true;
+        GetSprite()->bCastDynamicShadow = true;
+        GetSprite()->bCastShadowAsTwoSided = true;
     }
 }
 
@@ -165,38 +176,9 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 
     bool bApplied = AttributeComp->ApplyHealthChange(DamageCauser, -ActualDamage);
 
-    if (!bApplied && ActualDamage > 0.0f)
+    if (bApplied && ActualDamage > 0.0f && VisualComp)
     {
-        return 0.0f;
-    }
-
-    if (ActualDamage > 0.0f && DamageTextClass)
-    {
-        FVector SpawnLoc = GetActorLocation();
-        SpawnLoc.Z += FMath::RandRange(50.f, 70.f);
-        SpawnLoc.X += FMath::RandRange(-20.f, 20.f);
-        SpawnLoc.Y += FMath::RandRange(-20.f, 20.f);
-
-        ACPP_DamageTextActor* DmgText = GetWorld()->SpawnActor<ACPP_DamageTextActor>(
-            DamageTextClass,
-            SpawnLoc,
-            FRotator::ZeroRotator
-            );
-
-        if (DmgText)
-        {
-            DmgText->UpdateDamageText(ActualDamage);
-        }
-    }
-
-    if (GEngine)
-    {
-        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("%s took %f damage. Current Health: %f"), *GetName(), ActualDamage, AttributeComp->GetHealth()));
-    }
-
-    if (CharacterStats)
-    {
-        SpawnParticle(CharacterStats->HitEffect, GetActorLocation());
+        VisualComp->HandleDamageReceived(ActualDamage, DamageTextClass, CharacterStats ? CharacterStats->HitEffect : nullptr);
     }
 
     return ActualDamage;
@@ -205,23 +187,19 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 void ACPP_BaseCharacter::OnDeath_Implementation()
 {
     if (bIsDead) return;
-
     bIsDead = true;
 
-    GetCharacterMovement()->StopMovementImmediately();
     GetCharacterMovement()->DisableMovement();
-
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     if (GetController())
     {
-        GetController()->StopMovement();
         GetController()->UnPossess(); 
     }
 
-    if (CharacterStats)
+    if (VisualComp && CharacterStats)
     {
-        SpawnParticle(CharacterStats->DeathEffect, GetActorLocation());
+        VisualComp->HandleDeath(CharacterStats->DeathEffect);
     }
 
     float DeathDuration = 0.6f; 
@@ -362,29 +340,16 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
     }
 }
 
-void ACPP_BaseCharacter::SpawnParticle(UNiagaraSystem* Effect, FVector Location, FRotator Rotation)
-{
-    if (Effect)
-    {
-        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-            GetWorld(),
-            Effect,
-            Location,
-            Rotation,
-            FVector(1.f), // Scale
-            true, // Auto Destroy
-            true, // Auto Activate
-            ENCPoolMethod::None,
-            true // PreCullCheck
-        );
-    }
-}
-
 void ACPP_BaseCharacter::OnHealthChangedCallback(AActor* InstigatorActor, UCPP_AttributeComponent* OwningComp, float NewHealth, float Delta)
 {
-    if (Delta < 0.0f && CharacterStats && CharacterStats->HitEffect)
+    if (Delta < 0.0f)
     {
-        SpawnParticle(CharacterStats->HitEffect, GetActorLocation());
+        if (CharacterStats) {
+            UCPP_VisualStatics::SpawnNiagaraEffect(this, CharacterStats->HitEffect, GetActorLocation());
+        }
+        if (VisualComp) {
+            VisualComp->PlayHitFlash();
+        }
     }
     if (OwningComp)
     {
@@ -438,22 +403,7 @@ void ACPP_BaseCharacter::Tick(float DeltaTime)
         return;
     }
 
-    if (GetCharacterMovement())
-    {
-        float VelocityY = GetVelocity().Y;
-
-        const float FlipThreshold = 0.1f;
-
-        FVector NewScale = GetSprite()->GetRelativeScale3D();
-
-        if (VelocityY > FlipThreshold)
-        {
-            NewScale.X = BaseSpriteScale;
-        }
-        else if (VelocityY < -FlipThreshold)
-        {
-            NewScale.X = -BaseSpriteScale;
-        }
-        GetSprite()->SetRelativeScale3D(NewScale);
+    if (VisualComp) {
+        VisualComp->UpdateSpriteFacing(GetVelocity(), BaseSpriteScale);
     }
 }
