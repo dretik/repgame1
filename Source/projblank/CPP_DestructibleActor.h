@@ -5,10 +5,12 @@
 #include "CoreMinimal.h"
 #include "CPP_DamageableInterface.h"
 #include "GameFramework/Actor.h"
+#include "CharacterStats.h"
+#include "SaveableInterface.h"
 #include "CPP_DestructibleActor.generated.h"
 
 UCLASS()
-class PROJBLANK_API ACPP_DestructibleActor : public AActor, public ICPP_DamageableInterface
+class PROJBLANK_API ACPP_DestructibleActor : public AActor, public ICPP_DamageableInterface, public ISaveableInterface
 {
     GENERATED_BODY()
 
@@ -27,6 +29,10 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
         class UStaticMeshComponent* MeshComp;
+
+    //stats
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
+        UCharacterStats* ObjectStats;
 
     //loot
     UPROPERTY(EditAnywhere, Category = "Loot")
@@ -47,4 +53,8 @@ protected:
 public:
     virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
         AController* EventInstigator, AActor* DamageCauser) override;
+
+    // ISaveableInterface
+    virtual void OnSaveGame_Implementation(class UCPP_SaveGame* SaveObject) override;
+    virtual void OnLoadGame_Implementation(class UCPP_SaveGame* SaveObject) override;
 };

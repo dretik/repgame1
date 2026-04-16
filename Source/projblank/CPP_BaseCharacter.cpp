@@ -38,6 +38,10 @@ ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializ
         MoveComponent->AirControl = 0.5f;
         MoveComponent->MaxWalkSpeed = 450.0f;
         MoveComponent->JumpZVelocity = 600.0f;
+        MoveComponent->bImpartBaseAngularVelocity = false;
+        bUseControllerRotationYaw = false;
+        bUseControllerRotationPitch = false;
+        bUseControllerRotationRoll = false;
     }
     if (GetSprite())
     {
@@ -45,6 +49,12 @@ ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializ
         GetSprite()->bCastDynamicShadow = true;
         GetSprite()->bCastShadowAsTwoSided = true;
     }
+    GetCapsuleComponent()->SetLinearDamping(0.01f);
+    GetCapsuleComponent()->SetAngularDamping(0.0f);
+
+    GetCapsuleComponent()->BodyInstance.bLockXRotation = true;
+    GetCapsuleComponent()->BodyInstance.bLockYRotation = true;
+    GetCapsuleComponent()->BodyInstance.bLockZRotation = true;
 }
 
 //void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount)

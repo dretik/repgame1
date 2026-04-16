@@ -1,5 +1,6 @@
 #include "CPP_VisualComponent.h"
 #include "PaperFlipbookComponent.h"
+#include "Components/MeshComponent.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "CPP_VisualStatics.h"
@@ -17,18 +18,18 @@ void UCPP_VisualComponent::BeginPlay()
     AActor* Owner = GetOwner();
     if (Owner)
     {
-        MySprite = Owner->FindComponentByClass<UPaperFlipbookComponent>();
+        MeshComp = Owner->FindComponentByClass<UMeshComponent>();
     }
 }
 
 void UCPP_VisualComponent::PlayHitFlash(float Duration, FLinearColor FlashColor)
 {
-    if (!MySprite) return;
+    if (!MeshComp) return;
 
     // ceating dynamic material 1 time
     if (!DynamicMaterial)
     {
-        DynamicMaterial = MySprite->CreateDynamicMaterialInstance(0);
+        DynamicMaterial = MeshComp->CreateDynamicMaterialInstance(0);
     }
 
     if (DynamicMaterial)
@@ -63,16 +64,16 @@ void UCPP_VisualComponent::HandleDamageReceived(float DamageAmount, TSubclassOf<
 
 void UCPP_VisualComponent::UpdateSpriteFacing(FVector Velocity, float BaseScale)
 {
-    if (!MySprite || Velocity.SizeSquared() < 0.01f) return;
+    if (!MeshComp || Velocity.SizeSquared() < 0.01f) return;
 
-    FVector NewScale = MySprite->GetRelativeScale3D();
+    FVector NewScale = MeshComp->GetRelativeScale3D();
     if (Velocity.Y > 0.1f) {
         NewScale.X = BaseScale;
     }
     else if (Velocity.Y < -0.1f) {
         NewScale.X = -BaseScale;
     }
-    MySprite->SetRelativeScale3D(NewScale);
+    MeshComp->SetRelativeScale3D(NewScale);
 }
 
 void UCPP_VisualComponent::HandleDeath(UNiagaraSystem* DeathFX)

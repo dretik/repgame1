@@ -47,10 +47,6 @@ protected:
 
     virtual void OnDeath_Implementation() override;
 
-    void SpawnLoot();
-    void SpawnCoins();
-    void SpawnXP();
-
     void InitializeEnemyScaling();
 
     bool bStatsRestoredFromSave = false;

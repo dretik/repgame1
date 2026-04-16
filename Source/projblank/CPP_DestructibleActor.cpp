@@ -5,7 +5,10 @@
 #include "CPP_AttributeComponent.h"
 #include "CPP_VisualComponent.h"
 #include "CPP_VisualStatics.h"
+#include "CPP_LootStatics.h"
 #include "Components/StaticMeshComponent.h"
+#include "CPP_SaveGame.h"
+#include "CPP_GameInstance.h"
 
 ACPP_DestructibleActor::ACPP_DestructibleActor()
 {
@@ -28,15 +31,12 @@ float ACPP_DestructibleActor::TakeDamage(float DamageAmount, struct FDamageEvent
 {
     if (!AttributeComp || AttributeComp->GetHealth() <= 0) return 0.0f;
 
-    // 1. Применяем урон
     AttributeComp->ApplyHealthChange(DamageCauser, -DamageAmount);
 
-    // 2. Визуальная реакция (Мигание)
     if (VisualComp) {
         VisualComp->PlayHitFlash(0.1f, FLinearColor::White);
     }
-
-    // 3. Текст урона
+    //null textclass - nothing to print out
     UCPP_VisualStatics::SpawnDamageText(this, nullptr, DamageAmount, GetActorLocation());
 
     return DamageAmount;
@@ -44,13 +44,42 @@ float ACPP_DestructibleActor::TakeDamage(float DamageAmount, struct FDamageEvent
 
 void ACPP_DestructibleActor::OnDestroyed(AActor* Killer)
 {
+    UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
+    if (GI)
+    {
+        GI->DestroyedStaticActors.Add(GetName());
+    }
+
     if (BreakEffect) {
         UCPP_VisualStatics::SpawnNiagaraEffect(this, BreakEffect, GetActorLocation());
     }
 
-    if (LootClass && FMath::FRand() <= DropChance) {
-        GetWorld()->SpawnActor<AActor>(LootClass, GetActorLocation(), GetActorRotation());
-    }
+    UCPP_LootStatics::SpawnAllLoot(this, ObjectStats, GetActorLocation());
 
     Destroy();
+}
+
+void ACPP_DestructibleActor::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
+{
+    if (!SaveObject) return;
+
+    FEnemySaveData Data;
+    Data.bIsDead = false;
+    Data.Location = GetActorLocation();
+
+    SaveObject->WorldEnemies.Add(GetName(), Data);
+}
+
+void ACPP_DestructibleActor::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
+{
+    if (!SaveObject) return;
+
+    FString MyID = GetName();
+    if (SaveObject->WorldEnemies.Contains(MyID))
+    {
+        if (SaveObject->WorldEnemies[MyID].bIsDead)
+        {
+            Destroy(); //if dead in save destroy on load
+        }
+    }
 }

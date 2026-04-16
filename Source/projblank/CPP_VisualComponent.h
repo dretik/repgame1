@@ -27,7 +27,7 @@ public:
     void UpdateSpriteFacing(FVector Velocity, float BaseScale);
 protected:
     UPROPERTY()
-        class UPaperFlipbookComponent* MySprite;
+        class UMeshComponent* MeshComp;
 
     UPROPERTY()
         class UMaterialInstanceDynamic* DynamicMaterial;

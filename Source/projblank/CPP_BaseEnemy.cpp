@@ -1,6 +1,7 @@
 #include "CPP_BaseEnemy.h"
 #include "Perception/PawnSensingComponent.h" 
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "AIController.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
@@ -15,6 +16,7 @@
 #include "CPP_Action.h"   
 #include "CPP_ActionComponent.h"
 #include "CPP_ProgressionStatics.h"
+#include "CPP_LootStatics.h"
 
 ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -37,7 +39,12 @@ ACPP_BaseEnemy::ACPP_BaseEnemy(const FObjectInitializer& ObjectInitializer)
     if (GetCharacterMovement())
     {
         GetCharacterMovement()->bOrientRotationToMovement = false;
+        GetCharacterMovement()->bImpartBaseAngularVelocity = false;
+        bUseControllerRotationYaw = false;
+        bUseControllerRotationPitch = false;
+        bUseControllerRotationRoll = false;
     }
+
 }
 
 void ACPP_BaseEnemy::BeginPlay()
@@ -102,207 +109,9 @@ bool ACPP_BaseEnemy::CanDealDamageTo(AActor* TargetActor) const
 
 void ACPP_BaseEnemy::OnDeath_Implementation()
 {
-    SpawnLoot();
-    SpawnCoins();
-    SpawnXP();
+    UCPP_LootStatics::SpawnAllLoot(this, CharacterStats, GetActorLocation());
 
     Super::OnDeath_Implementation();
-}
-
-void ACPP_BaseEnemy::SpawnLoot()
-{
-    if (!CharacterStats) return;
-
-    if (FMath::FRand() > CharacterStats->DropChance) return;
-
-    if (CharacterStats->LootTable.Num() == 0) return;
-
-    int32 ItemsToSpawn = FMath::RandRange(CharacterStats->MinLootCount, CharacterStats->MaxLootCount);
-
-    ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(this, 0);
-
-    for (int32 i = 0; i < ItemsToSpawn; i++)
-    {
-        TArray<FLootItem> ValidCandidates;
-        float ValidTotalWeight = 0.0f;
-
-        for (const FLootItem& Entry : CharacterStats->LootTable)
-        {
-            if (!Entry.ItemClass) continue;
-
-            ACPP_BaseItem* DefaultItem = Cast<ACPP_BaseItem>(Entry.ItemClass->GetDefaultObject());
-
-            bool bIsItemValid = true;
-
-            if (Entry.ItemClass->IsChildOf(ACPP_Item_SkillUnlockable::StaticClass()))
-            {
-                //taking default object to know what action it grants
-                ACPP_Item_SkillUnlockable* SkillItem = Entry.ItemClass->GetDefaultObject<ACPP_Item_SkillUnlockable>();
-                if (SkillItem && SkillItem->GetActionClass())
-                {
-                    UCPP_Action* DefaultAction = SkillItem->GetActionClass()->GetDefaultObject<UCPP_Action>();
-                    if (DefaultAction && PlayerChar)
-                    {
-                        UCPP_ActionComponent* PlayerActionComp = PlayerChar->FindComponentByClass<UCPP_ActionComponent>();
-                        if (PlayerActionComp)
-                        {
-                            FGameplayTag SearchedTag = DefaultAction->ActionTag;
-                            int32 CurrentLvl = PlayerActionComp->GetActionLevel(SearchedTag);
-                            int32 MaxLvl = DefaultAction->MaxLevel;
-
-                            if (GEngine)
-                            {
-                                GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange,
-                                    FString::Printf(TEXT("Enemy Checking Item: %s | Player Level: %d | Max Level: %d"),
-                                        *SearchedTag.ToString(), CurrentLvl, MaxLvl));
-                            }
-
-                            if (CurrentLvl >= MaxLvl)
-                            {
-                                bIsItemValid = false;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (bIsItemValid)
-            {
-                ValidCandidates.Add(Entry);
-                ValidTotalWeight += Entry.DropWeight;
-            }
-        }
-
-        if (ValidCandidates.Num() == 0) return;
-        if (ValidTotalWeight <= 0.0f) return;
-
-        float RandomPoint = FMath::FRandRange(0.0f, ValidTotalWeight);
-        float CurrentSum = 0.0f;
-        TSubclassOf<ACPP_BaseItem> SelectedItemClass = nullptr;
-
-        for (const FLootItem& ValidEntry : ValidCandidates)
-        {
-            CurrentSum += ValidEntry.DropWeight;
-            if (RandomPoint <= CurrentSum)
-            {
-                SelectedItemClass = ValidEntry.ItemClass;
-                break;
-            }
-        }
-
-        if (SelectedItemClass)
-        {
-            FVector SpawnLocation = GetActorLocation();
-            SpawnLocation.Z += 20.0f;
-            SpawnLocation.X += FMath::RandRange(-10.f, 10.f);
-            SpawnLocation.Y += FMath::RandRange(-10.f, 10.f);
-
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-            ACPP_BaseItem* DroppedItem = GetWorld()->SpawnActor<ACPP_BaseItem>(
-                SelectedItemClass,
-                SpawnLocation,
-                FRotator::ZeroRotator,
-                SpawnParams
-                );
-
-            if (DroppedItem)
-            {
-                DroppedItem->Tags.Add(FName("Dynamic"));
-                UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedItem->GetRootComponent());
-                if (RootPrim)
-                {
-                    FVector ImpulseDir = FVector(
-                        FMath::RandRange(-1.f, 1.f),
-                        FMath::RandRange(-1.f, 1.f),
-                        FMath::RandRange(0.5f, 1.5f)
-                    );
-                    ImpulseDir.Normalize();
-
-                    float ImpulseStrength = FMath::RandRange(300.0f, 500.0f);
-                    RootPrim->AddImpulse(ImpulseDir * ImpulseStrength, NAME_None, true);
-                }
-            }
-        }
-    }
-}
-
-void ACPP_BaseEnemy::SpawnCoins()
-{
-    if (!CharacterStats || !CharacterStats->CoinClass) return;
-
-    int32 DiffLevel = UCPP_ProgressionStatics::GetCurrentDifficultyLevel(this);
-    int32 TotalValue = UCPP_ProgressionStatics::CalculateDroppedCoins(CharacterStats->MinCoins, CharacterStats->MaxCoins, CharacterStats->CoinScalingFactor, DiffLevel);
-
-    if (TotalValue <= 0) return;
-
-    FVector SpawnLocation = GetActorLocation();
-    SpawnLocation.Z += 40.0f;
-
-    SpawnLocation.X += FMath::RandRange(-20.f, 20.f);
-    SpawnLocation.Y += FMath::RandRange(-20.f, 20.f);
-
-    FActorSpawnParameters Params;
-    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-    ACPP_Item_Currency* DroppedCoin = GetWorld()->SpawnActor<ACPP_Item_Currency>(
-        CharacterStats->CoinClass,
-        SpawnLocation,
-        FRotator::ZeroRotator,
-        Params
-        );
-
-    if (DroppedCoin)
-    {
-        DroppedCoin->Tags.Add(FName("Dynamic"));
-        DroppedCoin->SetValue(TotalValue);
-
-        UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedCoin->GetRootComponent());
-        if (RootPrim)
-        {
-            FVector Impulse = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), 1.0f);
-            RootPrim->AddImpulse(Impulse.GetSafeNormal() * 400.0f, NAME_None, true);
-        }
-    }
-}
-
-void ACPP_BaseEnemy::SpawnXP()
-{
-    if (!CharacterStats || !CharacterStats->XPItemClass) return;
-
-    int32 DiffLevel = UCPP_ProgressionStatics::GetCurrentDifficultyLevel(this);
-    int32 FinalXPAmount = UCPP_ProgressionStatics::CalculateDroppedXP(CharacterStats->MinXP, CharacterStats->MaxXP, CharacterStats->XPScalingFactor, DiffLevel);
-
-    if (FinalXPAmount <= 0) return;
-
-    FVector SpawnLocation = GetActorLocation();
-    SpawnLocation.Z += 50.0f;
-    SpawnLocation.X += FMath::RandRange(-30.f, 30.f);
-    SpawnLocation.Y += FMath::RandRange(-30.f, 30.f);
-
-    FActorSpawnParameters Params;
-    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-    ACPP_Item_XP* DroppedXP = GetWorld()->SpawnActor<ACPP_Item_XP>(
-        CharacterStats->XPItemClass,
-        SpawnLocation,
-        FRotator::ZeroRotator,
-        Params
-        );
-
-    if (DroppedXP)
-    {
-        DroppedXP->Tags.Add(FName("Dynamic"));
-        DroppedXP->SetValue(FinalXPAmount);
-
-        UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(DroppedXP->GetRootComponent());
-        if (RootPrim)
-        {
-            FVector Impulse = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), 1.5f);
-            RootPrim->AddImpulse(Impulse.GetSafeNormal() * 450.0f, NAME_None, true);
-        }
-    }
 }
 
 void ACPP_BaseEnemy::InitializeEnemyScaling()
