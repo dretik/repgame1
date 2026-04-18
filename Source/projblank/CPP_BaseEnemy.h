@@ -56,5 +56,5 @@ private:
         void OnPawnSeen(APawn* SeenPawn);
 
     virtual void BeginPlay() override;
-    virtual bool CanDealDamageTo(AActor* TargetActor) const override;
+    virtual bool CanDealDamageTo_Implementation(AActor* TargetActor) const override;
 };

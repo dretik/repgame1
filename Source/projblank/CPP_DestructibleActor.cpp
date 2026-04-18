@@ -15,6 +15,14 @@ ACPP_DestructibleActor::ACPP_DestructibleActor()
     MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
     RootComponent = MeshComp;
 
+    MeshComp->SetCollisionObjectType(ECC_WorldStatic);
+    MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+    MeshComp->SetCollisionResponseToAllChannels(ECR_Block);
+
+    MeshComp->SetGenerateOverlapEvents(true);
+    MeshComp->GetBodyInstance()->bNotifyRigidBodyCollision = true;
+
     AttributeComp = CreateDefaultSubobject<UCPP_AttributeComponent>(TEXT("AttributeComp"));
     VisualComp = CreateDefaultSubobject<UCPP_VisualComponent>(TEXT("VisualComp"));
 }

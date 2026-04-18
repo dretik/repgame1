@@ -4,6 +4,8 @@
 #include "CPP_CombatStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/Character.h"
+#include "Components/PrimitiveComponent.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_CombatInterface.h"
 #include "DrawDebugHelpers.h"
@@ -59,9 +61,11 @@ bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Ins
 
         // delegating interface checking if no interface present - damage can be dealt
         bool bCanDamage = true;
-        if (CombatInterfacer)
+        UObject* InterfaceObj = Instigator ? (UObject*)Instigator : (UObject*)DamageCauser;
+
+        if (InterfaceObj)
         {
-            bCanDamage = CombatInterfacer->CanDealDamageTo(HitActor);
+            bCanDamage = ICPP_CombatInterface::Execute_CanDealDamageTo(InterfaceObj, HitActor);
         }
 
         if (bCanDamage)
@@ -78,7 +82,7 @@ bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Ins
     return DamagedActors.Num() > 0;
 }
 
-bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instigator, FVector Origin, float Radius, float BaseDamage, bool bDrawDebug)
+bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instigator, FVector Origin, float Radius, float BaseDamage,float ImpulseStrength, bool bDrawDebug)
 {
     if (!DamageCauser) return false;
 
@@ -100,6 +104,8 @@ bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instiga
     TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
     ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
     ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+    ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
+    ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_PhysicsBody));
 
     bool bResult = UKismetSystemLibrary::SphereOverlapActors(
         World, Origin, Radius, ObjectTypes, AActor::StaticClass(), ActorsToIgnore, OverlappedActors
@@ -116,12 +122,25 @@ bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instiga
 
     for (AActor* Target : OverlappedActors)
     {
+        if (!Target) continue;
         bool bCanDamage = true;
-        if (CombatInterfacer)
+        UObject* InterfaceObj = nullptr;
+        if (Instigator && Instigator->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
         {
-            bCanDamage = CombatInterfacer->CanDealDamageTo(Target);
+            InterfaceObj = Instigator;
         }
-
+        else if (DamageCauser && DamageCauser->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
+        {
+            InterfaceObj = DamageCauser;
+        }
+        if (Instigator && Instigator->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
+        {
+            bCanDamage = ICPP_CombatInterface::Execute_CanDealDamageTo(Instigator, Target);
+        }
+        else if (DamageCauser && DamageCauser->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
+        {
+            bCanDamage = ICPP_CombatInterface::Execute_CanDealDamageTo(DamageCauser, Target);
+        }
         if (bCanDamage)
         {
             UGameplayStatics::ApplyDamage(
@@ -129,6 +148,24 @@ bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instiga
                 Instigator ? Instigator->GetInstigatorController() : nullptr,
                 DamageCauser, UDamageType::StaticClass()
             );
+
+            FVector ImpulseDir = Target->GetActorLocation() - Origin;
+            ImpulseDir.Normalize();
+            ImpulseDir.Z = 0.5f;
+
+            ACharacter* Character = Cast<ACharacter>(Target);
+            if (Character)
+            {
+                Character->LaunchCharacter(ImpulseDir * ImpulseStrength, true, true);
+            }
+            else
+            {
+                UPrimitiveComponent* RootComp = Cast<UPrimitiveComponent>(Target->GetRootComponent());
+                if (RootComp && RootComp->IsSimulatingPhysics())
+                {
+                    RootComp->AddImpulse(ImpulseDir * ImpulseStrength, NAME_None, true);
+                }
+            }
         }
     }
 

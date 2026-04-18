@@ -19,6 +19,9 @@
 #include "CPP_ActionComponent.h"
 #include "CPP_VisualComponent.h"
 #include "CPP_VisualStatics.h"
+#include "CPP_BaseEnemy.h"
+#include "CPP_DestructibleActor.h"
+#include "CPP_DamageableInterface.h"
 #include "Engine/Engine.h"
 
 ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializer)
@@ -241,9 +244,25 @@ void ACPP_BaseCharacter::DestroyCharacter()
     Destroy();
 }
 
-bool ACPP_BaseCharacter::CanDealDamageTo(AActor* TargetActor) const
+bool ACPP_BaseCharacter::CanDealDamageTo_Implementation(AActor* TargetActor) const
 {
-    if (TargetActor == this) return false; 
+    if (!TargetActor || TargetActor == this) return false;
+
+    // if target has Damageable interface
+    if (TargetActor->GetClass()->ImplementsInterface(UCPP_DamageableInterface::StaticClass()))
+    {
+        return true;
+    }
+
+    //friendlyfire
+    bool bTargetIsEnemy = TargetActor->IsA(ACPP_BaseEnemy::StaticClass());
+    bool bIAmEnemy = this->IsA(ACPP_BaseEnemy::StaticClass());
+
+    if (bIAmEnemy && bTargetIsEnemy)
+    {
+        return false;
+    }
+
     return true;
 }
 

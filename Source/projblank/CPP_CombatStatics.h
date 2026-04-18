@@ -35,6 +35,7 @@ public:
             FVector Origin,
             float Radius,
             float BaseDamage,
+            float ImpulseStrength=500.f,
             bool bDrawDebug = false);
 
     static bool ExecuteHealing(AActor* Instigator, AActor* Target, float HealAmount, bool bIsPercentage);

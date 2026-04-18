@@ -20,6 +20,8 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, NewHealth, float, MaxHealth);
 
 class UPaperFlipbook;
+class ACPP_DestructibleActor;
+class ACPP_BaseEnemy;
 
 USTRUCT(BlueprintType)
 struct FStatModifier
@@ -51,7 +53,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Events")
         FOnHealthChangedSignature OnHealthChanged;
 
-    virtual bool CanDealDamageTo(AActor* TargetActor) const override;
+    virtual bool CanDealDamageTo_Implementation(AActor* TargetActor) const override;
 
     UFUNCTION(BlueprintCallable, Category = "SaveSystem")
         float GetCurrentHealth() const;

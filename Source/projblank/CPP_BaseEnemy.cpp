@@ -92,9 +92,9 @@ void ACPP_BaseEnemy::AttackPlayer()
     ActionComp->StartActionByName(this, AttackTag);
 }
 
-bool ACPP_BaseEnemy::CanDealDamageTo(AActor* TargetActor) const
+bool ACPP_BaseEnemy::CanDealDamageTo_Implementation(AActor* TargetActor) const
 {
-    if (!Super::CanDealDamageTo(TargetActor))
+    if (!Super::CanDealDamageTo_Implementation(TargetActor))
     {
         return false;
     }

@@ -1,5 +1,6 @@
 #include "CPP_Action_BossSkyfall.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/Actor.h"
 #include "Kismet/GameplayStatics.h"
 #include "CPP_Projectile.h"
 #include "CPP_BaseEnemy.h"
@@ -132,7 +133,6 @@ void UCPP_Action_BossSkyfall::SpawnMeteor(AActor* Instigator)
 		ACPP_Projectile* Meteor = Cast<ACPP_Projectile>(SpawnedActor);
 		if (Meteor)
 		{
-
 			Meteor->SetDamage(DamagePerMeteor);
 		}
 

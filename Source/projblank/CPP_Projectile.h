@@ -51,6 +51,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
         float ExplosionRadius = 80.0f;
 
+    UPROPERTY(EditAnywhere, Category = "Combat")
+        float ImpulseStrength = 800.0f;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visuals")
         UNiagaraSystem* ExplosionEffect;
 
@@ -60,6 +63,11 @@ protected:
 
     UFUNCTION()
         void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+    UFUNCTION()
+        void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+            int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    UFUNCTION()
+        void Explode(AActor* Target);
 
     void DestroyProjectile();
 

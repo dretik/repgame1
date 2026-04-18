@@ -22,5 +22,6 @@ class PROJBLANK_API ICPP_CombatInterface
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual bool CanDealDamageTo(AActor* TargetActor) const = 0;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Combat")
+		bool CanDealDamageTo(AActor* TargetActor) const;
 };

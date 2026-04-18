@@ -20,6 +20,16 @@ ACPP_Projectile::ACPP_Projectile()
     CollisionComp->SetSphereRadius(10.0f);
     CollisionComp->SetCollisionProfileName("Projectile"); // or blockalldynamics
 
+    CollisionComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    CollisionComp->SetCollisionObjectType(ECC_WorldDynamic);
+    CollisionComp->SetCollisionResponseToAllChannels(ECR_Block);
+    CollisionComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+    CollisionComp->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+    CollisionComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+    CollisionComp->bTraceComplexOnMove = true;
+    CollisionComp->BodyInstance.bUseCCD = true;
+
     //sprite
     ProjectileSprite = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("ProjectileSprite"));
     ProjectileSprite->SetupAttachment(RootComponent);
@@ -39,6 +49,7 @@ void ACPP_Projectile::BeginPlay()
     Super::BeginPlay();
 
     CollisionComp->OnComponentHit.AddDynamic(this, &ACPP_Projectile::OnHit);
+    CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &ACPP_Projectile::OnOverlap);
 
     if (GetOwner())
     {
@@ -74,87 +85,52 @@ void ACPP_Projectile::SwitchToFlyLoop()
 
 void ACPP_Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-    if (bHasExploded) return;
+    //if hit the wall (block) otheractor will be null or worldstatic - no checks needed
+    Explode(OtherActor);
+}
 
-    if ((OtherActor != nullptr) && (OtherActor != this) && (OtherActor != GetOwner()))
+void ACPP_Projectile::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+    if (bHasExploded || !OtherActor || OtherActor == GetOwner()) return;
+
+    bool bCanDamage = false;
+    AActor* MyOwner = GetOwner();
+
+    if (MyOwner && MyOwner->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
     {
-        bHasExploded = true;
-
-        MovementComp->StopMovementImmediately();
-        CollisionComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-        float DestroyDelay = 0.1f;
-        if (HitAnim)
-        {
-            ProjectileSprite->SetLooping(false);
-            ProjectileSprite->SetFlipbook(HitAnim);
-            ProjectileSprite->PlayFromStart();
-            DestroyDelay = HitAnim->GetTotalDuration();
-        }
-
-        TArray<AActor*> OverlappedActors;
-        TArray<AActor*> ActorsToIgnore;
-        ActorsToIgnore.Add(this);
-        if (GetOwner()) ActorsToIgnore.Add(GetOwner());
-
-        TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-        ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
-        ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
-
-        if (ExplosionEffect)
-        {
-            UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
-        }
-
-        bool bResult = UKismetSystemLibrary::SphereOverlapActors(
-            GetWorld(),
-            GetActorLocation(),
-            ExplosionRadius,
-            ObjectTypes,
-            AActor::StaticClass(),
-            ActorsToIgnore,
-            OverlappedActors
-        );
-
-        if (GEngine) DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadius, 12, FColor::Orange, false, 2.0f);
-        
-        //if (bResult)
-        //{
-        //    ACPP_BaseCharacter* OwnerChar = Cast<ACPP_BaseCharacter>(GetOwner());
-
-        //    for (AActor* Target : OverlappedActors)
-        //    {
-        //        bool bCanDamage = true;
-        //        if (OwnerChar)
-        //        {
-        //            bCanDamage = OwnerChar->CanDealDamageTo(Target);
-        //        }
-
-        //        if (bCanDamage)
-        //        {
-        //            UGameplayStatics::ApplyDamage(
-        //                Target,
-        //                Damage,
-        //                GetInstigatorController(),
-        //                this, // damage dealt
-        //                UDamageType::StaticClass()
-        //            );
-        //        }
-        //    }
-        //}
-
-        UCPP_CombatStatics::ExecuteAreaDamage(
-            this,       //causer
-            GetOwner(),
-            GetActorLocation(),
-            ExplosionRadius,
-            Damage,
-            true // bDrawDebug
-        );
-
-        FTimerHandle TimerHandle;
-        GetWorldTimerManager().SetTimer(TimerHandle, this, &ACPP_Projectile::DestroyProjectile, DestroyDelay, false);
+        bCanDamage = ICPP_CombatInterface::Execute_CanDealDamageTo(MyOwner, OtherActor);
     }
+
+    if (bCanDamage)
+    {
+        //if its an enemy
+        Explode(OtherActor);
+    }
+}
+
+void ACPP_Projectile::Explode(AActor* Target)
+{
+    if (bHasExploded) return;
+    bHasExploded = true;
+
+    MovementComp->StopMovementImmediately();
+    CollisionComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    if (HitAnim) {
+        ProjectileSprite->SetLooping(false);
+        ProjectileSprite->SetFlipbook(HitAnim);
+        ProjectileSprite->PlayFromStart();
+    }
+    if (ExplosionEffect) {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
+    }
+
+    UCPP_CombatStatics::ExecuteAreaDamage(
+        this, GetOwner(), GetActorLocation(), ExplosionRadius, Damage, ImpulseStrength, true
+    );
+    FTimerHandle TimerHandle_Destroy;
+    float DestroyDelay = HitAnim ? HitAnim->GetTotalDuration() : 0.1f;
+    GetWorldTimerManager().SetTimer(TimerHandle_Destroy, this, &ACPP_Projectile::DestroyProjectile, DestroyDelay, false);
 }
 
 void ACPP_Projectile::DestroyProjectile()
