@@ -5,6 +5,7 @@
 #include "CPP_BaseCharacter.h"
 #include "CPP_BaseEnemy.h"
 #include "CPP_AttributeComponent.h"
+#include "CPP_VisualComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "CPP_CombatStatics.h"
 #include "NiagaraSystem.h"
@@ -23,6 +24,26 @@ void UCPP_Action_BossMelee::StartAction_Implementation(AActor* Instigator)
 
 	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
 	if (!Char) return;
+
+	if (!Char->IsPlayerControlled())
+	{
+		APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		UCPP_VisualComponent* VisualComp = Char->FindComponentByClass<UCPP_VisualComponent>();
+
+		if (PlayerPawn && VisualComp)
+		{
+			VisualComp->FaceLocation(PlayerPawn->GetActorLocation(), Char->GetBaseSpriteScale());
+			VisualComp->LockFlipping(Duration);
+		}
+	}
+	else
+	{
+		UCPP_VisualComponent* VisualComp = Char->FindComponentByClass<UCPP_VisualComponent>();
+		if (VisualComp)
+		{
+			VisualComp->LockFlipping(Duration);
+		}
+	}
 
 	if (AttackAnim)
 	{

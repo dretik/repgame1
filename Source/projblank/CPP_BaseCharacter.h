@@ -73,6 +73,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "State")
         bool GetIsAttacking() const;
 
+    UFUNCTION(BlueprintCallable, Category = "Appearance")
+        float GetBaseSpriteScale() const { return BaseSpriteScale; }
     //attack trace box 
     //is now from (combat interface)
 

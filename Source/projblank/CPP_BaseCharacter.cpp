@@ -191,6 +191,8 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 
     if (bApplied && ActualDamage > 0.0f && VisualComp)
     {
+        VisualComp->FaceLocation(DamageCauser->GetActorLocation(), BaseSpriteScale);
+        VisualComp->LockFlipping(0.5f);
         VisualComp->HandleDamageReceived(ActualDamage, DamageTextClass, CharacterStats ? CharacterStats->HitEffect : nullptr);
     }
 

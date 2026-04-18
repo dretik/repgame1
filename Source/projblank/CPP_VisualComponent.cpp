@@ -64,19 +64,47 @@ void UCPP_VisualComponent::HandleDamageReceived(float DamageAmount, TSubclassOf<
 
 void UCPP_VisualComponent::UpdateSpriteFacing(FVector Velocity, float BaseScale)
 {
-    if (!MeshComp || Velocity.SizeSquared() < 0.01f) return;
+    if (bFlippingLocked || !MeshComp || Velocity.SizeSquared() < 0.1f) return;
 
-    FVector NewScale = MeshComp->GetRelativeScale3D();
-    if (Velocity.Y > 0.1f) {
-        NewScale.X = BaseScale;
-    }
-    else if (Velocity.Y < -0.1f) {
-        NewScale.X = -BaseScale;
-    }
-    MeshComp->SetRelativeScale3D(NewScale);
+    float DesiredWorldDirY = (Velocity.Y > 0) ? 1.0f : -1.0f;
+
+    ApplyFlipping(DesiredWorldDirY, BaseScale);
 }
 
 void UCPP_VisualComponent::HandleDeath(UNiagaraSystem* DeathFX)
 {
     UCPP_VisualStatics::SpawnNiagaraEffect(GetOwner(), DeathFX, GetOwner()->GetActorLocation());
+}
+
+void UCPP_VisualComponent::LockFlipping(float Duration)
+{
+    bFlippingLocked = true;
+
+    GetWorld()->GetTimerManager().SetTimer(TimerHandle_FlipLock, this, &UCPP_VisualComponent::UnlockFlipping, Duration, false);
+}
+
+void UCPP_VisualComponent::FaceLocation(FVector TargetLocation, float BaseScale)
+{
+    if (!MeshComp) return;
+
+    FVector OwnerLoc = GetOwner()->GetActorLocation();
+
+    float DesiredWorldDirY = (TargetLocation.Y > OwnerLoc.Y) ? 1.0f : -1.0f;
+
+    ApplyFlipping(DesiredWorldDirY, BaseScale);
+}
+
+void UCPP_VisualComponent::ApplyFlipping(float DesiredWorldDirY, float BaseScale)
+{
+    AActor* Owner = GetOwner();
+    FVector NewScale = MeshComp->GetRelativeScale3D();
+
+    float ActorForwardX = (Owner->GetActorForwardVector().X >= 0) ? 1.0f : -1.0f;
+
+    float InversionMult = bInvertVisualFlipping ? -1.0f : 1.0f;
+
+    float FinalScaleX = DesiredWorldDirY * ActorForwardX * FMath::Abs(BaseScale) * InversionMult;
+
+    NewScale.X = FinalScaleX;
+    MeshComp->SetRelativeScale3D(NewScale);
 }

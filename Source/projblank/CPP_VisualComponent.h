@@ -25,6 +25,14 @@ public:
     void HandleDeath(UNiagaraSystem* DeathFX);
 
     void UpdateSpriteFacing(FVector Velocity, float BaseScale);
+
+    UFUNCTION(BlueprintCallable, Category = "Visuals")
+        void LockFlipping(float Duration);
+
+    void FaceLocation(FVector TargetLocation, float BaseScale);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visuals")
+        bool bInvertVisualFlipping = false;
 protected:
     UPROPERTY()
         class UMeshComponent* MeshComp;
@@ -37,4 +45,10 @@ protected:
     void OnFlashTimerExpired();
 
     virtual void BeginPlay() override;
+
+    bool bFlippingLocked = false;
+    FTimerHandle TimerHandle_FlipLock;
+
+    void UnlockFlipping() { bFlippingLocked = false; }
+    void ApplyFlipping(float DesiredWorldDirY, float BaseScale);
 };
