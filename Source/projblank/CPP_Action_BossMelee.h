@@ -32,6 +32,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 		float ActionDamageMultiplier = 1.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+		float HitImpulseStrength = 800.0f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Combat | Movement")
 		float DashImpulse = 0.0f;
 

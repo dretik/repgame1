@@ -101,6 +101,7 @@ void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 		AttackRange,
 		AttackBoxSize,
 		DamageToApply,
+		HitImpulseStrength,
 		true                    // bDrawDebug (could be in UPROPERTY)
 	);
 }

@@ -26,6 +26,7 @@ public:
             float Range,
             FVector BoxSize,
             float BaseDamage,
+            float ImpulseStrength = 500.f,
             bool bDrawDebug = false);
 
     UFUNCTION(BlueprintCallable, Category = "Combat|Statics")

@@ -10,7 +10,7 @@
 #include "CPP_CombatInterface.h"
 #include "DrawDebugHelpers.h"
 
-bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Instigator, FVector Origin, FVector AttackDirection, float Range, FVector BoxSize, float BaseDamage, bool bDrawDebug)
+bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Instigator, FVector Origin, FVector AttackDirection, float Range, FVector BoxSize, float BaseDamage, float ImpulseStrength, bool bDrawDebug)
 {
     if (!DamageCauser) return false;
 
@@ -76,6 +76,24 @@ bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Ins
                 Instigator ? Instigator->GetInstigatorController() : nullptr,
                 DamageCauser, UDamageType::StaticClass()
             );
+            //impulse
+            if (ImpulseStrength > 0.0f)
+            {
+                FVector ImpulseDir = AttackDirection.GetSafeNormal();
+                ImpulseDir.Z = 0.4f;
+
+                if (ACharacter* TargetChar = Cast<ACharacter>(HitActor))
+                {
+                    TargetChar->LaunchCharacter(ImpulseDir * ImpulseStrength, true, true);
+                }
+                else if (UPrimitiveComponent* RootComp = Cast<UPrimitiveComponent>(HitActor->GetRootComponent()))
+                {
+                    if (RootComp->IsSimulatingPhysics())
+                    {
+                        RootComp->AddImpulse(ImpulseDir * ImpulseStrength, NAME_None, true);
+                    }
+                }
+            }
         }
     }
 
