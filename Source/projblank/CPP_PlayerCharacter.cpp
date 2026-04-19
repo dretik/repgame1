@@ -361,9 +361,9 @@ void ACPP_PlayerCharacter::ExecuteMeleeAttack()
     case 2:
         SelectedTag = FGameplayTag::RequestGameplayTag("Ability.Player.Melee.HeavyAttack");
 
-        if (GetCharacterMovement() && CharacterStats)
+        if (CharacterStats && AttributeComp)
         {
-            GetCharacterMovement()->MaxWalkSpeed = CharacterStats->HeavyAttackWalkSpeed;
+            AttributeComp->SetBaseSpeed(CharacterStats->HeavyAttackWalkSpeed);
         }
         break;
     default:
@@ -402,9 +402,9 @@ void ACPP_PlayerCharacter::OnAttackActionStopped(UCPP_Action* Action)
         Action->OnActionStopped.RemoveDynamic(this, &ACPP_PlayerCharacter::OnAttackActionStopped);
     }
 
-    if (CharacterStats && GetCharacterMovement())
+    if (CharacterStats && AttributeComp)
     {
-        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
+        AttributeComp->SetBaseSpeed(CharacterStats->MaxWalkSpeed);
     }
 
     if (bInputBuffered)
@@ -430,9 +430,9 @@ void ACPP_PlayerCharacter::ResetCombo()
     ComboCounter = 0;
     bInputBuffered = false;
 
-    if (CharacterStats && GetCharacterMovement())
+    if (CharacterStats && AttributeComp)
     {
-        GetCharacterMovement()->MaxWalkSpeed = CharacterStats->MaxWalkSpeed;
+        AttributeComp->SetBaseSpeed(CharacterStats->MaxWalkSpeed);
     }
 
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, TEXT("Combo Reset"));

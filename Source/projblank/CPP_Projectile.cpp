@@ -10,6 +10,7 @@
 #include "CPP_BaseCharacter.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h" 
+#include "CPP_Action_Effect.h"
 #include "CPP_CombatStatics.h"
 
 ACPP_Projectile::ACPP_Projectile()
@@ -126,7 +127,8 @@ void ACPP_Projectile::Explode(AActor* Target)
     }
 
     UCPP_CombatStatics::ExecuteAreaDamage(
-        this, GetOwner(), GetActorLocation(), ExplosionRadius, Damage, ImpulseStrength, true
+        this, GetOwner(), GetActorLocation(), ExplosionRadius, Damage,
+        StatusEffects, ImpulseStrength, true
     );
     FTimerHandle TimerHandle_Destroy;
     float DestroyDelay = HitAnim ? HitAnim->GetTotalDuration() : 0.1f;

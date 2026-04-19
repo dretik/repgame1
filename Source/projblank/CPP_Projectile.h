@@ -11,6 +11,7 @@ class USphereComponent;
 class UProjectileMovementComponent;
 class UPaperFlipbook;
 class UNiagaraSystem;
+class UCPP_Action_Effect;
 
 UCLASS()
 class PROJBLANK_API ACPP_Projectile : public AActor
@@ -22,6 +23,9 @@ public:
 	ACPP_Projectile();
 
     void SetDamage(float NewDamage) { Damage = NewDamage; }
+
+    void SetPersistentEffects(TArray<TSubclassOf<UCPP_Action_Effect>> NewEffects) 
+    { StatusEffects = NewEffects; }
 
 protected:
     //components
@@ -57,6 +61,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visuals")
         UNiagaraSystem* ExplosionEffect;
 
+    UPROPERTY(EditAnywhere, Category = "Combat")
+        TArray<TSubclassOf<UCPP_Action_Effect>> StatusEffects;
+
     virtual void BeginPlay() override;
 
     void SwitchToFlyLoop();
@@ -72,7 +79,4 @@ protected:
     void DestroyProjectile();
 
     bool bHasExploded = false;
-
-public:	
-
 };

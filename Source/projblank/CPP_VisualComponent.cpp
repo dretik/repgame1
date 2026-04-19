@@ -19,6 +19,27 @@ void UCPP_VisualComponent::BeginPlay()
     if (Owner)
     {
         MeshComp = Owner->FindComponentByClass<UMeshComponent>();
+
+        if (MeshComp)
+        {
+            DynamicMaterial = MeshComp->CreateDynamicMaterialInstance(0);
+
+            ResetMaterialParameters();
+        }
+    }
+}
+
+void UCPP_VisualComponent::ResetMaterialParameters()
+{
+    if (DynamicMaterial)
+    {
+        DynamicMaterial->SetScalarParameterValue("FlashAmount", 0.0f);
+        DynamicMaterial->SetScalarParameterValue("StatusIntensity", 0.0f);
+
+        DynamicMaterial->SetScalarParameterValue("EmissiveBoost", 1.0f);
+
+        DynamicMaterial->SetVectorParameterValue("FlashColor", FLinearColor::White);
+        DynamicMaterial->SetVectorParameterValue("StatusColor", FLinearColor::Black);
     }
 }
 
@@ -37,7 +58,7 @@ void UCPP_VisualComponent::PlayHitFlash(float Duration, FLinearColor FlashColor)
         // material must contain "FlashAmount" and "FlashColor"
         DynamicMaterial->SetScalarParameterValue("FlashAmount", 1.0f);
         DynamicMaterial->SetVectorParameterValue("FlashColor", FlashColor);
-
+        DynamicMaterial->SetScalarParameterValue("EmissiveBoost", 2.0f);
         GetWorld()->GetTimerManager().SetTimer(TimerHandle_Flash, this, &UCPP_VisualComponent::OnFlashTimerExpired, Duration, false);
     }
 }
@@ -47,6 +68,7 @@ void UCPP_VisualComponent::OnFlashTimerExpired()
     if (DynamicMaterial)
     {
         DynamicMaterial->SetScalarParameterValue("FlashAmount", 0.0f);
+        DynamicMaterial->SetScalarParameterValue("EmissiveBoost", 1.0f);
     }
 }
 
@@ -107,4 +129,26 @@ void UCPP_VisualComponent::ApplyFlipping(float DesiredWorldDirY, float BaseScale
 
     NewScale.X = FinalScaleX;
     MeshComp->SetRelativeScale3D(NewScale);
+}
+
+void UCPP_VisualComponent::SetStatusOverlay(FLinearColor OverlayColor, float Intensity, float EmissiveBoost)
+{
+    if (!MeshComp) return;
+    if (!DynamicMaterial) DynamicMaterial = MeshComp->CreateDynamicMaterialInstance(0);
+
+    if (DynamicMaterial)
+    {
+        DynamicMaterial->SetVectorParameterValue("StatusColor", OverlayColor);
+        DynamicMaterial->SetScalarParameterValue("StatusIntensity", Intensity);
+        DynamicMaterial->SetScalarParameterValue("EmissiveBoost", EmissiveBoost);
+        UE_LOG(LogTemp, Warning, TEXT("Status Applied: %s with Intensity %f"), *OverlayColor.ToString(), Intensity);
+    }
+}
+
+void UCPP_VisualComponent::ClearStatusOverlay()
+{
+    if (DynamicMaterial)
+    {
+        DynamicMaterial->SetScalarParameterValue("StatusIntensity", 0.0f);
+    }
 }

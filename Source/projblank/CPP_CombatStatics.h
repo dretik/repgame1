@@ -6,9 +6,8 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "CPP_CombatStatics.generated.h"
 
-/**
- * 
- */
+class UCPP_Action_Effect;
+
 UCLASS()
 class PROJBLANK_API UCPP_CombatStatics : public UBlueprintFunctionLibrary
 {
@@ -26,8 +25,10 @@ public:
             float Range,
             FVector BoxSize,
             float BaseDamage,
-            float ImpulseStrength = 500.f,
-            bool bDrawDebug = false);
+            const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply,
+            float ImpulseStrength = 500.0f,
+            bool bDrawDebug = false
+        );
 
     UFUNCTION(BlueprintCallable, Category = "Combat|Statics")
         static bool ExecuteAreaDamage(
@@ -36,8 +37,10 @@ public:
             FVector Origin,
             float Radius,
             float BaseDamage,
-            float ImpulseStrength=500.f,
-            bool bDrawDebug = false);
+            const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply,
+            float ImpulseStrength= 500.0f,
+            bool bDrawDebug = false
+        );
 
     static bool ExecuteHealing(AActor* Instigator, AActor* Target, float HealAmount, bool bIsPercentage);
 };

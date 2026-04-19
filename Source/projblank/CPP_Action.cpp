@@ -75,7 +75,6 @@ void UCPP_Action::StartAction_Implementation(AActor* Instigator)
 
 	if (Duration > 0.0f)
 	{
-		FTimerHandle TimerHandle_AutoStop;
 		FTimerDelegate StopDel;
 		StopDel.BindUFunction(this, "StopAction", Instigator);
 
@@ -87,6 +86,10 @@ void UCPP_Action::StopAction_Implementation(AActor* Instigator)
 {
 	// Log: Action Stopped
 	// if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::White, FString::Printf(TEXT("Action Stopped: %s"), *GetName()));
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_AutoStop);
+	}
 
 	UCPP_ActionComponent* Comp = GetOwningComponent();
 	if (Comp)
@@ -100,6 +103,21 @@ void UCPP_Action::StopAction_Implementation(AActor* Instigator)
 	if (OnActionStopped.IsBound())
 	{
 		OnActionStopped.Broadcast(this);
+	}
+}
+
+void UCPP_Action::RefreshAction_Implementation(AActor* Instigator)
+{
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("Action Refreshed: %s"), *GetName()));
+
+	TimeStarted = GetWorld()->GetTimeSeconds();
+
+	if (Duration > 0.0f)
+	{
+		FTimerDelegate StopDel;
+		StopDel.BindUFunction(this, "StopAction", Instigator);
+
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_AutoStop, StopDel, Duration, false);
 	}
 }
 

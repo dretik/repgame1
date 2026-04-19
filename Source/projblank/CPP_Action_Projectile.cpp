@@ -103,6 +103,7 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 
 		Proj->SetDamage(TotalDmg);
         Proj->SetActorScale3D(FVector(CurrentConfig.ProjectileScale));
+		Proj->SetPersistentEffects(CurrentConfig.ImpactEffects);
 	}
 
 	StopAction(InstigatorCharacter);

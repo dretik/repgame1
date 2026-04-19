@@ -82,6 +82,12 @@ public:
     virtual void OnSaveGame_Implementation(UCPP_SaveGame* SaveObject);
     virtual void OnLoadGame_Implementation(UCPP_SaveGame* SaveObject);
 
+    //UFUNCTION(BlueprintCallable, Category = "Movement")
+    //    void RecalculateActualSpeed();
+    //void SetActionSpeedOverride(float NewSpeedOverride);
+    //void RegisterSpeedMultiplier(UObject* Source, float Multiplier);
+    //void UnregisterSpeedMultiplier(UObject* Source);
+
 protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
@@ -164,6 +170,9 @@ protected:
         TSubclassOf<class ACPP_DamageTextActor> DamageTextClass;
 
 	//movement
+    float CurrentActionSpeedBase;
+    UPROPERTY()
+        TMap<UObject*, float> ActiveSpeedMultipliers;
 
     void SwitchToDeadStatic();
     void DestroyCharacter();

@@ -164,6 +164,7 @@ void ACPP_BaseCharacter::BeginPlay()
             GetCharacterMovement()->GravityScale = CharacterStats->GravityScale;
             GetCharacterMovement()->AirControl = CharacterStats->AirControl;
         }
+        CurrentActionSpeedBase = CharacterStats ? CharacterStats->MaxWalkSpeed : 450.0f;
     }
     else {
         if (AttributeComp)

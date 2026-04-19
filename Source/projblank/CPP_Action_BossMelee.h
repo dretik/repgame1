@@ -7,6 +7,7 @@
 #include "CPP_Action_BossMelee.generated.h"
 
 class UPaperFlipbook;
+class UCPP_Action_Effect;
 
 UCLASS()
 class PROJBLANK_API UCPP_Action_BossMelee : public UCPP_Action
@@ -34,6 +35,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 		float HitImpulseStrength = 800.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+		TArray<TSubclassOf<UCPP_Action_Effect>> StatusEffects;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat | Movement")
 		float DashImpulse = 0.0f;

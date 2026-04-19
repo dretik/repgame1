@@ -49,6 +49,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 		void SetActionLevel(FGameplayTag ActionTag, int32 NewLevel);
 
+	UFUNCTION(BlueprintCallable, Category = "Actions|Effects")
+		void ApplyStatusEffect(TSubclassOf<UCPP_Action> ActionClass, AActor* Instigator);
+
 	const TMap<FGameplayTag, int32>& GetAllActionLevels() const { return ActionLevels; }
 
 	void RestoreActionLevels(const TMap<FGameplayTag, int32>& LoadedLevels);

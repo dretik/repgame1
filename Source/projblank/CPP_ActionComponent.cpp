@@ -176,3 +176,36 @@ void UCPP_ActionComponent::RestoreActionLevels(const TMap<FGameplayTag, int32>& 
 		}
 	}
 }
+
+void UCPP_ActionComponent::ApplyStatusEffect(TSubclassOf<UCPP_Action> ActionClass, AActor* Instigator)
+{
+	if (!ActionClass) return;
+
+	UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
+	if (!DefaultObj) return;
+
+	UCPP_Action* ExistingAction = GetAction(DefaultObj->ActionTag);
+
+	if (ExistingAction)
+	{
+		if (ExistingAction->IsRunning())
+		{
+			ExistingAction->RefreshAction(Instigator);
+		}
+		else
+		{
+			ExistingAction->StartAction(Instigator);
+		}
+		return;
+	}
+
+	UCPP_Action* NewAction = NewObject<UCPP_Action>(this, ActionClass);
+	if (NewAction)
+	{
+		Actions.Add(NewAction);
+		if (NewAction->CanStart(Instigator))
+		{
+			NewAction->StartAction(Instigator);
+		}
+	}
+}

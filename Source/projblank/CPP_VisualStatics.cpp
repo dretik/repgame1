@@ -4,6 +4,7 @@
 #include "CPP_VisualStatics.h"
 #include "CPP_VisualTextInterface.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 void UCPP_VisualStatics::SpawnNiagaraEffect(const UObject* WorldContextObject, UNiagaraSystem* System, FVector Location, FRotator Rotation, FVector Scale)
 {
@@ -17,6 +18,21 @@ void UCPP_VisualStatics::SpawnNiagaraEffect(const UObject* WorldContextObject, U
         Scale,
         true, // Auto Destroy
         true  // Auto Activate
+    );
+}
+
+UNiagaraComponent* UCPP_VisualStatics::SpawnNiagaraEffectAttached(USceneComponent* AttachToComponent, UNiagaraSystem* System, FName SocketName, FVector RelativeLocation)
+{
+    if (!System || !AttachToComponent) return nullptr;
+
+    return UNiagaraFunctionLibrary::SpawnSystemAttached(
+        System,
+        AttachToComponent,
+        SocketName,
+        RelativeLocation,
+        FRotator::ZeroRotator,
+        EAttachLocation::KeepRelativeOffset,
+        true // Auto Destroy
     );
 }
 

@@ -6,6 +6,8 @@
 #include "CPP_BaseEnemy.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_VisualComponent.h"
+#include "CPP_VisualStatics.h"
+#include "CPP_Action_Effect.h"
 #include "PaperFlipbookComponent.h"
 #include "CPP_CombatStatics.h"
 #include "NiagaraSystem.h"
@@ -122,8 +124,9 @@ void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 		AttackRange,
 		AttackBoxSize,
 		DamageToApply,
+		StatusEffects,
 		HitImpulseStrength,
-		true                    // bDrawDebug (could be in UPROPERTY)
+		true                   // bDrawDebug (could be in UPROPERTY)
 	);
 }
 

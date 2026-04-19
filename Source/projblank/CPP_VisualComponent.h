@@ -20,6 +20,15 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Visuals")
         void PlayHitFlash(float Duration = 0.15f, FLinearColor FlashColor = FLinearColor::White);
     
+    //constant color overlay for statuses
+    UFUNCTION(BlueprintCallable, Category = "Visuals")
+        void SetStatusOverlay(FLinearColor OverlayColor, float Intensity,float EmissiveBoost);
+    UFUNCTION(BlueprintCallable, Category = "Visuals")
+        void ClearStatusOverlay();
+    // getter for mesh to attach effects
+    UFUNCTION(BlueprintCallable, Category = "Visuals")
+        UMeshComponent* GetMesh() const { return MeshComp; }
+
     void HandleDamageReceived(float DamageAmount, TSubclassOf<AActor> TextClass, UNiagaraSystem* HitFX);
 
     void HandleDeath(UNiagaraSystem* DeathFX);
@@ -45,6 +54,8 @@ protected:
     void OnFlashTimerExpired();
 
     virtual void BeginPlay() override;
+
+    void ResetMaterialParameters();
 
     bool bFlippingLocked = false;
     FTimerHandle TimerHandle_FlipLock;

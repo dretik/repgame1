@@ -1,4 +1,6 @@
 #include "CPP_AttributeComponent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UCPP_AttributeComponent::UCPP_AttributeComponent()
 {
@@ -56,4 +58,42 @@ bool UCPP_AttributeComponent::ApplyHealthChange(AActor* InstigatorActor, float D
 	}
 
 	return true;
+}
+
+void UCPP_AttributeComponent::SetBaseSpeed(float NewBase)
+{
+	BaseSpeed = NewBase;
+	UpdateActualMovementSpeed();
+}
+
+void UCPP_AttributeComponent::AddSpeedMultiplier(UObject* Source, float Multiplier)
+{
+	if (Source)
+	{
+		SpeedMultipliers.Add(Source, Multiplier);
+		UpdateActualMovementSpeed();
+	}
+}
+
+void UCPP_AttributeComponent::RemoveSpeedMultiplier(UObject* Source)
+{
+	if (Source)
+	{
+		SpeedMultipliers.Remove(Source);
+		UpdateActualMovementSpeed();
+	}
+}
+
+void UCPP_AttributeComponent::UpdateActualMovementSpeed()
+{
+	ACharacter* OwnerChar = Cast<ACharacter>(GetOwner());
+	if (OwnerChar && OwnerChar->GetCharacterMovement())
+	{
+		float FinalSpeed = BaseSpeed;
+		for (auto& It : SpeedMultipliers)
+		{
+			FinalSpeed *= It.Value;
+		}
+		OwnerChar->GetCharacterMovement()->MaxWalkSpeed = FinalSpeed;
+	}
 }

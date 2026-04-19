@@ -8,9 +8,15 @@
 #include "Components/PrimitiveComponent.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_CombatInterface.h"
+#include "CPP_ActionComponent.h"
+#include "CPP_Action_Effect.h"
 #include "DrawDebugHelpers.h"
 
-bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Instigator, FVector Origin, FVector AttackDirection, float Range, FVector BoxSize, float BaseDamage, float ImpulseStrength, bool bDrawDebug)
+bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Instigator, 
+    FVector Origin, FVector AttackDirection, 
+    float Range, FVector BoxSize, float BaseDamage, 
+    const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply,
+    float ImpulseStrength, bool bDrawDebug)
 {
     if (!DamageCauser) return false;
 
@@ -76,6 +82,19 @@ bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Ins
                 Instigator ? Instigator->GetInstigatorController() : nullptr,
                 DamageCauser, UDamageType::StaticClass()
             );
+            //status effects
+            if (EffectsToApply.Num() > 0)
+            {
+                UCPP_ActionComponent* ActionComp = HitActor->FindComponentByClass<UCPP_ActionComponent>();
+                if (ActionComp)
+                {
+                    for (TSubclassOf<UCPP_Action_Effect> EffectClass : EffectsToApply)
+                    {
+                        ActionComp->ApplyStatusEffect(EffectClass, Instigator);
+                    }
+                }
+            }
+
             //impulse
             if (ImpulseStrength > 0.0f)
             {
@@ -100,7 +119,10 @@ bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Ins
     return DamagedActors.Num() > 0;
 }
 
-bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instigator, FVector Origin, float Radius, float BaseDamage,float ImpulseStrength, bool bDrawDebug)
+bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instigator, 
+    FVector Origin, float Radius, float BaseDamage, 
+    const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply,
+    float ImpulseStrength, bool bDrawDebug)
 {
     if (!DamageCauser) return false;
 
@@ -166,7 +188,19 @@ bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instiga
                 Instigator ? Instigator->GetInstigatorController() : nullptr,
                 DamageCauser, UDamageType::StaticClass()
             );
-
+            //status effects
+            if (EffectsToApply.Num() > 0)
+            {
+                UCPP_ActionComponent* ActionComp = Target->FindComponentByClass<UCPP_ActionComponent>();
+                if (ActionComp)
+                {
+                    for (TSubclassOf<UCPP_Action_Effect> EffectClass : EffectsToApply)
+                    {
+                        ActionComp->ApplyStatusEffect(EffectClass, Instigator);
+                    }
+                }
+            }
+            //impulse
             FVector ImpulseDir = Target->GetActorLocation() - Origin;
             ImpulseDir.Normalize();
             ImpulseDir.Z = 0.5f;

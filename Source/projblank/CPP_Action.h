@@ -55,6 +55,9 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Action")
 		void StopAction(AActor* Instigator);
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Action")
+		void RefreshAction(AActor* Instigator);
+
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		bool bAutoUnlock = false;
 
@@ -75,4 +78,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Action")
 		float TimeStarted;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Action")
+		FTimerHandle TimerHandle_AutoStop;
 };

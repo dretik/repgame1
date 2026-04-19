@@ -21,6 +21,9 @@ struct FProjectileLevelData
 	UPROPERTY(EditAnywhere, Category = "LevelData")
 		float ProjectileScale = 1.0f;
 
+	UPROPERTY(EditAnywhere, Category = "LevelData")
+		TArray<TSubclassOf<UCPP_Action_Effect>> ImpactEffects;
+
 	// projectile amount or speed could be added
 };
 
