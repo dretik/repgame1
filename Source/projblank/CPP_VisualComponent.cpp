@@ -25,6 +25,10 @@ void UCPP_VisualComponent::BeginPlay()
             DynamicMaterial = MeshComp->CreateDynamicMaterialInstance(0);
 
             ResetMaterialParameters();
+
+            MeshComp->SetUsingAbsoluteRotation(true);
+            //game is along y axis
+            MeshComp->SetWorldRotation(FRotator(0, 90, 0));
         }
     }
 }
@@ -86,11 +90,16 @@ void UCPP_VisualComponent::HandleDamageReceived(float DamageAmount, TSubclassOf<
 
 void UCPP_VisualComponent::UpdateSpriteFacing(FVector Velocity, float BaseScale)
 {
-    if (bFlippingLocked || !MeshComp || Velocity.SizeSquared() < 0.1f) return;
+    if (bFlippingLocked || Velocity.SizeSquared() < 0.1f) return;
 
-    float DesiredWorldDirY = (Velocity.Y > 0) ? 1.0f : -1.0f;
+    AActor* Owner = GetOwner();
+    if (!Owner) return;
 
-    ApplyFlipping(DesiredWorldDirY, BaseScale);
+    // rotate whole actor to movement direction
+    float TargetYaw = (Velocity.Y > 0) ? 90.0f : -90.0f;
+    Owner->SetActorRotation(FRotator(0, TargetYaw, 0));
+
+    ApplyFlipping(Velocity.Y > 0 ? 1.0f : -1.0f, BaseScale);
 }
 
 void UCPP_VisualComponent::HandleDeath(UNiagaraSystem* DeathFX)
@@ -121,11 +130,9 @@ void UCPP_VisualComponent::ApplyFlipping(float DesiredWorldDirY, float BaseScale
     AActor* Owner = GetOwner();
     FVector NewScale = MeshComp->GetRelativeScale3D();
 
-    float ActorForwardX = (Owner->GetActorForwardVector().X >= 0) ? 1.0f : -1.0f;
-
     float InversionMult = bInvertVisualFlipping ? -1.0f : 1.0f;
 
-    float FinalScaleX = DesiredWorldDirY * ActorForwardX * FMath::Abs(BaseScale) * InversionMult;
+    float FinalScaleX = DesiredWorldDirY * FMath::Abs(BaseScale) * InversionMult;
 
     NewScale.X = FinalScaleX;
     MeshComp->SetRelativeScale3D(NewScale);
@@ -151,4 +158,15 @@ void UCPP_VisualComponent::ClearStatusOverlay()
     {
         DynamicMaterial->SetScalarParameterValue("StatusIntensity", 0.0f);
     }
+}
+
+FVector UCPP_VisualComponent::GetVisualFacingDirection() const
+{
+    if (!MeshComp) return FVector(0, 1, 0);
+
+    float CurrentScaleX = MeshComp->GetRelativeScale3D().X;
+    float InversionMult = bInvertVisualFlipping ? -1.0f : 1.0f;
+
+    // if ScaleX * Inversion > 0, facing +Y
+    return (CurrentScaleX * InversionMult > 0.0f) ? FVector(0, 1, 0) : FVector(0, -1, 0);
 }

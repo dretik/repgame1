@@ -5,6 +5,7 @@
 #include "CPP_VisualTextInterface.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "AbilityCardData.h"
 
 void UCPP_VisualStatics::SpawnNiagaraEffect(const UObject* WorldContextObject, UNiagaraSystem* System, FVector Location, FRotator Rotation, FVector Scale)
 {
@@ -47,5 +48,17 @@ void UCPP_VisualStatics::SpawnDamageText(const UObject* WorldContextObject, TSub
     if (TextActor && TextActor->GetClass()->ImplementsInterface(UCPP_VisualTextInterface::StaticClass()))
     {
         ICPP_VisualTextInterface::Execute_SetValue(TextActor, DamageAmount);
+    }
+}
+
+FLinearColor UCPP_VisualStatics::GetColorByRarity(ECardRarity Rarity)
+{
+    switch (Rarity)
+    {
+    case ECardRarity::Common:    return FLinearColor::White;
+    case ECardRarity::Rare:      return FLinearColor(0.1f, 0.5f, 1.0f); // blue
+    case ECardRarity::Epic:      return FLinearColor(0.6f, 0.1f, 1.0f); // purple
+    case ECardRarity::Legendary: return FLinearColor(1.0f, 0.4f, 0.0f); // orange
+    default:                     return FLinearColor::White;
     }
 }

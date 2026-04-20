@@ -89,6 +89,8 @@ void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 {
 	ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(Instigator);
 	if (!Char) return;
+	UCPP_VisualComponent* VisualComp = Char->FindComponentByClass<UCPP_VisualComponent>();
+	if (!VisualComp) return;
 	float DamageToApply = Char->GetCurrentBaseDamage();
 
 	if (UCPP_AttributeComponent* AttrComp = Char->FindComponentByClass<UCPP_AttributeComponent>())
@@ -98,14 +100,14 @@ void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 
 	DamageToApply *= ActionDamageMultiplier;
 		
-	float DirectionSign = (Char->GetSprite()->GetRelativeScale3D().X > 0.0f) ? 1.0f : -1.0f;
-	FVector AttackDirection = FVector(0.0f, 1.0f, 0.0f) * DirectionSign;
+	FVector AttackDirection = VisualComp->GetVisualFacingDirection();
+
+	// for effects (Niagara):
+	float YawRotation = (AttackDirection.Y > 0) ? 90.0f : -90.0f;
+	FRotator EffectRotation = FRotator(0, YawRotation, 0);
 
 	if (Char->GetCharacterStats() && Char->GetCharacterStats()->AttackEffect)
 	{
-		FRotator EffectRotation = FRotator::ZeroRotator;
-		EffectRotation.Yaw = (DirectionSign > 0.0f) ? 90.0f : -90.0f;
-
 		// can create UCPP_VisualStatics::SpawnParticleAtLocation module
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			Instigator->GetWorld(),

@@ -1,12 +1,14 @@
 #include "CPP_Action_Projectile.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
+#include "CPP_Action_Effect.h"
 #include "CPP_Projectile.h"
 #include "PaperFlipbookComponent.h" 
 #include "PaperCharacter.h" 
 #include "CPP_BaseCharacter.h" 
 #include "CPP_PlayerCharacter.h"
-#include "CPP_AttributeComponent.h" 
+#include "CPP_AttributeComponent.h"
+#include "CPP_VisualComponent.h"
 
 UCPP_Action_Projectile::UCPP_Action_Projectile()
 {
@@ -59,28 +61,16 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 
 	const FProjectileLevelData& CurrentConfig = LevelConfigs[ConfigIndex];
 
-	FVector SpawnLocation = InstigatorCharacter->GetActorLocation();
-	SpawnLocation.Z += 20.0f;
-
-	FRotator SpawnRotation = FRotator::ZeroRotator;
+	UCPP_VisualComponent* VisualComp = InstigatorCharacter->FindComponentByClass<UCPP_VisualComponent>();
+	FVector FacingDir = VisualComp ? VisualComp->GetVisualFacingDirection() : FVector(0, 1, 0);
 
 	float BaseOffset = 40.0f;
 	float FinalOffset = BaseOffset * CurrentConfig.ProjectileScale;
 
-	APaperCharacter* PaperChar = Cast<APaperCharacter>(InstigatorCharacter);
-	if (PaperChar)
-	{
-		if (PaperChar->GetSprite()->GetRelativeScale3D().X > 0.0f)
-		{
-			SpawnRotation.Yaw = 90.0f;
-			SpawnLocation.Y += FinalOffset;
-		}
-		else
-		{
-			SpawnRotation.Yaw = -90.0f;
-			SpawnLocation.Y -= FinalOffset;
-		}
-	}
+	FRotator SpawnRotation = FRotator(0, (FacingDir.Y > 0 ? 90.f : -90.f), 0);
+	FVector SpawnLocation = InstigatorCharacter->GetActorLocation();
+	SpawnLocation.Y += FacingDir.Y * FinalOffset;
+	SpawnLocation.Z += 20.0f;
 
 	FActorSpawnParameters SpawnParams;
 	//SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;

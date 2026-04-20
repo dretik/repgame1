@@ -45,6 +45,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
         float StoppingDistance = 80.0f;
 
+    UPROPERTY(EditAnywhere, Category = "AI")
+        bool bStartFacingRight = true;
+
     virtual void OnDeath_Implementation() override;
 
     void InitializeEnemyScaling();

@@ -21,4 +21,7 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Visuals", meta = (WorldContext = "WorldContextObject"))
         static void SpawnDamageText(const UObject* WorldContextObject, TSubclassOf<AActor> TextClass, float DamageAmount, FVector Location);
+
+    UFUNCTION(BlueprintCallable, Category = "Visuals|UI")
+        static FLinearColor GetColorByRarity(ECardRarity Rarity);
 };

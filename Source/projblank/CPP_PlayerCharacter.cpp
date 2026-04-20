@@ -18,6 +18,7 @@
 #include "CPP_Action.h"
 #include "CPP_ActionSet.h"
 #include "CPP_ActionComponent.h"
+#include "CPP_VisualComponent.h"
 #include "CPP_ProgressionStatics.h"
 #include "CharacterStats.h"
 
@@ -46,7 +47,12 @@ void ACPP_PlayerCharacter::SetupPlayerInputComponent(UInputComponent*
         IE_Pressed, this, &ACPP_PlayerCharacter::Dodge);
     PlayerInputComponent->BindAction("InteractAction",
         IE_Pressed, this, &ACPP_PlayerCharacter::InteractWithObject);
-
+    PlayerInputComponent->BindAction("AbilityQ", 
+        IE_Pressed, this, &ACPP_PlayerCharacter::InputAbilityQ);
+    PlayerInputComponent->BindAction("AbilityE", 
+        IE_Pressed, this, &ACPP_PlayerCharacter::InputAbilityE);
+    PlayerInputComponent->BindAction("AbilityR", 
+        IE_Pressed, this, &ACPP_PlayerCharacter::InputAbilityR);
 
     //attack
     PlayerInputComponent->BindAction("AttackAction",
@@ -57,12 +63,12 @@ void ACPP_PlayerCharacter::SetupPlayerInputComponent(UInputComponent*
 
 void ACPP_PlayerCharacter::Dodge()
 {
-    if (bIsDead) return;
-    if (bIsDodging) return;
-    if (!CharacterStats) return;
+    if (bIsDead || bIsDodging || !CharacterStats || !VisualComp) return;
     bIsDodging = true;
     bIsInAir = true;
     bIsInvulnerable = true;
+
+    VisualComp->LockFlipping(CharacterStats->DodgeDuration);
 
     if (DodgeAnimationFlipbook)
     {
@@ -71,21 +77,12 @@ void ACPP_PlayerCharacter::Dodge()
 
     GetSprite()->SetSpriteColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.7f));
 
-    FVector RightDirection = GetActorRightVector();
+    FVector DodgeDirection = GetActorForwardVector()*-1.0f;
+    DodgeDirection.Z = 0.4f;
+    DodgeDirection.Normalize();
 
-    if (GetSprite()->GetRelativeScale3D().X < 0.0f)
-    {
-        RightDirection *= -1.0f;
-    }
-    const FVector DodgeHorizontalDirection = RightDirection * -1.0f;
-    const FVector UpDirection = FVector::UpVector;
-    FVector CombinedDirection = DodgeHorizontalDirection + UpDirection * 0.5;
-    CombinedDirection.Normalize();
-
-    const FVector DodgeDirection = RightDirection * -1.0f;
-
-    LaunchCharacter(CombinedDirection * CharacterStats->DodgeStrength, true, false);
-
+    LaunchCharacter(DodgeDirection * CharacterStats->DodgeStrength, true, true);
+    
     FTimerHandle UnusedHandle;
     GetWorldTimerManager().SetTimer(UnusedHandle, this,
         &ACPP_PlayerCharacter::StopDodge, CharacterStats->DodgeDuration, false);
@@ -270,13 +267,15 @@ void ACPP_PlayerCharacter::ApplyStatModifier(FStatModifier Modifier)
 void ACPP_PlayerCharacter::MoveRight(float Value)
 {
     if (bIsDead) return;
-    AddMovementInput(GetActorRightVector(), Value);
+    FVector Direction = FVector(0.0f, 1.0f, 0.0f);
+    AddMovementInput(Direction, Value);
 }
 
 void ACPP_PlayerCharacter::MoveForward(float Value)
 {
     if (bIsDead) return;
-    AddMovementInput(GetActorForwardVector(), Value);
+    FVector Direction = FVector(1.0f, 0.0f, 0.0f);
+    AddMovementInput(Direction, Value);
 }
 
 void ACPP_PlayerCharacter::StopDodge()
@@ -554,4 +553,33 @@ void ACPP_PlayerCharacter::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
 
     OnXPUpdated.Broadcast(CurrentXP, XPToNextLevel, CharacterLevel);
     OnCoinsUpdated.Broadcast(CoinCount);
+}
+
+void ACPP_PlayerCharacter::InputAbilityQ() {
+    ActionComp->StartActionBySlot(this, FGameplayTag::RequestGameplayTag("Slot.Ability.Q"));
+}
+
+void ACPP_PlayerCharacter::InputAbilityE() {
+    ActionComp->StartActionBySlot(this, FGameplayTag::RequestGameplayTag("Slot.Ability.E"));
+}
+
+void ACPP_PlayerCharacter::InputAbilityR() {
+    ActionComp->StartActionBySlot(this, FGameplayTag::RequestGameplayTag("Slot.Ability.R"));
+}
+
+void ACPP_PlayerCharacter::ModifyStat_Implementation(FStatModifier Modifier)
+{
+    ApplyStatModifier(Modifier);
+}
+
+void ACPP_PlayerCharacter::AddResource_Implementation(FGameplayTag ResourceTag, float Amount)
+{
+    if (ResourceTag.MatchesTag(FGameplayTag::RequestGameplayTag("Resource.Gold")))
+    {
+        AddCoins(FMath::RoundToInt(Amount));
+    }
+    else if (ResourceTag.MatchesTag(FGameplayTag::RequestGameplayTag("Resource.XP")))
+    {
+        AddExperience(Amount);
+    }
 }

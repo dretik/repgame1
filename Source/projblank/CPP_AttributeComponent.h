@@ -52,6 +52,9 @@ public:
 		float GetMaxHealth() const { return MaxHealth; }
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
+		float GetBaseSpeed() const { return BaseSpeed; }
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
 		void InitializeStats(float NewMaxHealth);
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")

@@ -29,6 +29,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Visuals")
         UMeshComponent* GetMesh() const { return MeshComp; }
 
+    UFUNCTION(BlueprintCallable, Category = "Visuals")
+        FVector GetVisualFacingDirection() const;
+
     void HandleDamageReceived(float DamageAmount, TSubclassOf<AActor> TextClass, UNiagaraSystem* HitFX);
 
     void HandleDeath(UNiagaraSystem* DeathFX);

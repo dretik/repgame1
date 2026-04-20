@@ -6,6 +6,7 @@
 #include "CPP_BaseCharacter.h"
 
 #include "InteractableInterface.h"
+#include "CPP_ProgressionInterface.h"
 
 #include "CPP_PlayerCharacter.generated.h"
 
@@ -14,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCoinsUpdated, int32, NewCount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnXPUpdated, float, CurrentXP, float, MaxXP, int32, Level);
 
 UCLASS()
-class PROJBLANK_API ACPP_PlayerCharacter : public ACPP_BaseCharacter
+class PROJBLANK_API ACPP_PlayerCharacter : public ACPP_BaseCharacter, public ICPP_ProgressionInterface
 {
     GENERATED_BODY()
 
@@ -61,13 +62,15 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Progression")
         void RemoveExperience(float Amount);
 
+    virtual void ModifyStat_Implementation(FStatModifier Modifier) override;
+    virtual void AddResource_Implementation(FGameplayTag ResourceTag, float Amount) override;
+
     // --- SAVES ---
     //UFUNCTION(BlueprintCallable, Category = "SaveSystem")
     //    void SetStatsFromSave(float SavedHealth, float SavedMaxHealth, float SavedBaseDamage, int32 SavedLevel, float SavedXP, int32 SavedCoins);
     // ISaveableInterface
     virtual void OnSaveGame_Implementation(UCPP_SaveGame* SaveObject) override;
     virtual void OnLoadGame_Implementation(UCPP_SaveGame* SaveObject) override;
-
 
     // virtual for gold
     virtual void ApplyStatModifier(FStatModifier Modifier);
@@ -86,6 +89,10 @@ protected:
         void PrimaryAttack();
     UFUNCTION(BlueprintCallable, Category = "Actions")
         void MagicAttack();
+
+    void InputAbilityQ();
+    void InputAbilityE();
+    void InputAbilityR();
 
     // --- COMBO SYSTEM ---
     bool bInputBuffered = false;

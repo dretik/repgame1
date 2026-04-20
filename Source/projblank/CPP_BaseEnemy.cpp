@@ -15,6 +15,7 @@
 #include "CPP_Item_SkillUnlockable.h"
 #include "CPP_Action.h"   
 #include "CPP_ActionComponent.h"
+#include "CPP_VisualComponent.h"
 #include "CPP_ProgressionStatics.h"
 #include "CPP_LootStatics.h"
 
@@ -54,6 +55,13 @@ void ACPP_BaseEnemy::BeginPlay()
     if (PawnSensingComp)
     {
         PawnSensingComp->OnSeePawn.AddDynamic(this, &ACPP_BaseEnemy::OnPawnSeen);
+    }
+
+    float InitialYaw = bStartFacingRight ? 90.0f : -90.0f;
+    SetActorRotation(FRotator(0, InitialYaw, 0));
+
+    if (VisualComp) {
+        VisualComp->FaceLocation(GetActorLocation() + GetActorForwardVector() * 100.0f, BaseSpriteScale);
     }
 
     if (!bStatsRestoredFromSave)

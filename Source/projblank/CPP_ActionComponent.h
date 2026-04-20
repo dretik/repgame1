@@ -56,6 +56,21 @@ public:
 
 	void RestoreActionLevels(const TMap<FGameplayTag, int32>& LoadedLevels);
 
+	//to action slot or will replace
+	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
+		void EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<UCPP_Action> ActionClass);
+
+	//starts slot action
+	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
+		bool StartActionBySlot(AActor* Instigator, FGameplayTag SlotTag);
+
+	//slot action level
+	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
+		int32 GetActionLevelInSlot(FGameplayTag SlotTag) const;
+	//called from ui 
+	UFUNCTION(BlueprintCallable, Category = "Roguelike")
+		void ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag TargetSlot);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -67,6 +82,13 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Actions|Levels")
 		TMap<FGameplayTag, int32> ActionLevels;
+
+	//slot abilities map (slottag -> actionclass)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Actions|Slots")
+		TMap<FGameplayTag, TSubclassOf<UCPP_Action>> EquippedAbilities;
+
+	UPROPERTY(EditAnywhere, Category = "Roguelike")
+		class UAbilityCardPool* CardPool;
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

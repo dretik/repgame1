@@ -1,6 +1,9 @@
 #include "CPP_ActionComponent.h"
 #include "CPP_Action.h"
 #include "CPP_ActionSet.h"
+#include "AbilityCardData.h"
+#include "CPP_AttributeComponent.h"
+#include "CPP_ProgressionInterface.h"
 
 UCPP_ActionComponent::UCPP_ActionComponent()
 {
@@ -206,6 +209,81 @@ void UCPP_ActionComponent::ApplyStatusEffect(TSubclassOf<UCPP_Action> ActionClas
 		if (NewAction->CanStart(Instigator))
 		{
 			NewAction->StartAction(Instigator);
+		}
+	}
+}
+
+void UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<UCPP_Action> ActionClass)
+{
+	if (!ActionClass || !SlotTag.IsValid()) return;
+
+	//getter to check if exists
+	UCPP_Action* ActionObj = GetAction(ActionClass->GetDefaultObject<UCPP_Action>()->ActionTag);
+
+	if (!ActionObj)
+	{
+		// if no action - creates one
+		AddAction(ActionClass);
+		ActionLevels.Add(ActionClass->GetDefaultObject<UCPP_Action>()->ActionTag, 1);
+	}
+
+	//link in map
+	EquippedAbilities.Add(SlotTag, ActionClass);
+
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
+		FString::Printf(TEXT("Equipped %s to Slot %s"), *ActionClass->GetName(), *SlotTag.ToString()));
+}
+
+bool UCPP_ActionComponent::StartActionBySlot(AActor* Instigator, FGameplayTag SlotTag)
+{
+	TSubclassOf<UCPP_Action>* ActionClassPtr = EquippedAbilities.Find(SlotTag);
+	if (ActionClassPtr && *ActionClassPtr)
+	{
+		FGameplayTag ActionTag = (*ActionClassPtr)->GetDefaultObject<UCPP_Action>()->ActionTag;
+		return StartActionByName(Instigator, ActionTag);
+	}
+	return false;
+}
+
+int32 UCPP_ActionComponent::GetActionLevelInSlot(FGameplayTag SlotTag) const
+{
+	const TSubclassOf<UCPP_Action>* ActionClassPtr = EquippedAbilities.Find(SlotTag);
+	if (ActionClassPtr && *ActionClassPtr)
+	{
+		FGameplayTag ActionTag = (*ActionClassPtr)->GetDefaultObject<UCPP_Action>()->ActionTag;
+		return GetActionLevel(ActionTag);
+	}
+	return 0;
+}
+
+void UCPP_ActionComponent::ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag TargetSlot)
+{
+	AActor* Owner = GetOwner();
+
+	switch (ChosenCard.CardType)
+	{
+	case ECardType::ActiveAbility:
+		EquipActionToSlot(TargetSlot, ChosenCard.ActionClass);
+		break;
+
+	case ECardType::StatUpgrade:
+		if (Owner->GetClass()->ImplementsInterface(UCPP_ProgressionInterface::StaticClass()))
+		{
+			FGameplayTag Tag = ChosenCard.StatTag;
+			if (Tag.MatchesTag(FGameplayTag::RequestGameplayTag("Resource")))
+			{
+				ICPP_ProgressionInterface::Execute_AddResource(Owner, Tag, ChosenCard.StatModifierValue);
+			}
+			else
+			{
+				// stat mod
+				FStatModifier Mod;
+				Mod.StatTag = Tag;
+				Mod.Value = ChosenCard.StatModifierValue;
+				Mod.bIsMultiplier = false;
+
+				ICPP_ProgressionInterface::Execute_ModifyStat(Owner, Mod);
+			}
 		}
 	}
 }

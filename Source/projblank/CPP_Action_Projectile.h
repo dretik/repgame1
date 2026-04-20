@@ -5,6 +5,7 @@
 #include "CPP_Action_Projectile.generated.h"
 
 class ACPP_Projectile;
+class UCPP_Action_Effect;
 class UPaperFlipbook;
 
 USTRUCT(BlueprintType)
