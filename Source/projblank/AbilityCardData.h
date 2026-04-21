@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "CPP_AttributeComponent.h"
 #include "AbilityCardData.generated.h"
 
 class UCPP_Action;
@@ -23,7 +24,7 @@ enum class ECardType : uint8
 {
     ActiveAbility, // ability (Fireball, Dash)
     StatUpgrade,   // params (HP+, Damage+)
-    PassiveEffect  // passive (Шанс крита, Вампиризм)
+    PassiveEffect  // passive (crit chance, lifesteal)
 };
 
 USTRUCT(BlueprintType)
@@ -43,19 +44,19 @@ struct FAbilityCard
     UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (MultiLine = true))
         FText Description;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-        UTexture2D* Icon;
+    //UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    //    UTexture2D* Icon;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visuals")
+        UMaterialInterface* IconMaterial;
 
     //actionclass if ability
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (EditCondition = "CardType != ECardType::StatUpgrade"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
         TSubclassOf<UCPP_Action> ActionClass;
 
-    //stattag and value if passive upgrade
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (EditCondition = "CardType == ECardType::StatUpgrade"))
-        FGameplayTag StatTag;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (EditCondition = "CardType == ECardType::StatUpgrade"))
-        float StatModifierValue = 0.0f;
+    //statmodifierds array
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+        TArray<FStatModifier> StatModifiers;
 
     // card pull appearence weight
     UPROPERTY(EditAnywhere, BlueprintReadOnly)

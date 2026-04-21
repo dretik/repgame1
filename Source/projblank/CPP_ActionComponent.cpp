@@ -218,17 +218,40 @@ void UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<U
 	if (!ActionClass || !SlotTag.IsValid()) return;
 
 	//getter to check if exists
-	UCPP_Action* ActionObj = GetAction(ActionClass->GetDefaultObject<UCPP_Action>()->ActionTag);
+	UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
+	FGameplayTag NewActionTag = DefaultObj->ActionTag;
 
-	if (!ActionObj)
+	//check if is already in some slot
+	FGameplayTag CurrentSlotOfAction;
+	for (auto& It : EquippedAbilities)
 	{
-		// if no action - creates one
+		if (It.Value == ActionClass)
+		{
+			CurrentSlotOfAction = It.Key;
+			break;
+		}
+	}
+
+	//if already in some slot 
+	if (CurrentSlotOfAction.IsValid())
+	{
+		GrantAction(ActionClass); //curentlevel++
+		return;
+	}
+	//if new
+	if (!GetAction(NewActionTag))
+	{
 		AddAction(ActionClass);
-		ActionLevels.Add(ActionClass->GetDefaultObject<UCPP_Action>()->ActionTag, 1);
 	}
 
 	//link in map
 	EquippedAbilities.Add(SlotTag, ActionClass);
+
+	//if level was 0 write 1
+	if (GetActionLevel(NewActionTag) == 0)
+	{
+		ActionLevels.Add(NewActionTag, 1);
+	}
 
 	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
 		FString::Printf(TEXT("Equipped %s to Slot %s"), *ActionClass->GetName(), *SlotTag.ToString()));
@@ -259,31 +282,59 @@ int32 UCPP_ActionComponent::GetActionLevelInSlot(FGameplayTag SlotTag) const
 void UCPP_ActionComponent::ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag TargetSlot)
 {
 	AActor* Owner = GetOwner();
+	if (!Owner) return;
 
-	switch (ChosenCard.CardType)
+	//apply all buffs debuffs from array
+	if (Owner->GetClass()->ImplementsInterface(UCPP_ProgressionInterface::StaticClass()))
 	{
-	case ECardType::ActiveAbility:
-		EquipActionToSlot(TargetSlot, ChosenCard.ActionClass);
-		break;
-
-	case ECardType::StatUpgrade:
-		if (Owner->GetClass()->ImplementsInterface(UCPP_ProgressionInterface::StaticClass()))
+		for (const FStatModifier& Mod : ChosenCard.StatModifiers)
 		{
-			FGameplayTag Tag = ChosenCard.StatTag;
-			if (Tag.MatchesTag(FGameplayTag::RequestGameplayTag("Resource")))
+			//Resource (Gold/XP)
+			if (Mod.StatTag.MatchesTag(FGameplayTag::RequestGameplayTag("Resource")))
 			{
-				ICPP_ProgressionInterface::Execute_AddResource(Owner, Tag, ChosenCard.StatModifierValue);
+				ICPP_ProgressionInterface::Execute_AddResource(Owner, Mod.StatTag, Mod.Value);
 			}
-			else
+			else //stats (HP/Damage/Speed)
 			{
-				// stat mod
-				FStatModifier Mod;
-				Mod.StatTag = Tag;
-				Mod.Value = ChosenCard.StatModifierValue;
-				Mod.bIsMultiplier = false;
-
 				ICPP_ProgressionInterface::Execute_ModifyStat(Owner, Mod);
 			}
+		}
+	}
+
+	// apply ability (if is in card)
+	if (ChosenCard.ActionClass)
+	{
+		UCPP_Action* DefaultObj = ChosenCard.ActionClass->GetDefaultObject<UCPP_Action>();
+		FGameplayTag ActionTag = DefaultObj->ActionTag;
+
+		//active or passive
+		// could check the tag f.e. "Ability.Passive"
+		if (ActionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Passive")))
+		{
+			GrantAction(ChosenCard.ActionClass);
+			return;
+		}
+		// active
+		bool bAlreadyEquipped = false;
+		for (auto& It : EquippedAbilities)
+		{
+			if (It.Value == ChosenCard.ActionClass)
+			{
+				bAlreadyEquipped = true;
+				break;
+			}
+		}
+		if (bAlreadyEquipped)
+		{
+			//currentlevel++
+			GrantAction(ChosenCard.ActionClass);
+		}
+		else
+		{
+			// new active (slot required)
+			// TargetSlot will come from UI
+			// free one or picked by a player for replacement
+			EquipActionToSlot(TargetSlot, ChosenCard.ActionClass);
 		}
 	}
 }

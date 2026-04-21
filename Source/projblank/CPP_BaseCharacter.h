@@ -23,21 +23,6 @@ class UPaperFlipbook;
 class ACPP_DestructibleActor;
 class ACPP_BaseEnemy;
 
-USTRUCT(BlueprintType)
-struct FStatModifier
-{
-    GENERATED_BODY()
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-    FGameplayTag StatTag;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-    bool bIsMultiplier = false;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-    float Value = 0.0f;
-};
-
 UCLASS()
 class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter, public ISaveableInterface, public ICPP_CombatInterface
 {

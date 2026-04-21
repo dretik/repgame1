@@ -10,6 +10,22 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnAttributeChanged, AActor*, Inst
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeath, AActor*, KillerActor);
 
+
+USTRUCT(BlueprintType)
+struct FStatModifier
+{
+	GENERATED_BODY()
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+		FGameplayTag StatTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+		bool bIsMultiplier = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+		float Value = 0.0f;
+};
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJBLANK_API UCPP_AttributeComponent : public UActorComponent
 {

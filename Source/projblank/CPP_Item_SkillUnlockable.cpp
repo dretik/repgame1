@@ -1,6 +1,5 @@
 #include "CPP_Item_SkillUnlockable.h"
 #include "CPP_BaseCharacter.h"
-#include "CPP_PlayerCharacter.h"
 #include "CPP_Action.h"
 #include "CPP_ActionComponent.h"
 
@@ -15,28 +14,29 @@ ACPP_Item_SkillUnlockable::ACPP_Item_SkillUnlockable()
 void ACPP_Item_SkillUnlockable::Interact_Implementation(AActor* Interactor)
 {
     if (bIsPickedUp) return;
-    ACPP_PlayerCharacter* Player = Cast<ACPP_PlayerCharacter>(Interactor);
-    if (!Player || !ActionClass) return;
-
+    UCPP_ActionComponent* ActionComp = Interactor->FindComponentByClass<UCPP_ActionComponent>();
+    if (!ActionComp || !ActionClass) return;
     UCPP_Action* DefaultAction = ActionClass->GetDefaultObject<UCPP_Action>();
-    if (!DefaultAction) return;
-    UCPP_ActionComponent* ActionComp = Player->FindComponentByClass<UCPP_ActionComponent>();
-    if (!ActionComp) return;
+    FGameplayTag Tag = DefaultAction->ActionTag;
 
-    //if level of ability is maxed - shownotif or addgold or smth
-    if (ActionComp->GetActionLevel(DefaultAction->ActionTag) >= DefaultAction->MaxLevel)
+    //level check
+    if (ActionComp->GetActionLevel(Tag) >= DefaultAction->MaxLevel)
     {
-        Player->ShowNotification(NSLOCTEXT("Abilities", "MaxLevel", "Skill already at maximum level!"), FLinearColor::Red);
-        return; // item remains
+        //for notif use interface
+        return;
     }
 
-    bool bSuccess = Player->GrantAbility(ActionClass);
-
-    if (bSuccess)
+    if (Tag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Passive")))
     {
-        bIsPickedUp = true;
-        // calling super to exec:
-        // statmodifiers -> notification -> destroy
-        Super::Interact_Implementation(Interactor);
+        ActionComp->GrantAction(ActionClass);
     }
+    else
+    {
+        //for active from world
+        // could be looking for first free slot
+        ActionComp->EquipActionToSlot(FGameplayTag::RequestGameplayTag("Slot.Ability.Q"), ActionClass);
+    }
+
+    bIsPickedUp = true;
+    Super::Interact_Implementation(Interactor);
 }

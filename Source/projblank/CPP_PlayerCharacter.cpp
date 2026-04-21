@@ -330,15 +330,8 @@ void ACPP_PlayerCharacter::PrimaryAttack()
 
 void ACPP_PlayerCharacter::MagicAttack()
 {
-    FGameplayTag FireballTag = FGameplayTag::RequestGameplayTag("Ability.Player.Range.Fireball");
-
-    if (!ActionComp || ActionComp->GetActionLevel(FireballTag)<=0)
-    {
-        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Ability Locked! Find the Skill Book first."));
-        return;
-    }
-
-    ActionComp->StartActionByName(this, FireballTag);
+    if (!ActionComp) return;
+    ActionComp->StartActionBySlot(this, FGameplayTag::RequestGameplayTag("Slot.Ability.R"));
 }
 
 void ACPP_PlayerCharacter::ExecuteMeleeAttack()
