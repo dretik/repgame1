@@ -140,3 +140,13 @@ bool UCPP_Action::IsRunning() const
 {
 	return RepData.bIsRunning;
 }
+
+float UCPP_Action::GetCooldownRemaining() const {
+	float TimeSinceStart = GetWorld()->GetTimeSeconds() - TimeStarted;
+	return FMath::Max(0.0f, CooldownTime - TimeSinceStart);
+}
+
+float UCPP_Action::GetCooldownNormalized() const {
+	if (CooldownTime <= 0.0f) return 0.0f;
+	return GetCooldownRemaining() / CooldownTime;
+}

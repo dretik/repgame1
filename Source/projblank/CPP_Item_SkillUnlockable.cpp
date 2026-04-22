@@ -32,9 +32,10 @@ void ACPP_Item_SkillUnlockable::Interact_Implementation(AActor* Interactor)
     }
     else
     {
+        FGameplayTag TargetSlot = ActionComp->GetFirstEmptySlot();
         //for active from world
         // could be looking for first free slot
-        ActionComp->EquipActionToSlot(FGameplayTag::RequestGameplayTag("Slot.Ability.Q"), ActionClass);
+        ActionComp->EquipActionToSlot(TargetSlot, ActionClass);
     }
 
     bIsPickedUp = true;

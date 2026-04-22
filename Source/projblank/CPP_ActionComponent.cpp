@@ -221,28 +221,30 @@ void UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<U
 	UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
 	FGameplayTag NewActionTag = DefaultObj->ActionTag;
 
-	//check if is already in some slot
-	FGameplayTag CurrentSlotOfAction;
 	for (auto& It : EquippedAbilities)
 	{
 		if (It.Value == ActionClass)
 		{
-			CurrentSlotOfAction = It.Key;
-			break;
+			GrantAction(ActionClass);
+			return;
 		}
 	}
 
-	//if already in some slot 
-	if (CurrentSlotOfAction.IsValid())
+	FGameplayTag FinalSlot = SlotTag;
+	//if slot is not provided - trying to find first free one
+	if (!FinalSlot.IsValid())
 	{
-		GrantAction(ActionClass); //curentlevel++
+		FinalSlot = GetFirstEmptySlot();
+	}
+
+	if (!FinalSlot.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No empty slot found and no SlotTag provided for %s"), *ActionClass->GetName());
+		OnAbilitySwapRequired.Broadcast(ActionClass);
 		return;
 	}
-	//if new
-	if (!GetAction(NewActionTag))
-	{
-		AddAction(ActionClass);
-	}
+
+	if (!GetAction(NewActionTag)) AddAction(ActionClass);
 
 	//link in map
 	EquippedAbilities.Add(SlotTag, ActionClass);
@@ -329,12 +331,44 @@ void UCPP_ActionComponent::ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag
 			//currentlevel++
 			GrantAction(ChosenCard.ActionClass);
 		}
-		else
+
+		FGameplayTag FinalSlot = TargetSlot;
+		if (!FinalSlot.IsValid())
+		{
+			FinalSlot = GetFirstEmptySlot();
+		}
+
+		if (FinalSlot.IsValid())
 		{
 			// new active (slot required)
 			// TargetSlot will come from UI
 			// free one or picked by a player for replacement
-			EquipActionToSlot(TargetSlot, ChosenCard.ActionClass);
+			EquipActionToSlot(FinalSlot, ChosenCard.ActionClass);
+		}
+		else
+		{
+			OnAbilitySwapRequired.Broadcast(ChosenCard.ActionClass);
 		}
 	}
+}
+
+FGameplayTag UCPP_ActionComponent::GetFirstEmptySlot() const
+{
+	//slots in priority
+	TArray<FGameplayTag> SlotOrder;
+	SlotOrder.Add(FGameplayTag::RequestGameplayTag("Slot.Ability.Q"));
+	SlotOrder.Add(FGameplayTag::RequestGameplayTag("Slot.Ability.E"));
+	SlotOrder.Add(FGameplayTag::RequestGameplayTag("Slot.Ability.R"));
+
+	for (const FGameplayTag& SlotTag : SlotOrder)
+	{
+		//if EquippedAbilities map has no key - slot empty
+		if (!EquippedAbilities.Contains(SlotTag))
+		{
+			return SlotTag;
+		}
+	}
+
+	//all slots are occupied
+	return FGameplayTag::EmptyTag;
 }

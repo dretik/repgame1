@@ -5,6 +5,8 @@
 #include "GameplayTagContainer.h"
 #include "CPP_ActionComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilitySwapRequired, TSubclassOf<UCPP_Action>, NewActionClass);
+
 class UCPP_Action;
 UENUM(BlueprintType)
 enum class EActionGrantResult : uint8
@@ -67,9 +69,16 @@ public:
 	//slot action level
 	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
 		int32 GetActionLevelInSlot(FGameplayTag SlotTag) const;
+	//event if no slot is available
+	UPROPERTY(BlueprintAssignable, Category = "Actions|Events")
+		FOnAbilitySwapRequired OnAbilitySwapRequired;
 	//called from ui 
 	UFUNCTION(BlueprintCallable, Category = "Roguelike")
 		void ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag TargetSlot);
+
+	//returns first available ability slot
+	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
+		FGameplayTag GetFirstEmptySlot() const;
 
 protected:
 	virtual void BeginPlay() override;

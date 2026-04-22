@@ -31,11 +31,17 @@ public:
 	//delegate
 	UPROPERTY(BlueprintAssignable)
 		FOnActionStateChanged OnActionStopped;
-	UPROPERTY(EditDefaultsOnly, Category = "Action")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Action")
 		FGameplayTag ActionTag;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
 		float CooldownTime = 1.0f;
+
+	UFUNCTION(BlueprintCallable, Category = "Action")
+		float GetCooldownRemaining() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Action")
+		float GetCooldownNormalized() const; //0 1 for progressbar
 
 	UPROPERTY(EditDefaultsOnly, Category = "Action", meta = (ClampMin = "0.01", UIMin = "0.01"))
 		float Duration = 1.0f;
@@ -63,6 +69,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Action", meta = (ClampMin = "1"))
 		int32 MaxLevel = 3;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+		class UTexture2D* Icon;
 
 	//for timers
 	virtual UWorld* GetWorld() const override;

@@ -24,4 +24,8 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Visuals|UI")
         static FLinearColor GetColorByRarity(ECardRarity Rarity);
+
+    UFUNCTION(BlueprintCallable, Category = "Visuals|Input")
+        static FText GetKeybindForAction(FName ActionName);
+
 };

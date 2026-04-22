@@ -90,7 +90,7 @@ void UCPP_VisualComponent::HandleDamageReceived(float DamageAmount, TSubclassOf<
 
 void UCPP_VisualComponent::UpdateSpriteFacing(FVector Velocity, float BaseScale)
 {
-    if (bFlippingLocked || Velocity.SizeSquared() < 0.1f) return;
+    if (bFlippingLocked || Velocity.SizeSquared() < 10.f) return;
 
     AActor* Owner = GetOwner();
     if (!Owner) return;
