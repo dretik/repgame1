@@ -213,9 +213,9 @@ void UCPP_ActionComponent::ApplyStatusEffect(TSubclassOf<UCPP_Action> ActionClas
 	}
 }
 
-void UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<UCPP_Action> ActionClass)
+bool UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<UCPP_Action> ActionClass)
 {
-	if (!ActionClass || !SlotTag.IsValid()) return;
+	if (!ActionClass) return false;
 
 	//getter to check if exists
 	UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
@@ -226,7 +226,7 @@ void UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<U
 		if (It.Value == ActionClass)
 		{
 			GrantAction(ActionClass);
-			return;
+			return false;
 		}
 	}
 
@@ -241,13 +241,13 @@ void UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<U
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No empty slot found and no SlotTag provided for %s"), *ActionClass->GetName());
 		OnAbilitySwapRequired.Broadcast(ActionClass);
-		return;
+		return true; //ui is needed
 	}
 
 	if (!GetAction(NewActionTag)) AddAction(ActionClass);
 
 	//link in map
-	EquippedAbilities.Add(SlotTag, ActionClass);
+	EquippedAbilities.Add(FinalSlot, ActionClass);
 
 	//if level was 0 write 1
 	if (GetActionLevel(NewActionTag) == 0)
@@ -257,6 +257,8 @@ void UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<U
 
 	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
 		FString::Printf(TEXT("Equipped %s to Slot %s"), *ActionClass->GetName(), *SlotTag.ToString()));
+
+	return false;
 }
 
 bool UCPP_ActionComponent::StartActionBySlot(AActor* Instigator, FGameplayTag SlotTag)
@@ -281,10 +283,10 @@ int32 UCPP_ActionComponent::GetActionLevelInSlot(FGameplayTag SlotTag) const
 	return 0;
 }
 
-void UCPP_ActionComponent::ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag TargetSlot)
+bool UCPP_ActionComponent::ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag TargetSlot)
 {
 	AActor* Owner = GetOwner();
-	if (!Owner) return;
+	if (!Owner) return false;
 
 	//apply all buffs debuffs from array
 	if (Owner->GetClass()->ImplementsInterface(UCPP_ProgressionInterface::StaticClass()))
@@ -303,53 +305,23 @@ void UCPP_ActionComponent::ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag
 		}
 	}
 
-	// apply ability (if is in card)
+	//ability if is in the card
 	if (ChosenCard.ActionClass)
 	{
 		UCPP_Action* DefaultObj = ChosenCard.ActionClass->GetDefaultObject<UCPP_Action>();
-		FGameplayTag ActionTag = DefaultObj->ActionTag;
 
-		//active or passive
-		// could check the tag f.e. "Ability.Passive"
-		if (ActionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Passive")))
+		//passive
+		if (DefaultObj->ActionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Passive")))
 		{
 			GrantAction(ChosenCard.ActionClass);
-			return;
-		}
-		// active
-		bool bAlreadyEquipped = false;
-		for (auto& It : EquippedAbilities)
-		{
-			if (It.Value == ChosenCard.ActionClass)
-			{
-				bAlreadyEquipped = true;
-				break;
-			}
-		}
-		if (bAlreadyEquipped)
-		{
-			//currentlevel++
-			GrantAction(ChosenCard.ActionClass);
+			return false;
 		}
 
-		FGameplayTag FinalSlot = TargetSlot;
-		if (!FinalSlot.IsValid())
-		{
-			FinalSlot = GetFirstEmptySlot();
-		}
-
-		if (FinalSlot.IsValid())
-		{
-			// new active (slot required)
-			// TargetSlot will come from UI
-			// free one or picked by a player for replacement
-			EquipActionToSlot(FinalSlot, ChosenCard.ActionClass);
-		}
-		else
-		{
-			OnAbilitySwapRequired.Broadcast(ChosenCard.ActionClass);
-		}
+		//active
+		return EquipActionToSlot(TargetSlot, ChosenCard.ActionClass);
 	}
+
+	return false; //just stats
 }
 
 FGameplayTag UCPP_ActionComponent::GetFirstEmptySlot() const

@@ -38,6 +38,10 @@ public:
 
 	virtual void StartAction_Implementation(AActor* Instigator) override;
 
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+		float GetCurrentDamage() const;
+
+	virtual FText GetFormattedDescription_Implementation() override;
 protected:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 		TArray<FProjectileLevelData> LevelConfigs;

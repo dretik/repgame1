@@ -60,7 +60,7 @@ public:
 
 	//to action slot or will replace
 	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
-		void EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<UCPP_Action> ActionClass);
+		bool EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<UCPP_Action> ActionClass);
 
 	//starts slot action
 	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
@@ -74,7 +74,7 @@ public:
 		FOnAbilitySwapRequired OnAbilitySwapRequired;
 	//called from ui 
 	UFUNCTION(BlueprintCallable, Category = "Roguelike")
-		void ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag TargetSlot);
+		bool ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag TargetSlot);
 
 	//returns first available ability slot
 	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")

@@ -6,7 +6,6 @@
 #include "PaperFlipbookComponent.h" 
 #include "PaperCharacter.h" 
 #include "CPP_BaseCharacter.h" 
-#include "CPP_PlayerCharacter.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_VisualComponent.h"
 
@@ -86,15 +85,48 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 
 	if (ACPP_Projectile* Proj = Cast<ACPP_Projectile>(SpawnedActor))
 	{
-		float TotalDmg = 0.f;
-		if (ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(InstigatorCharacter)) {
-			TotalDmg = BaseChar->GetCurrentBaseDamage() * CurrentConfig.DamageMultiplier;
-		}
-
-		Proj->SetDamage(TotalDmg);
+		Proj->SetDamage(GetCurrentDamage());
         Proj->SetActorScale3D(FVector(CurrentConfig.ProjectileScale));
 		Proj->SetPersistentEffects(CurrentConfig.ImpactEffects);
 	}
 
 	StopAction(InstigatorCharacter);
+}
+
+FText UCPP_Action_Projectile::GetFormattedDescription_Implementation()
+{
+	// could take ActionDescription and replace {Dmg} with actual data
+	// using FText::Format
+	FFormatNamedArguments Args;
+	Args.Add("Dmg", FText::AsNumber(FMath::RoundToInt(GetCurrentDamage())));
+
+	return FText::Format(ActionDescription, Args);
+}
+
+float UCPP_Action_Projectile::GetCurrentDamage() const
+{
+	UCPP_ActionComponent* Comp = GetOwningComponent();
+	if (!Comp) return 0.0f;
+
+	//getting lvl
+	int32 CurrentLevel = Comp->GetActionLevel(ActionTag);
+	int32 ConfigIndex = FMath::Clamp(CurrentLevel - 1, 0, LevelConfigs.Num() - 1);
+
+	if (LevelConfigs.Num() == 0) return 0.0f;
+
+	const FProjectileLevelData& Config = LevelConfigs[ConfigIndex];
+
+	// owners base dmg
+	float BaseDmg = 0.0f;
+	if (ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(Comp->GetOwner()))
+	{
+		BaseDmg = BaseChar->GetCurrentBaseDamage();
+	}
+	else
+	{
+		// if CDO (shop preview), taking damage from first cfg
+		return Config.DamageMultiplier * 10.0f; // default
+	}
+
+	return BaseDmg * Config.DamageMultiplier;
 }

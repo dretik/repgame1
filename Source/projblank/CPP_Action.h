@@ -73,6 +73,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 		class UTexture2D* Icon;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+		FText ActionName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (MultiLine = true))
+		FText ActionDescription;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "UI")
+		FText GetFormattedDescription();
+
 	//for timers
 	virtual UWorld* GetWorld() const override;
 

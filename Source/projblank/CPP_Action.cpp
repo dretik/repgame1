@@ -150,3 +150,9 @@ float UCPP_Action::GetCooldownNormalized() const {
 	if (CooldownTime <= 0.0f) return 0.0f;
 	return GetCooldownRemaining() / CooldownTime;
 }
+
+FText UCPP_Action::GetFormattedDescription_Implementation()
+{
+	//defualt
+	return ActionDescription;
+}
