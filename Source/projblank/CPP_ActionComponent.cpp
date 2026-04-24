@@ -1,7 +1,6 @@
 #include "CPP_ActionComponent.h"
 #include "CPP_Action.h"
 #include "CPP_ActionSet.h"
-#include "AbilityCardData.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_ProgressionInterface.h"
 
@@ -213,8 +212,9 @@ void UCPP_ActionComponent::ApplyStatusEffect(TSubclassOf<UCPP_Action> ActionClas
 	}
 }
 
-bool UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<UCPP_Action> ActionClass)
+bool UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, FAbilityCard PendingCard)
 {
+	TSubclassOf<UCPP_Action> ActionClass = PendingCard.ActionClass;
 	if (!ActionClass) return false;
 
 	//getter to check if exists
@@ -226,7 +226,7 @@ bool UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<U
 		if (It.Value == ActionClass)
 		{
 			GrantAction(ActionClass);
-			return false;
+			return true;
 		}
 	}
 
@@ -240,8 +240,8 @@ bool UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<U
 	if (!FinalSlot.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No empty slot found and no SlotTag provided for %s"), *ActionClass->GetName());
-		OnAbilitySwapRequired.Broadcast(ActionClass);
-		return true; //ui is needed
+		OnAbilitySwapRequired.Broadcast(PendingCard);
+		return false; //ui is needed
 	}
 
 	if (!GetAction(NewActionTag)) AddAction(ActionClass);
@@ -258,7 +258,7 @@ bool UCPP_ActionComponent::EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<U
 	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
 		FString::Printf(TEXT("Equipped %s to Slot %s"), *ActionClass->GetName(), *SlotTag.ToString()));
 
-	return false;
+	return true;
 }
 
 bool UCPP_ActionComponent::StartActionBySlot(AActor* Instigator, FGameplayTag SlotTag)
@@ -288,40 +288,41 @@ bool UCPP_ActionComponent::ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag
 	AActor* Owner = GetOwner();
 	if (!Owner) return false;
 
-	//apply all buffs debuffs from array
-	if (Owner->GetClass()->ImplementsInterface(UCPP_ProgressionInterface::StaticClass()))
-	{
-		for (const FStatModifier& Mod : ChosenCard.StatModifiers)
-		{
-			//Resource (Gold/XP)
-			if (Mod.StatTag.MatchesTag(FGameplayTag::RequestGameplayTag("Resource")))
-			{
-				ICPP_ProgressionInterface::Execute_AddResource(Owner, Mod.StatTag, Mod.Value);
-			}
-			else //stats (HP/Damage/Speed)
-			{
-				ICPP_ProgressionInterface::Execute_ModifyStat(Owner, Mod);
-			}
-		}
-	}
+	bool bTransactionSuccess = true;
 
-	//ability if is in the card
+	//try to equip (preflight check)
 	if (ChosenCard.ActionClass)
 	{
 		UCPP_Action* DefaultObj = ChosenCard.ActionClass->GetDefaultObject<UCPP_Action>();
 
-		//passive
 		if (DefaultObj->ActionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Passive")))
 		{
 			GrantAction(ChosenCard.ActionClass);
-			return false;
 		}
-
-		//active
-		return EquipActionToSlot(TargetSlot, ChosenCard.ActionClass);
+		else
+		{
+			//trying to equip active
+			bTransactionSuccess = EquipActionToSlot(TargetSlot, ChosenCard);
+		}
 	}
 
-	return false; //just stats
+	//stats only if transaction is good
+	if (bTransactionSuccess)
+	{
+		if (Owner->GetClass()->ImplementsInterface(UCPP_ProgressionInterface::StaticClass()))
+		{
+			for (const FStatModifier& Mod : ChosenCard.StatModifiers)
+			{
+				if (Mod.StatTag.MatchesTag(FGameplayTag::RequestGameplayTag("Resource")))
+					ICPP_ProgressionInterface::Execute_AddResource(Owner, Mod.StatTag, Mod.Value);
+				else
+					ICPP_ProgressionInterface::Execute_ModifyStat(Owner, Mod);
+			}
+		}
+	}
+
+	// return to UI (UpgradeScreen will close if true)
+	return bTransactionSuccess;
 }
 
 FGameplayTag UCPP_ActionComponent::GetFirstEmptySlot() const

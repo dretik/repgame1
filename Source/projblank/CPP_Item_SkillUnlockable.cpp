@@ -1,6 +1,7 @@
 #include "CPP_Item_SkillUnlockable.h"
 #include "CPP_BaseCharacter.h"
 #include "CPP_Action.h"
+#include "AbilityCardData.h"
 #include "CPP_ActionComponent.h"
 
 ACPP_Item_SkillUnlockable::ACPP_Item_SkillUnlockable()
@@ -19,25 +20,19 @@ void ACPP_Item_SkillUnlockable::Interact_Implementation(AActor* Interactor)
     UCPP_Action* DefaultAction = ActionClass->GetDefaultObject<UCPP_Action>();
     FGameplayTag Tag = DefaultAction->ActionTag;
 
-    //level check
-    if (ActionComp->GetActionLevel(Tag) >= DefaultAction->MaxLevel)
-    {
-        //for notif use interface
-        return;
-    }
+    if (ActionComp->GetActionLevel(DefaultAction->ActionTag) >= DefaultAction->MaxLevel) return;
 
-    if (Tag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Passive")))
-    {
-        ActionComp->GrantAction(ActionClass);
-    }
-    else
-    {
-        FGameplayTag TargetSlot = ActionComp->GetFirstEmptySlot();
-        //for active from world
-        // could be looking for first free slot
-        ActionComp->EquipActionToSlot(TargetSlot, ActionClass);
-    }
+    // virtual card onflight
+    FAbilityCard DummyCard;
+    DummyCard.ActionClass = ActionClass;
+    //only abiltiy
 
-    bIsPickedUp = true;
-    Super::Interact_Implementation(Interactor);
+    //letting through pipeline
+    bool bSuccess = ActionComp->ApplyCardEffect(DummyCard, FGameplayTag::EmptyTag);
+
+    if (bSuccess)
+    {
+        bIsPickedUp = true;
+        Super::Interact_Implementation(Interactor); //destroy
+    }
 }

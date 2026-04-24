@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "GameplayTagContainer.h"
+#include "RarityTypes.h"
 #include "CPP_Action.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActionStateChanged, class UCPP_Action*, Action);
@@ -81,6 +82,9 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "UI")
 		FText GetFormattedDescription();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+		ECardRarity Rarity;
 
 	//for timers
 	virtual UWorld* GetWorld() const override;

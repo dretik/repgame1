@@ -6,18 +6,10 @@
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
 #include "CPP_AttributeComponent.h"
+#include "RarityTypes.h"
 #include "AbilityCardData.generated.h"
 
 class UCPP_Action;
-
-UENUM(BlueprintType)
-enum class ECardRarity : uint8
-{
-    Common,
-    Rare,
-    Epic,
-    Legendary
-};
 
 UENUM(BlueprintType)
 enum class ECardType : uint8
@@ -44,8 +36,8 @@ struct FAbilityCard
     UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (MultiLine = true))
         FText Description;
 
-    //UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    //    UTexture2D* Icon;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+        UTexture2D* Icon;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visuals")
         UMaterialInterface* IconMaterial;

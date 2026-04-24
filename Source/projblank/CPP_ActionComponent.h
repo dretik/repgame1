@@ -3,9 +3,10 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
+#include "AbilityCardData.h"
 #include "CPP_ActionComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilitySwapRequired, TSubclassOf<UCPP_Action>, NewActionClass);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilitySwapRequired, FAbilityCard, PendingCard);
 
 class UCPP_Action;
 UENUM(BlueprintType)
@@ -60,7 +61,7 @@ public:
 
 	//to action slot or will replace
 	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
-		bool EquipActionToSlot(FGameplayTag SlotTag, TSubclassOf<UCPP_Action> ActionClass);
+		bool EquipActionToSlot(FGameplayTag SlotTag, FAbilityCard PendingCard);
 
 	//starts slot action
 	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
@@ -98,6 +99,15 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Roguelike")
 		class UAbilityCardPool* CardPool;
+
+	//// card that waits for confirmation
+	//FAbilityCard PendingCard;
+
+	//// pending flag
+	//bool bHasPendingCard = false;
+
+	////auxilary to apply stats only (for transaction purposes)
+	//void ApplyStatsFromCard(const FAbilityCard& Card);
 
 public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
