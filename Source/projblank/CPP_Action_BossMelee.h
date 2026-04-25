@@ -20,6 +20,8 @@ public:
 	virtual void StartAction_Implementation(AActor* Instigator) override;
 	virtual void StopAction_Implementation(AActor* Instigator) override;
 
+	virtual float GetActionDamageMultiplier() const override;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 		float AttackDelay = 0.4f;

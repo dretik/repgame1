@@ -63,6 +63,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
 		bool EquipActionToSlot(FGameplayTag SlotTag, FAbilityCard PendingCard);
 
+	const TMap<FGameplayTag, TSubclassOf<UCPP_Action>>& GetEquippedAbilities() const 
+	{ return EquippedAbilities; }
+
 	//starts slot action
 	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
 		bool StartActionBySlot(AActor* Instigator, FGameplayTag SlotTag);

@@ -49,6 +49,13 @@ protected:
 
 	FTimerHandle TimerHandle_HealDelay;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Heal | Config")
+		TArray<float> MultiplierPerLevel;
+
+	virtual float GetActionDamageMultiplier() const override;
+
+	virtual FText GetFormattedDescription_Implementation() override;
+
 	UFUNCTION()
 		void ExecuteHeal(AActor* Instigator);
 };

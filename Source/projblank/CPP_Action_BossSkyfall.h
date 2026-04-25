@@ -31,13 +31,18 @@ protected:
 		float SpawnRate = 0.05f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Skyfall | Config")
-		float DamagePerMeteor = 20.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Skyfall | Config")
 		float SpawnHeight = 600.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Skyfall | Config")
 		float SpawnRadius = 300.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Skyfall | Config")
+		float MeteorExplosionRadius = 40.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Skyfall | Config")
+		TArray<float> MultiplierPerLevel;
+
+	virtual float GetActionDamageMultiplier() const override;
 
 	UFUNCTION()
 		void SwitchToLoopAnim(AActor* Instigator);

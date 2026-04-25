@@ -108,6 +108,15 @@ bool UCPP_GameInstance::LoadGame()
         ISaveableInterface::Execute_OnLoadGame(Actor, LoadInst);
     }
 
+    UGameplayStatics::SetGamePaused(this, false);
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (PC)
+    {
+        FInputModeGameOnly Mode;
+        PC->SetInputMode(Mode);
+        PC->bShowMouseCursor = false;
+    }
+
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Modules Loaded!"));
     
     bIsLoadingSave = false;
@@ -123,6 +132,15 @@ void UCPP_GameInstance::LaunchNewGame(FName MapName)
     }
 
     bIsLoadingSave = false;
+
+    UGameplayStatics::SetGamePaused(this, false);
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (PC)
+    {
+        FInputModeGameOnly Mode;
+        PC->SetInputMode(Mode);
+        PC->bShowMouseCursor = false;
+    }
 
     UGameplayStatics::OpenLevel(this, MapName);
 }

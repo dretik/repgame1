@@ -468,20 +468,28 @@ void ACPP_PlayerCharacter::LevelUp()
 
 void ACPP_PlayerCharacter::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
 {
-    if (!SaveObject || !AttributeComp) return;
+    if (!SaveObject || !AttributeComp|| !ActionComp) return;
 
+    //standart stats
     SaveObject->Health = AttributeComp->GetHealth();
     SaveObject->MaxHealth = AttributeComp->GetMaxHealth();
     SaveObject->BaseDamage = CurrentBaseDamage;
+    SaveObject->DamageMultiplier = AttributeComp->GetDamageMultiplier();
+    SaveObject->BaseSpeed = AttributeComp->GetBaseSpeed();
+    //progression
     SaveObject->CurrentXP = CurrentXP;
     SaveObject->XPToNextLevel = XPToNextLevel;
     SaveObject->Level = CharacterLevel;
     SaveObject->Coins = CoinCount;
+    //abilities
+    SaveObject->AbilityLevels = ActionComp->GetAllActionLevels();
+    SaveObject->EquippedSlots = ActionComp->GetEquippedAbilities();
+
+    //world
     SaveObject->PlayerLocation = GetActorLocation();
     SaveObject->LevelName = FName(*GetWorld()->GetName());
-    if (ActionComp)
-    SaveObject->AbilityLevels = ActionComp->GetAllActionLevels();
 
+    //inventory
     if (UCPP_InventoryComponent* InvComp = FindComponentByClass<UCPP_InventoryComponent>())
     {
         SaveObject->InventoryData = InvComp->GetInventory();
@@ -490,60 +498,44 @@ void ACPP_PlayerCharacter::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
 
 void ACPP_PlayerCharacter::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
 {
-    if (!SaveObject || !AttributeComp) return;
+    if (!SaveObject || !AttributeComp || !ActionComp) return;
 
+    //attributes
     AttributeComp->InitializeStats(SaveObject->MaxHealth);
+    AttributeComp->SetDamageMultiplier(SaveObject->DamageMultiplier);
+    AttributeComp->SetBaseSpeed(SaveObject->BaseSpeed);
+
+    //restore current health
     float Diff = SaveObject->Health - AttributeComp->GetHealth();
     AttributeComp->ApplyHealthChange(nullptr, Diff);
 
+    //progression
     CurrentBaseDamage = SaveObject->BaseDamage;
     CharacterLevel = SaveObject->Level;
     CurrentXP = SaveObject->CurrentXP;
     XPToNextLevel = (SaveObject->XPToNextLevel > 0) ? SaveObject->XPToNextLevel : 100.0f;
     CoinCount = SaveObject->Coins;
-    if (ActionComp)
+
+    //abilities
+    //first restore levels
     ActionComp->RestoreActionLevels(SaveObject->AbilityLevels);
+    //rebind
+    for (auto& It : SaveObject->EquippedSlots)
+    {
+        FAbilityCard RestoreCard;
+        RestoreCard.ActionClass = It.Value;
 
-    //if (ActionComp && ActionComp->GetActionSet())
-    //{
-    //    UCPP_ActionSet* CurrentSet = ActionComp->GetActionSet();
+        ActionComp->ApplyCardEffect(RestoreCard, It.Key);
+    }
 
-    //    for (auto& It : AbilityLevels)
-    //    {
-    //        FGameplayTag SavedTag = It.Key;
-    //        int32 SavedLevel = It.Value;
-
-    //        if (SavedLevel > 0)
-    //        {
-    //            if (ActionComp->GetAction(SavedTag) != nullptr) continue;
-
-    //            for (TSubclassOf<UCPP_Action> ActionClass : CurrentSet->Actions)
-    //            {
-    //                if (ActionClass)
-    //                {
-    //                    UCPP_Action* DefaultObj = ActionClass->GetDefaultObject<UCPP_Action>();
-    //                    if (DefaultObj && DefaultObj->ActionTag == SavedTag)
-    //                    {
-    //                        ActionComp->AddAction(ActionClass);
-
-    //                        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
-    //                            FString::Printf(TEXT("Restored Ability: %s (Level %d)"), *SavedTag.ToString(), SavedLevel));
-
-    //                        break;
-    //                    }
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
-
+    //physics and inventory
     SetActorLocation(SaveObject->PlayerLocation, false, nullptr, ETeleportType::TeleportPhysics);
-
     if (UCPP_InventoryComponent* InvComp = FindComponentByClass<UCPP_InventoryComponent>())
     {
         InvComp->SetInventory(SaveObject->InventoryData);
     }
 
+    //ui
     OnXPUpdated.Broadcast(CurrentXP, XPToNextLevel, CharacterLevel);
     OnCoinsUpdated.Broadcast(CoinCount);
 }

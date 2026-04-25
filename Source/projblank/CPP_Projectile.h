@@ -24,8 +24,12 @@ public:
 
     void SetDamage(float NewDamage) { Damage = NewDamage; }
 
+    UFUNCTION(BlueprintCallable, Category = "Projectile")
     void SetPersistentEffects(TArray<TSubclassOf<UCPP_Action_Effect>> NewEffects) 
     { StatusEffects = NewEffects; }
+
+    UFUNCTION(BlueprintCallable, Category = "Projectile")
+        void SetProjectileStats(float NewSpeed, float NewRadius);
 
 protected:
     //components

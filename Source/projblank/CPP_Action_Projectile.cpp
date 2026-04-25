@@ -88,19 +88,27 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 		Proj->SetDamage(GetCurrentDamage());
         Proj->SetActorScale3D(FVector(CurrentConfig.ProjectileScale));
 		Proj->SetPersistentEffects(CurrentConfig.ImpactEffects);
+
+		Proj->SetProjectileStats(CurrentConfig.FlightSpeed, CurrentConfig.ExplosionRadius);
 	}
 
 	StopAction(InstigatorCharacter);
 }
 
-FText UCPP_Action_Projectile::GetFormattedDescription_Implementation()
+float UCPP_Action_Projectile::GetActionDamageMultiplier() const
 {
-	// could take ActionDescription and replace {Dmg} with actual data
-	// using FText::Format
-	FFormatNamedArguments Args;
-	Args.Add("Dmg", FText::AsNumber(FMath::RoundToInt(GetCurrentDamage())));
+	UCPP_ActionComponent* Comp = GetOwningComponent();
 
-	return FText::Format(ActionDescription, Args);
+	// for CDO (preview): if no comp (template), take level 1.
+	int32 CurrentLevel = Comp ? Comp->GetActionLevel(ActionTag) : 1;
+	// 0 level protection
+	if (CurrentLevel <= 0) CurrentLevel = 1;
+
+	int32 ConfigIndex = FMath::Clamp(CurrentLevel - 1, 0, LevelConfigs.Num() - 1);
+
+	if (LevelConfigs.Num() == 0) return 1.0f;
+
+	return LevelConfigs[ConfigIndex].DamageMultiplier;
 }
 
 float UCPP_Action_Projectile::GetCurrentDamage() const
@@ -108,25 +116,11 @@ float UCPP_Action_Projectile::GetCurrentDamage() const
 	UCPP_ActionComponent* Comp = GetOwningComponent();
 	if (!Comp) return 0.0f;
 
-	//getting lvl
-	int32 CurrentLevel = Comp->GetActionLevel(ActionTag);
-	int32 ConfigIndex = FMath::Clamp(CurrentLevel - 1, 0, LevelConfigs.Num() - 1);
-
-	if (LevelConfigs.Num() == 0) return 0.0f;
-
-	const FProjectileLevelData& Config = LevelConfigs[ConfigIndex];
-
-	// owners base dmg
-	float BaseDmg = 0.0f;
+	float BaseDmg = 10.0f; // fallback
 	if (ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(Comp->GetOwner()))
 	{
 		BaseDmg = BaseChar->GetCurrentBaseDamage();
 	}
-	else
-	{
-		// if CDO (shop preview), taking damage from first cfg
-		return Config.DamageMultiplier * 10.0f; // default
-	}
 
-	return BaseDmg * Config.DamageMultiplier;
+	return BaseDmg * GetActionDamageMultiplier();
 }

@@ -25,7 +25,11 @@ struct FProjectileLevelData
 	UPROPERTY(EditAnywhere, Category = "LevelData")
 		TArray<TSubclassOf<UCPP_Action_Effect>> ImpactEffects;
 
-	// projectile amount or speed could be added
+	UPROPERTY(EditAnywhere, Category = "LevelData")
+		float FlightSpeed = 600.0f;
+
+	UPROPERTY(EditAnywhere, Category = "LevelData")
+		float ExplosionRadius = 80.0f;
 };
 
 UCLASS()
@@ -38,10 +42,11 @@ public:
 
 	virtual void StartAction_Implementation(AActor* Instigator) override;
 
+	virtual float GetActionDamageMultiplier() const override;
+
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 		float GetCurrentDamage() const;
 
-	virtual FText GetFormattedDescription_Implementation() override;
 protected:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 		TArray<FProjectileLevelData> LevelConfigs;

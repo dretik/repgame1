@@ -151,8 +151,21 @@ float UCPP_Action::GetCooldownNormalized() const {
 	return GetCooldownRemaining() / CooldownTime;
 }
 
+float UCPP_Action::GetActionDamageMultiplier() const
+{
+	//base action have nothing
+	return 1.0f;
+}
+
 FText UCPP_Action::GetFormattedDescription_Implementation()
 {
-	//defualt
-	return ActionDescription;
+	FFormatNamedArguments Args;
+
+	//prct conv logic
+	int32 DmgPct = FMath::RoundToInt(GetActionDamageMultiplier() * 100.0f);
+
+	// prcnt arg
+	Args.Add("DmgPct", FText::AsNumber(DmgPct));
+
+	return FText::Format(ActionDescription, Args);
 }

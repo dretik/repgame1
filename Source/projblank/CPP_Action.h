@@ -44,6 +44,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Action")
 		float GetCooldownNormalized() const; //0 1 for progressbar
 
+	UFUNCTION(BlueprintCallable, Category = "Action")
+		virtual float GetActionDamageMultiplier() const;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Action", meta = (ClampMin = "0.01", UIMin = "0.01"))
 		float Duration = 1.0f;
 	//fallsafe const

@@ -45,6 +45,15 @@ ACPP_Projectile::ACPP_Projectile()
     MovementComp->ProjectileGravityScale = 0.1f;
 }
 
+void ACPP_Projectile::SetProjectileStats(float NewSpeed, float NewRadius)
+{
+    if (MovementComp) {
+        MovementComp->InitialSpeed = NewSpeed;
+        MovementComp->MaxSpeed = NewSpeed;
+    }
+    ExplosionRadius = NewRadius;
+}
+
 void ACPP_Projectile::BeginPlay()
 {
     Super::BeginPlay();
@@ -139,3 +148,4 @@ void ACPP_Projectile::DestroyProjectile()
 {
     Destroy();
 }
+

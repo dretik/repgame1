@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "CPP_Projectile.h"
 #include "CPP_BaseEnemy.h"
+#include "CPP_BaseCharacter.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperCharacter.h"
 #include "PaperFlipbook.h"
@@ -133,9 +134,31 @@ void UCPP_Action_BossSkyfall::SpawnMeteor(AActor* Instigator)
 		ACPP_Projectile* Meteor = Cast<ACPP_Projectile>(SpawnedActor);
 		if (Meteor)
 		{
-			Meteor->SetDamage(DamagePerMeteor);
+			float BaseDmg = 10.0f; // fallback
+
+			if (ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(Instigator))
+			{
+				BaseDmg = BaseChar->GetCurrentBaseDamage();
+			}
+
+			float FinalDamage = BaseDmg * GetActionDamageMultiplier();
+
+			Meteor->SetDamage(FinalDamage);
+
+			Meteor->SetProjectileStats(400.0f, MeteorExplosionRadius);
 		}
 
 		//if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Purple, TEXT("Meteor Spawned via Action!"));
 	}
+}
+
+float UCPP_Action_BossSkyfall::GetActionDamageMultiplier() const
+{
+	UCPP_ActionComponent* Comp = GetOwningComponent();
+	int32 CurrentLevel = Comp ? Comp->GetActionLevel(ActionTag) : 1;
+	if (CurrentLevel <= 0) CurrentLevel = 1;
+
+	int32 Index = FMath::Clamp(CurrentLevel - 1, 0, MultiplierPerLevel.Num() - 1);
+
+	return (MultiplierPerLevel.Num() > 0) ? MultiplierPerLevel[Index] : 1.0f;
 }

@@ -84,6 +84,12 @@ public:
     UPROPERTY(VisibleAnywhere, Category = "SaveData")
         int32 Coins;
 
+    UPROPERTY(VisibleAnywhere, Category = "SaveData")
+        float DamageMultiplier;
+
+    UPROPERTY(VisibleAnywhere, Category = "SaveData")
+        float BaseSpeed;
+
     // --- POSITION ---
     UPROPERTY(VisibleAnywhere, Category = "SaveData")
         FVector PlayerLocation;
@@ -97,6 +103,9 @@ public:
 
     UPROPERTY(VisibleAnywhere, Category = "SaveData")
         TMap<FGameplayTag, int32> AbilityLevels;
+
+    UPROPERTY(VisibleAnywhere, Category = "SaveData")
+        TMap<FGameplayTag, TSubclassOf<class UCPP_Action>> EquippedSlots;
 
     // --- WORLD DATA ---
 

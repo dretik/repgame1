@@ -91,14 +91,7 @@ void UCPP_Action_BossMelee::MakeHit(AActor* Instigator)
 	if (!Char) return;
 	UCPP_VisualComponent* VisualComp = Char->FindComponentByClass<UCPP_VisualComponent>();
 	if (!VisualComp) return;
-	float DamageToApply = Char->GetCurrentBaseDamage();
-
-	if (UCPP_AttributeComponent* AttrComp = Char->FindComponentByClass<UCPP_AttributeComponent>())
-	{
-		DamageToApply *= AttrComp->GetDamageMultiplier();
-	}
-
-	DamageToApply *= ActionDamageMultiplier;
+	float DamageToApply = Char->GetCurrentBaseDamage() * GetActionDamageMultiplier();
 		
 	FVector AttackDirection = VisualComp->GetVisualFacingDirection();
 
@@ -147,4 +140,8 @@ void UCPP_Action_BossMelee::StopAction_Implementation(AActor* Instigator)
 		}
 	}
 	Super::StopAction_Implementation(Instigator);
+}
+
+float UCPP_Action_BossMelee::GetActionDamageMultiplier() const {
+	return ActionDamageMultiplier;
 }
