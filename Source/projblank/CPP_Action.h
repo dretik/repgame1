@@ -86,6 +86,9 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "UI")
 		FText GetFormattedDescription();
 
+	UFUNCTION(BlueprintPure, Category = "Action|Utility", meta = (DeterminesOutputType = "ActionClass"))
+		static UCPP_Action* GetActionCDO(TSubclassOf<UCPP_Action> ActionClass);
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 		ECardRarity Rarity;
 

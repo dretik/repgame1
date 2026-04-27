@@ -169,3 +169,12 @@ FText UCPP_Action::GetFormattedDescription_Implementation()
 
 	return FText::Format(ActionDescription, Args);
 }
+
+UCPP_Action* UCPP_Action::GetActionCDO(TSubclassOf<UCPP_Action> ActionClass)
+{
+	if (ActionClass)
+	{
+		return ActionClass->GetDefaultObject<UCPP_Action>();
+	}
+	return nullptr;
+}

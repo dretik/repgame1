@@ -33,6 +33,10 @@ public:
         FOnNotificationReceived OnNotificationReceived;
     void ShowNotification(FText Text, FLinearColor Color = FLinearColor::White);
 
+    //globaltooltip
+    UPROPERTY(BlueprintReadWrite, Category = "UI")
+        class UUserWidget* GlobalTooltipRef;
+
     // --- ABILITIES ---
     UFUNCTION(BlueprintCallable, Category = "Abilities")
         bool GrantAbility(TSubclassOf<class UCPP_Action> ActionClass);
