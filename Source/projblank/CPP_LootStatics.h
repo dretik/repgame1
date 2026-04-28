@@ -19,6 +19,7 @@ public:
     static void ExecuteSpawnLootTable(const UObject* WorldContextObject, UCharacterStats* Stats, FVector Location);
     static void ExecuteSpawnCurrency(const UObject* WorldContextObject, UCharacterStats* Stats, FVector Location);
     static void ExecuteSpawnXP(const UObject* WorldContextObject, UCharacterStats* Stats, FVector Location);
+    static void ExecuteSpawnCard(const UObject* WorldContextObject, UCharacterStats* Stats, FVector Location);
 private:
 
     static void ApplyLootImpulse(AActor* Item);

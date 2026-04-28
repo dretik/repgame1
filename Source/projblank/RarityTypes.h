@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "GameplayTagContainer.h"
 #include "RarityTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -13,4 +14,19 @@ enum class ECardRarity : uint8
     Rare      UMETA(DisplayName = "Rare"),
     Epic      UMETA(DisplayName = "Epic"),
     Legendary UMETA(DisplayName = "Legendary")
+};
+
+USTRUCT(BlueprintType)
+struct FStatModifier
+{
+	GENERATED_BODY()
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+		FGameplayTag StatTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+		bool bIsMultiplier = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+		float Value = 0.0f;
 };

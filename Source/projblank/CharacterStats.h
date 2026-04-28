@@ -141,6 +141,15 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
         TArray<FLootItem> LootTable;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        float CardDropChance = 0.1f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        TSubclassOf<class ACPP_Item_CombatCard> BaseCardItemClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | Loot")
+        class UCombatCardRegistry* CardRegistry;
+
     //vfx
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats | VFX")
         UNiagaraSystem* AttackEffect;

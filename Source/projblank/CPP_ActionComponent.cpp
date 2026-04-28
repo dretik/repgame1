@@ -345,3 +345,34 @@ FGameplayTag UCPP_ActionComponent::GetFirstEmptySlot() const
 	//all slots are occupied
 	return FGameplayTag::EmptyTag;
 }
+
+void UCPP_ActionComponent::ExecuteActionOnce(TSubclassOf<UCPP_Action> ActionClass, FVector Location)
+{
+	if (!ActionClass) return;
+
+	UCPP_Action* ActionObj = GetAction(ActionClass->GetDefaultObject<UCPP_Action>()->ActionTag);
+	if (!ActionObj)
+	{
+		ActionObj = NewObject<UCPP_Action>(this, ActionClass);
+		Actions.Add(ActionObj);
+	}
+
+	if (ActionObj)
+	{
+		if (!Location.IsZero())
+		{
+			ActionObj->SetOverrideLocation(Location);
+		}
+		else
+		{
+			// if ordinary ability
+			ActionObj->ClearOverrideLocation();
+		}
+
+		if (ActionObj->CanStart(GetOwner()))
+		{
+			ActionObj->StartAction(GetOwner());
+		}
+
+	}
+}

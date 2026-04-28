@@ -4,27 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "RarityTypes.h"
 #include "CPP_AttributeComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnAttributeChanged, AActor*, InstigatorActor, class UCPP_AttributeComponent*, OwningComp, float, NewValue, float, Delta);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeath, AActor*, KillerActor);
-
-
-USTRUCT(BlueprintType)
-struct FStatModifier
-{
-	GENERATED_BODY()
-
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-		FGameplayTag StatTag;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-		bool bIsMultiplier = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-		float Value = 0.0f;
-};
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJBLANK_API UCPP_AttributeComponent : public UActorComponent
@@ -36,10 +21,10 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attributes", meta = (AllowPrivateAccess = "true"))
-		float Health;
+		float Health=100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attributes", meta = (AllowPrivateAccess = "true"))
-		float MaxHealth;
+		float MaxHealth=100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attributes", meta = (AllowPrivateAccess = "true"))
 		float DamageMultiplier=1.0f;

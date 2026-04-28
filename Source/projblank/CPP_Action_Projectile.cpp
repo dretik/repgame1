@@ -8,6 +8,7 @@
 #include "CPP_BaseCharacter.h" 
 #include "CPP_AttributeComponent.h"
 #include "CPP_VisualComponent.h"
+#include "CPP_CombatStatics.h"
 
 UCPP_Action_Projectile::UCPP_Action_Projectile()
 {
@@ -52,44 +53,19 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 
 	int32 ConfigIndex = FMath::Clamp(CurrentLevel - 1, 0, LevelConfigs.Num() - 1);
 
-	if (LevelConfigs.Num() == 0)
+	if (LevelConfigs.Num() > 0)
 	{
-		StopAction(InstigatorCharacter);
-		return;
-	}
+		const FProjectileLevelData& Cfg = LevelConfigs[ConfigIndex];
 
-	const FProjectileLevelData& CurrentConfig = LevelConfigs[ConfigIndex];
-
-	UCPP_VisualComponent* VisualComp = InstigatorCharacter->FindComponentByClass<UCPP_VisualComponent>();
-	FVector FacingDir = VisualComp ? VisualComp->GetVisualFacingDirection() : FVector(0, 1, 0);
-
-	float BaseOffset = 40.0f;
-	float FinalOffset = BaseOffset * CurrentConfig.ProjectileScale;
-
-	FRotator SpawnRotation = FRotator(0, (FacingDir.Y > 0 ? 90.f : -90.f), 0);
-	FVector SpawnLocation = InstigatorCharacter->GetActorLocation();
-	SpawnLocation.Y += FacingDir.Y * FinalOffset;
-	SpawnLocation.Z += 20.0f;
-
-	FActorSpawnParameters SpawnParams;
-	//SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	SpawnParams.Instigator = InstigatorCharacter;
-	SpawnParams.Owner = InstigatorCharacter;
-
-	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(CurrentConfig.ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-
-	if (SpawnedActor)
-	{
-		InstigatorCharacter->MoveIgnoreActorAdd(SpawnedActor);
-	}
-
-	if (ACPP_Projectile* Proj = Cast<ACPP_Projectile>(SpawnedActor))
-	{
-		Proj->SetDamage(GetCurrentDamage());
-        Proj->SetActorScale3D(FVector(CurrentConfig.ProjectileScale));
-		Proj->SetPersistentEffects(CurrentConfig.ImpactEffects);
-
-		Proj->SetProjectileStats(CurrentConfig.FlightSpeed, CurrentConfig.ExplosionRadius);
+		UCPP_CombatStatics::SpawnProjectile(
+			InstigatorCharacter,
+			Cfg.ProjectileClass,
+			GetCurrentDamage(),
+			Cfg.FlightSpeed,
+			Cfg.ExplosionRadius,
+			Cfg.ProjectileScale,
+			Cfg.ImpactEffects
+		);
 	}
 
 	StopAction(InstigatorCharacter);

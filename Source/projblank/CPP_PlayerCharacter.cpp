@@ -53,6 +53,10 @@ void ACPP_PlayerCharacter::SetupPlayerInputComponent(UInputComponent*
         IE_Pressed, this, &ACPP_PlayerCharacter::InputAbilityE);
     PlayerInputComponent->BindAction("AbilityR", 
         IE_Pressed, this, &ACPP_PlayerCharacter::InputAbilityR);
+    PlayerInputComponent->BindAction("UseCard_Throw", 
+        IE_Pressed, this, &ACPP_PlayerCharacter::Input_UseCardThrow);
+    PlayerInputComponent->BindAction("UseCard_Self", 
+        IE_Pressed, this, &ACPP_PlayerCharacter::Input_UseCardSelf);
 
     //attack
     PlayerInputComponent->BindAction("AttackAction",
@@ -555,6 +559,18 @@ void ACPP_PlayerCharacter::InputAbilityR() {
 void ACPP_PlayerCharacter::ModifyStat_Implementation(FStatModifier Modifier)
 {
     ApplyStatModifier(Modifier);
+}
+
+void ACPP_PlayerCharacter::Input_UseCardThrow()
+{
+    FGameplayTag Tag = FGameplayTag::RequestGameplayTag("Ability.Active.UseCard.Throw");
+    ActionComp->StartActionByName(this, Tag);
+}
+
+void ACPP_PlayerCharacter::Input_UseCardSelf()
+{
+    FGameplayTag Tag = FGameplayTag::RequestGameplayTag("Ability.Active.UseCard.Self");
+    ActionComp->StartActionByName(this, Tag);
 }
 
 void ACPP_PlayerCharacter::AddResource_Implementation(FGameplayTag ResourceTag, float Amount)

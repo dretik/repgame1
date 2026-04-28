@@ -80,6 +80,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Roguelike")
 		bool ApplyCardEffect(FAbilityCard ChosenCard, FGameplayTag TargetSlot);
 
+	UFUNCTION(BlueprintCallable, Category = "Actions")
+		void ExecuteActionOnce(TSubclassOf<UCPP_Action> ActionClass,FVector Location = FVector::ZeroVector);
+
 	//returns first available ability slot
 	UFUNCTION(BlueprintCallable, Category = "Actions|Slots")
 		FGameplayTag GetFirstEmptySlot() const;

@@ -100,6 +100,8 @@ void UCPP_Action::StopAction_Implementation(AActor* Instigator)
 	RepData.bIsRunning = false;
 	RepData.Instigator = nullptr;
 
+	bUseOverrideLocation = false;
+
 	if (OnActionStopped.IsBound())
 	{
 		OnActionStopped.Broadcast(this);
@@ -177,4 +179,21 @@ UCPP_Action* UCPP_Action::GetActionCDO(TSubclassOf<UCPP_Action> ActionClass)
 		return ActionClass->GetDefaultObject<UCPP_Action>();
 	}
 	return nullptr;
+}
+
+void UCPP_Action::SetOverrideLocation(FVector NewLocation)
+{
+	OverrideLocation = NewLocation;
+	bUseOverrideLocation = true;
+}
+
+FVector UCPP_Action::GetActionLocation() const
+{
+	if (bUseOverrideLocation)
+	{
+		return OverrideLocation;
+	}
+
+	AActor* Owner = GetOwningComponent() ? GetOwningComponent()->GetOwner() : nullptr;
+	return Owner ? Owner->GetActorLocation() : FVector::ZeroVector;
 }

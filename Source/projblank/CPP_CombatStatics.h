@@ -42,5 +42,16 @@ public:
             bool bDrawDebug = false
         );
 
+    UFUNCTION(BlueprintCallable, Category = "Combat|Statics")
+        static ACPP_Projectile* SpawnProjectile(
+            AActor* Instigator,
+            TSubclassOf<ACPP_Projectile> ProjectileClass,
+            float Damage,
+            float Speed,
+            float Radius,
+            float Scale,
+            const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply
+        );
+
     static bool ExecuteHealing(AActor* Instigator, AActor* Target, float HealAmount, bool bIsPercentage);
 };

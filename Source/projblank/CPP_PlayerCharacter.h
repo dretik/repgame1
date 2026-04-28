@@ -97,6 +97,8 @@ protected:
     void InputAbilityQ();
     void InputAbilityE();
     void InputAbilityR();
+    void Input_UseCardThrow();
+    void Input_UseCardSelf();
 
     // --- COMBO SYSTEM ---
     bool bInputBuffered = false;

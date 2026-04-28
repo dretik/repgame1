@@ -16,6 +16,7 @@ void UCPP_LootStatics::SpawnAllLoot(const UObject* WorldContextObject, UCharacte
     ExecuteSpawnLootTable(WorldContextObject, Stats, Location);
     ExecuteSpawnCurrency(WorldContextObject, Stats, Location);
     ExecuteSpawnXP(WorldContextObject, Stats, Location);
+    ExecuteSpawnCard(WorldContextObject, Stats, Location);
 }
 
 void UCPP_LootStatics::ExecuteSpawnLootTable(const UObject* WorldContextObject, UCharacterStats* Stats, FVector Location)
@@ -131,5 +132,27 @@ void UCPP_LootStatics::ApplyLootImpulse(AActor* Item)
     {
         FVector Impulse = FVector(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f), FMath::RandRange(1.f, 1.5f));
         Root->AddImpulse(Impulse.GetSafeNormal() * FMath::RandRange(300.f, 500.f), NAME_None, true);
+    }
+}
+
+void UCPP_LootStatics::ExecuteSpawnCard(const UObject* WorldContextObject, UCharacterStats* Stats, FVector Location)
+{
+    if (!Stats || !Stats->CardRegistry || !Stats->BaseCardItemClass) return;
+
+    if (FMath::FRand() <= Stats->CardDropChance)
+    {
+        UCPP_CombatCardData* RandomCard = Stats->CardRegistry->GetRandomCard();
+        if (RandomCard)
+        {
+            FVector FinalLoc = Location + FVector(0, 0, 30);
+            ACPP_Item_CombatCard* NewCardActor = WorldContextObject->GetWorld()->SpawnActor<ACPP_Item_CombatCard>(
+                Stats->BaseCardItemClass, FinalLoc, FRotator::ZeroRotator);
+
+            if (NewCardActor)
+            {
+                NewCardActor->InitializeCard(RandomCard);
+                ApplyLootImpulse(NewCardActor);
+            }
+        }
     }
 }

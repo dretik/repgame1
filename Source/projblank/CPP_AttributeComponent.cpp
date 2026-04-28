@@ -4,8 +4,6 @@
 
 UCPP_AttributeComponent::UCPP_AttributeComponent()
 {
-	Health = 100.0f;
-	MaxHealth = 100.0f;
 }
 
 void UCPP_AttributeComponent::InitializeStats(float NewMaxHealth)

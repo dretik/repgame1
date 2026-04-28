@@ -92,6 +92,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 		ECardRarity Rarity;
 
+	UFUNCTION(BlueprintCallable, Category = "Action")
+		void SetOverrideLocation(FVector NewLocation);
+	UFUNCTION(BlueprintCallable, Category = "Action")
+		void ClearOverrideLocation() { bUseOverrideLocation = false; }
 	//for timers
 	virtual UWorld* GetWorld() const override;
 
@@ -106,6 +110,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Action")
 		float TimeStarted;
+
+	UFUNCTION(BlueprintCallable, Category = "Action")
+		FVector GetActionLocation() const;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Action")
+		FVector OverrideLocation;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Action")
+		bool bUseOverrideLocation = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Action")
 		FTimerHandle TimerHandle_AutoStop;

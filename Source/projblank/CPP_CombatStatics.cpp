@@ -10,6 +10,8 @@
 #include "CPP_CombatInterface.h"
 #include "CPP_ActionComponent.h"
 #include "CPP_Action_Effect.h"
+#include "CPP_Projectile.h"
+#include "CPP_VisualComponent.h"
 #include "DrawDebugHelpers.h"
 
 bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Instigator, 
@@ -237,4 +239,38 @@ bool UCPP_CombatStatics::ExecuteHealing(AActor* Instigator, AActor* Target, floa
     }
 
     return AttrComp->ApplyHealthChange(Instigator, FinalHeal);
+}
+
+ACPP_Projectile* UCPP_CombatStatics::SpawnProjectile(AActor* Instigator, TSubclassOf<ACPP_Projectile> ProjectileClass, float Damage, float Speed, float Radius, float Scale, const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply)
+{
+    if (!Instigator || !ProjectileClass) return nullptr;
+
+    UWorld* World = Instigator->GetWorld();
+    if (!World) return nullptr;
+
+    UCPP_VisualComponent* VisualComp = Instigator->FindComponentByClass<UCPP_VisualComponent>();
+    FVector FacingDir = VisualComp ? VisualComp->GetVisualFacingDirection() : Instigator->GetActorForwardVector();
+
+    float BaseOffset = 40.0f * Scale;
+    FVector SpawnLocation = Instigator->GetActorLocation();
+    SpawnLocation.Y += FacingDir.Y * BaseOffset;
+    SpawnLocation.Z += 20.0f;
+
+    FRotator SpawnRotation = FRotator(0, (FacingDir.Y > 0 ? 90.f : -90.f), 0);
+
+    FActorSpawnParameters Params;
+    Params.Instigator = Cast<APawn>(Instigator);
+    Params.Owner = Instigator;
+
+    ACPP_Projectile* Proj = World->SpawnActor<ACPP_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, Params);
+
+    if (Proj)
+    {
+        Proj->SetDamage(Damage);
+        Proj->SetActorScale3D(FVector(Scale));
+        Proj->SetProjectileStats(Speed, Radius);
+        Proj->SetPersistentEffects(EffectsToApply);
+    }
+
+    return Proj;
 }
