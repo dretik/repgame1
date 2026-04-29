@@ -29,8 +29,14 @@ bool UCPP_AttributeComponent::ApplyHealthChange(AActor* InstigatorActor, float D
 		return false;
 	}
 
+	float ModifiedDelta = Delta;
+	if (Delta < 0.0f)
+	{
+		ModifiedDelta *= DefenseMultiplier;
+	}
+
 	float OldHealth = Health;
-	float NewHealth = FMath::Clamp(Health + Delta, 0.0f, MaxHealth);
+	float NewHealth = FMath::Clamp(Health + ModifiedDelta, 0.0f, MaxHealth);
 
 	float ActualDelta = NewHealth - OldHealth;
 

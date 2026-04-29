@@ -32,6 +32,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attributes")
 		float BaseSpeed = 450.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attributes")
+		float DefenseMultiplier = 1.0f;
+
 	UPROPERTY()
 		TMap<UObject*, float> SpeedMultipliers;
 
@@ -67,14 +70,20 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Attributes")
 		FOnAttributeChanged OnHealthChanged;
 
-	UFUNCTION(BlueprintCallable, Category = "Attributes|Speed")
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
 		void SetBaseSpeed(float NewBase);
 
-	UFUNCTION(BlueprintCallable, Category = "Attributes|Speed")
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
 		void AddSpeedMultiplier(UObject* Source, float Multiplier);
 
-	UFUNCTION(BlueprintCallable, Category = "Attributes|Speed")
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
 		void RemoveSpeedMultiplier(UObject* Source);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+		void SetDefenseMultiplier(float NewMultiplier) { DefenseMultiplier = NewMultiplier; }
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+		float GetDefenseMultiplier() const { return DefenseMultiplier; }
 
 	UPROPERTY(BlueprintAssignable, Category = "Attributes")
 		FOnDeath OnDeath;

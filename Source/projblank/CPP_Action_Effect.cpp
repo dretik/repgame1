@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "CPP_Action_Effect.h"
+#include "CPP_BaseCharacter.h"
 #include "CPP_ActionComponent.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_VisualComponent.h"
@@ -50,6 +51,11 @@ void UCPP_Action_Effect::StartAction_Implementation(AActor* Instigator)
 
 		ActiveFXComp = UCPP_VisualStatics::SpawnNiagaraEffectAttached(AttachParent, PersistentFX);
 	}
+
+	if (ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(GetOwningComponent()->GetOwner())) {
+		for (auto& Mod : ModifiersWhileActive) BaseChar->ApplyStatModifier(Mod);
+	}
+
 	//speed mod
 	if (SpeedMultiplier != 1.0f)
 	{
@@ -74,6 +80,14 @@ void UCPP_Action_Effect::StopAction_Implementation(AActor* Instigator)
 		if (AttrComp)
 		{
 			AttrComp->RemoveSpeedMultiplier(this);
+		}
+	}
+
+	if (ACPP_BaseCharacter* BaseChar = Cast<ACPP_BaseCharacter>(GetOwningComponent()->GetOwner())) {
+		for (auto& Mod : ModifiersWhileActive) {
+			FStatModifier InverseMod = Mod;
+			InverseMod.Value *= -1;
+			BaseChar->ApplyStatModifier(InverseMod);
 		}
 	}
 

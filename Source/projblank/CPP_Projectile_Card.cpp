@@ -14,7 +14,7 @@ void ACPP_Projectile_Card::Explode(AActor* Target)
 		if (ActionComp)
 		{
 			// world coords could be
-			ActionComp->ExecuteActionOnce(ImpactAction);
+			ActionComp->ExecuteActionOnce(ImpactAction, GetActorLocation());
 		}
 	}
 

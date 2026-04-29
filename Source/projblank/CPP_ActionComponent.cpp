@@ -359,7 +359,7 @@ void UCPP_ActionComponent::ExecuteActionOnce(TSubclassOf<UCPP_Action> ActionClas
 
 	if (ActionObj)
 	{
-		if (!Location.IsZero())
+		if (!Location.Equals(FVector::ZeroVector))
 		{
 			ActionObj->SetOverrideLocation(Location);
 		}
@@ -369,10 +369,9 @@ void UCPP_ActionComponent::ExecuteActionOnce(TSubclassOf<UCPP_Action> ActionClas
 			ActionObj->ClearOverrideLocation();
 		}
 
-		if (ActionObj->CanStart(GetOwner()))
-		{
-			ActionObj->StartAction(GetOwner());
-		}
+		// if (ActionObj->CanStart(GetOwner()))
+		ActionObj->StartAction(GetOwner());
+
 
 	}
 }

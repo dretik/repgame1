@@ -47,7 +47,7 @@ void UCPP_Action_UseCard::StartAction_Implementation(AActor* Instigator)
 						{}
 					);
 
-					// Передаем "Полезную нагрузку" (Payload) в снаряд
+					//set payload
 					if (ACPP_Projectile_Card* CardProj = Cast<ACPP_Projectile_Card>(SpawnedProj))
 					{
 						CardProj->SetImpactAction(DrawnCard.ImpactActionClass);

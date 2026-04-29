@@ -195,5 +195,10 @@ FVector UCPP_Action::GetActionLocation() const
 	}
 
 	AActor* Owner = GetOwningComponent() ? GetOwningComponent()->GetOwner() : nullptr;
-	return Owner ? Owner->GetActorLocation() : FVector::ZeroVector;
+	if (Owner)
+	{
+		return Owner->GetActorLocation() + FVector(0, 0, 20.0f);
+	}
+
+	return FVector::ZeroVector;
 }

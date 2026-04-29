@@ -113,13 +113,12 @@ FText UCPP_Action_Heal::GetFormattedDescription_Implementation()
 	int32 DmgPct = FMath::RoundToInt(GetActionDamageMultiplier() * 100.0f);
 	Args.Add("DmgPct", FText::AsNumber(DmgPct));
 
-	// Выбираем суффикс в зависимости от типа лечения
 	FText Suffix = (HealType == EHealType::Flat)
 		? NSLOCTEXT("UI", "HealFlat", "% base ATK")
 		: NSLOCTEXT("UI", "HealPct", "% of max HP");
 
 	Args.Add("Suffix", Suffix);
 
-	// В ActionDescription в Блупринте пишем: "Восстанавливает {DmgPct}{Suffix}"
+	// ActionDescription: {DmgPct}{Suffix}
 	return FText::Format(ActionDescription, Args);
 }

@@ -25,6 +25,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect")
 		float DamagePerTick;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Effect | Stats")
+		TArray<FStatModifier> ModifiersWhileActive;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect | Stacking")
 		bool bCanStack;
 

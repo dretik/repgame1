@@ -60,72 +60,6 @@ ACPP_BaseCharacter::ACPP_BaseCharacter(const FObjectInitializer& ObjectInitializ
     GetCapsuleComponent()->BodyInstance.bLockZRotation = true;
 }
 
-//void ACPP_BaseCharacter::PerformAttackTrace(float Range, FVector BoxSize, float DamageAmount)
-//{
-//    if (CharacterStats && CharacterStats->AttackEffect)
-//    {
-//        FRotator EffectRotation = FRotator::ZeroRotator;
-//
-//        if (GetSprite()->GetRelativeScale3D().X > 0.0f)
-//        {
-//            EffectRotation.Yaw = 90.0f;
-//        }
-//        else {
-//            EffectRotation.Yaw = -90.0f;
-//        }
-//
-//        SpawnParticle(CharacterStats->AttackEffect, GetActorLocation(), EffectRotation);
-//    }
-//
-//    float DirectionSign = (GetSprite()->GetRelativeScale3D().X > 0.0f) ? 1.0f : -1.0f;
-//
-//    FVector AttackDirection = FVector(0.0f, 1.0f, 0.0f) * DirectionSign;
-//
-//    const FVector Start = GetActorLocation();
-//    const FVector End = Start + (AttackDirection * Range);
-//    const FVector HalfSize = BoxSize;
-//
-//    TArray<AActor*> ActorsToIgnore;
-//    ActorsToIgnore.Add(this);
-//    TArray<FHitResult> HitResults;
-//
-//    bool bHit = UKismetSystemLibrary::BoxTraceMulti(
-//        GetWorld(),
-//        Start,
-//        End,
-//        HalfSize,
-//        FRotator::ZeroRotator,
-//        UEngineTypes::ConvertToTraceType(ECC_WorldDynamic),
-//        false,
-//        ActorsToIgnore,
-//        EDrawDebugTrace::ForDuration,
-//        HitResults,
-//        true
-//    ); 
-//
-//    if (bHit)
-//    {
-//        TSet<AActor*> DamagedActors;
-//        for (const FHitResult& Result : HitResults)
-//        {
-//            AActor* HitActor = Result.GetActor();
-//
-//            if (HitActor && CanDealDamageTo(HitActor)&&!DamagedActors.Contains(HitActor))
-//            {
-//                DamagedActors.Add(HitActor);
-//
-//                UGameplayStatics::ApplyDamage(
-//                    HitActor,
-//                    DamageAmount,
-//                    GetController(),
-//                    this,
-//                    UDamageType::StaticClass()
-//                );
-//            }
-//        }
-//    }
-//}
-
 void ACPP_BaseCharacter::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
 {
 }
@@ -192,8 +126,11 @@ float ACPP_BaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 
     if (bApplied && ActualDamage > 0.0f && VisualComp)
     {
-        VisualComp->FaceLocation(DamageCauser->GetActorLocation(), BaseSpriteScale);
-        VisualComp->LockFlipping(0.5f);
+        if (DamageCauser)
+        {
+            VisualComp->FaceLocation(DamageCauser->GetActorLocation(), BaseSpriteScale);
+            VisualComp->LockFlipping(0.5f);
+        }
         VisualComp->HandleDamageReceived(ActualDamage, DamageTextClass, CharacterStats ? CharacterStats->HitEffect : nullptr);
     }
 
@@ -271,11 +208,6 @@ bool ACPP_BaseCharacter::CanDealDamageTo_Implementation(AActor* TargetActor) con
 
 void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
 {
-    //TMap vocab
-    //TMap<FGameplayTag, float*> StatMap;
-    //StatMap.Add(FGameplayTag::RequestGameplayTag("Stats.Damage"), &DamageMultiplier);
-    //StatMap.Add(FGameplayTag::RequestGameplayTag("Stats.Speed"), &MaxWalkSpeed);
-    
     if (GEngine)
     {
         FString IncomingTagName = Modifier.StatTag.ToString();
@@ -369,6 +301,21 @@ void ACPP_BaseCharacter::ApplyStatModifier(FStatModifier Modifier)
 
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Speed Updated: %f"), GetCharacterMovement()->MaxWalkSpeed));
         }
+    }
+
+    const FGameplayTag Tag_Defense = FGameplayTag::RequestGameplayTag(FName("Stats.Defense"));
+
+    if (Modifier.StatTag.MatchesTagExact(Tag_Defense))
+    {
+        if (AttributeComp)
+        {
+            float NewMult = Modifier.bIsMultiplier ?
+                AttributeComp->GetDefenseMultiplier() * Modifier.Value :
+                AttributeComp->GetDefenseMultiplier() + Modifier.Value;
+
+            AttributeComp->SetDefenseMultiplier(NewMult);
+        }
+        return;
     }
 }
 
