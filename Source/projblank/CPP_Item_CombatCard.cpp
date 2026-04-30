@@ -11,7 +11,7 @@ void ACPP_Item_CombatCard::Interact_Implementation(AActor* Interactor)
 	UCPP_DeckComponent* DeckComp = Interactor->FindComponentByClass<UCPP_DeckComponent>();
 	if (DeckComp)
 	{
-		DeckComp->AddCardToDeck(CardDataAsset->CardInfo);
+		DeckComp->AddCard(CardDataAsset->CardInfo);
 
 
 		// notif, delete

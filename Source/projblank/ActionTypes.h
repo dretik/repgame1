@@ -62,3 +62,15 @@ struct FCombatCard
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Card Logic")
 		TSubclassOf<class UCPP_Action> SelfActionClass;
 };
+
+USTRUCT(BlueprintType)
+struct FCardDeck
+{
+	GENERATED_BODY()
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Deck")
+		FText DeckName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Deck")
+		TArray<FCombatCard> Cards;
+};

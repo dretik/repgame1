@@ -164,3 +164,36 @@ bool UCPP_GameInstance::ContinueGame()
     }
     return false;
 }
+
+void UCPP_GameInstance::ReturnToMenu()
+{
+    //session clear
+    CurrentSessionCollectedItems.Empty();
+    DestroyedStaticActors.Empty();
+    bIsLoadingSave = false;
+
+    UGameplayStatics::SetGamePaused(this, false);
+
+    UGameplayStatics::OpenLevel(this, FName("MainMenu"));
+}
+
+void UCPP_GameInstance::RestartRun()
+{
+    //current session clear
+    CurrentSessionCollectedItems.Empty();
+    DestroyedStaticActors.Empty();
+    bIsLoadingSave = false;
+
+    FName CurrentLevelName = FName(*UGameplayStatics::GetCurrentLevelName(GetWorld()));
+
+    UGameplayStatics::SetGamePaused(this, false);
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (PC)
+    {
+        FInputModeGameOnly Mode;
+        PC->SetInputMode(Mode);
+        PC->bShowMouseCursor = false;
+    }
+
+    UGameplayStatics::OpenLevel(this, CurrentLevelName);
+}

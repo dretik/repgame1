@@ -39,6 +39,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "GameFlow")
         bool ContinueGame();
 
+    UFUNCTION(BlueprintCallable, Category = "GameFlow")
+        void ReturnToMenu();
+
+    UFUNCTION(BlueprintCallable, Category = "GameFlow")
+        void RestartRun();
+
     UPROPERTY()
         TSet<FString> CurrentSessionCollectedItems;
 

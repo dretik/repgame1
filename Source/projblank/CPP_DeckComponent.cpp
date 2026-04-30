@@ -5,39 +5,117 @@ UCPP_DeckComponent::UCPP_DeckComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UCPP_DeckComponent::AddCardToDeck(const FCombatCard& NewCard)
+void UCPP_DeckComponent::BeginPlay()
 {
-	DrawPile.Add(NewCard);
+	Super::BeginPlay();
+
+	for (int32 i = 0; i < TotalDecks; ++i)
+	{
+		FCardDeck NewDeck;
+		NewDeck.DeckName = FText::FromString(FString::Printf(TEXT("Deck %d"), i + 1));
+		Decks.Add(NewDeck);
+	}
+}
+
+void UCPP_DeckComponent::AddCard(const FCombatCard& NewCard)
+{
+	if (!Decks.IsValidIndex(ActiveDeckIndex)) return;
+
+	if (Decks[ActiveDeckIndex].Cards.Num() < MaxDeckSize)
+	{
+		Decks[ActiveDeckIndex].Cards.Add(NewCard);
+	}
+	else
+	{
+		CardInventory.Add(NewCard);
+	}
+
+	OnDeckChanged.Broadcast();
+
+	//DrawPile.Add(NewCard);
 }
 
 bool UCPP_DeckComponent::DrawCard(ECardDrawMode DrawMode, FCombatCard& OutCard)
 {
-	if (DrawPile.Num() == 0) return false;
+	if (!Decks.IsValidIndex(ActiveDeckIndex)) return false;
+
+	TArray<FCombatCard>& ActiveCards = Decks[ActiveDeckIndex].Cards;
+
+	if (ActiveCards.Num() == 0) return false;
 
 	int32 DrawnIndex = 0;
 	if (DrawMode == ECardDrawMode::DrawRandom)
 	{
-		DrawnIndex = FMath::RandRange(0, DrawPile.Num() - 1);
+		DrawnIndex = FMath::RandRange(0, ActiveCards.Num() - 1);
 	}
 
-	OutCard = DrawPile[DrawnIndex];
-	DrawPile.RemoveAt(DrawnIndex);
+	OutCard = ActiveCards[DrawnIndex];
+	ActiveCards.RemoveAt(DrawnIndex);
+
+	OnDeckChanged.Broadcast();
 
 	return true;
 }
 
-void UCPP_DeckComponent::SwapCards(int32 IndexA, int32 IndexB)
+void UCPP_DeckComponent::SetActiveDeckIndex(int32 NewIndex)
 {
-	if (DrawPile.IsValidIndex(IndexA) && DrawPile.IsValidIndex(IndexB))
+	if (Decks.IsValidIndex(NewIndex))
 	{
-		DrawPile.Swap(IndexA, IndexB);
+		ActiveDeckIndex = NewIndex;
+		OnDeckChanged.Broadcast();
 	}
 }
 
-void UCPP_DeckComponent::RemoveCard(int32 Index)
+void UCPP_DeckComponent::MoveCardFromInventoryToDeck(int32 InventoryIndex, int32 TargetDeckIndex)
 {
-	if (DrawPile.IsValidIndex(Index))
+	if (CardInventory.IsValidIndex(InventoryIndex) && Decks.IsValidIndex(TargetDeckIndex))
 	{
-		DrawPile.RemoveAt(Index);
+		if (Decks[TargetDeckIndex].Cards.Num() < MaxDeckSize)
+		{
+			FCombatCard CardToMove = CardInventory[InventoryIndex];
+			CardInventory.RemoveAt(InventoryIndex);
+			Decks[TargetDeckIndex].Cards.Add(CardToMove);
+
+			OnDeckChanged.Broadcast();
+		}
 	}
 }
+
+void UCPP_DeckComponent::MoveCardFromDeckToInventory(int32 DeckIndex, int32 CardIndexInDeck)
+{
+	if (Decks.IsValidIndex(DeckIndex) && Decks[DeckIndex].Cards.IsValidIndex(CardIndexInDeck))
+	{
+		FCombatCard CardToMove = Decks[DeckIndex].Cards[CardIndexInDeck];
+		Decks[DeckIndex].Cards.RemoveAt(CardIndexInDeck);
+		CardInventory.Add(CardToMove);
+
+		OnDeckChanged.Broadcast();
+	}
+}
+
+const FCardDeck& UCPP_DeckComponent::GetDeck(int32 Index) const
+{
+	if (Decks.IsValidIndex(Index)) return Decks[Index];
+
+	// Fallback если индекс неверный
+	static FCardDeck EmptyDeck;
+	return EmptyDeck;
+}
+
+// NEXT FUNCS ARE NOT USED ANYWHERE
+
+//void UCPP_DeckComponent::SwapCards(int32 IndexA, int32 IndexB)
+//{
+//	if (DrawPile.IsValidIndex(IndexA) && DrawPile.IsValidIndex(IndexB))
+//	{
+//		DrawPile.Swap(IndexA, IndexB);
+//	}
+//}
+//
+//void UCPP_DeckComponent::RemoveCard(int32 Index)
+//{
+//	if (DrawPile.IsValidIndex(Index))
+//	{
+//		DrawPile.RemoveAt(Index);
+//	}
+//}
