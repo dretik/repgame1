@@ -14,6 +14,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNotificationReceived, FText, Mes
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCoinsUpdated, int32, NewCount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnXPUpdated, float, CurrentXP, float, MaxXP, int32, Level);
 
+class UUserWidget;
+
 UCLASS()
 class PROJBLANK_API ACPP_PlayerCharacter : public ACPP_BaseCharacter, public ICPP_ProgressionInterface
 {
@@ -36,6 +38,13 @@ public:
     //globaltooltip
     UPROPERTY(BlueprintReadWrite, Category = "UI")
         class UUserWidget* GlobalTooltipRef;
+
+    //ui
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+        TSubclassOf<class UUserWidget> DeckManagerClass;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+        TSubclassOf<class UUserWidget> PauseMenuClass;
 
     // --- ABILITIES ---
     UFUNCTION(BlueprintCallable, Category = "Abilities")
@@ -82,6 +91,20 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+    //ui
+    UPROPERTY()
+        class UUserWidget* DeckManagerInstance;
+
+    void ToggleDeckMenu();
+    void HandleEscape();
+    void CloseDeckMenu();
+
+    UPROPERTY()
+        class UUserWidget* PauseMenuInstance;
+
+    void TogglePauseMenu();
+    void ClosePauseMenu();
+
     // --- INPUT ACTIONS ---
     void MoveRight(float Value);
     void MoveForward(float Value);
@@ -127,9 +150,6 @@ protected:
         float XPToNextLevel = 100.0f;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Progression")
         float LevelUpMultiplier = 1.2f;
-
-    //UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
-    //    TMap<FGameplayTag, int32> AbilityLevels;
 
     void LevelUp();
 };

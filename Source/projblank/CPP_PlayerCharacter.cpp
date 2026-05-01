@@ -5,6 +5,7 @@
 #include "CPP_GameInstance.h"
 #include "GameplayTagsManager.h"
 #include "Components/InputComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "Components/CapsuleComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "GameFramework/Controller.h"
@@ -63,6 +64,15 @@ void ACPP_PlayerCharacter::SetupPlayerInputComponent(UInputComponent*
         IE_Pressed, this, &ACPP_PlayerCharacter::PrimaryAttack);
     PlayerInputComponent->BindAction("CastAction",
         IE_Pressed, this, &ACPP_PlayerCharacter::MagicAttack);
+
+    //ui
+    FInputActionBinding& InvBind = PlayerInputComponent->BindAction("ToggleDeckMenu",
+        IE_Pressed, this, &ACPP_PlayerCharacter::ToggleDeckMenu);
+    InvBind.bExecuteWhenPaused = true;
+
+    FInputActionBinding& PauseBind = PlayerInputComponent->BindAction("PauseAction",
+        IE_Pressed, this, &ACPP_PlayerCharacter::HandleEscape);
+    PauseBind.bExecuteWhenPaused = true;
 }
 
 void ACPP_PlayerCharacter::Dodge()
@@ -171,25 +181,6 @@ bool ACPP_PlayerCharacter::GrantAbility(TSubclassOf<UCPP_Action> ActionClass)
         return false;
     }
 }
-
-//int32 ACPP_PlayerCharacter::GetAbilityLevel(FGameplayTag AbilityTag) const
-//{
-//    if (AbilityLevels.Contains(AbilityTag))
-//    {
-//        return AbilityLevels[AbilityTag];
-//    }
-//    return 0;
-//}
-
-//bool ACPP_PlayerCharacter::HasAbility(FGameplayTag AbilityTag) const
-//{
-//    return GetAbilityLevel(AbilityTag) > 0;
-//}
-
-//void ACPP_PlayerCharacter::SetAbilityLevels(const TMap<FGameplayTag, int32>& LoadedAbilities)
-//{
-//    AbilityLevels = LoadedAbilities;
-//}
 
 void ACPP_PlayerCharacter::AddCoins(int32 Amount)
 {
@@ -582,5 +573,116 @@ void ACPP_PlayerCharacter::AddResource_Implementation(FGameplayTag ResourceTag, 
     else if (ResourceTag.MatchesTag(FGameplayTag::RequestGameplayTag("Resource.XP")))
     {
         AddExperience(Amount);
+    }
+}
+
+void ACPP_PlayerCharacter::ToggleDeckMenu()
+{
+    if (bIsDead) return;
+
+    if (!DeckManagerInstance && DeckManagerClass)
+    {
+        DeckManagerInstance = CreateWidget<UUserWidget>(GetWorld(), DeckManagerClass);
+    }
+
+    if (UGameplayStatics::IsGamePaused(this) && (!DeckManagerInstance || !DeckManagerInstance->IsInViewport()))
+    {
+        return;
+    }
+
+    if (!DeckManagerInstance->GetIsVisible())
+    {
+        DeckManagerInstance->AddToViewport(50);
+        UGameplayStatics::SetGamePaused(this, true);
+
+        APlayerController* PC = Cast<APlayerController>(GetController());
+        if (PC)
+        {
+            FInputModeGameAndUI Mode;
+            Mode.SetWidgetToFocus(DeckManagerInstance->GetCachedWidget());
+            Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+            PC->SetInputMode(Mode);
+            PC->bShowMouseCursor = true;
+        }
+    }
+    else
+    {
+        CloseDeckMenu();
+    }
+}
+
+void ACPP_PlayerCharacter::HandleEscape()
+{
+    //priority
+    if (DeckManagerInstance && DeckManagerInstance->GetIsVisible())
+    {
+        CloseDeckMenu();
+        return;
+    }
+
+    TogglePauseMenu();
+}
+
+void ACPP_PlayerCharacter::TogglePauseMenu()
+{
+    if (bIsDead) return;
+
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC) return;
+
+    if (!PauseMenuInstance && PauseMenuClass)
+    {
+        PauseMenuInstance = CreateWidget<UUserWidget>(GetWorld(), PauseMenuClass);
+    }
+
+    if (!PauseMenuInstance) return;
+
+    if (!PauseMenuInstance->IsInViewport())
+    {
+        PauseMenuInstance->AddToViewport(100);
+        UGameplayStatics::SetGamePaused(this, true);
+
+        FInputModeGameAndUI Mode;
+        Mode.SetWidgetToFocus(PauseMenuInstance->TakeWidget());
+        PC->SetInputMode(Mode);
+        PC->bShowMouseCursor = true;
+    }
+    else
+    {
+        ClosePauseMenu();
+    }
+}
+
+void ACPP_PlayerCharacter::ClosePauseMenu()
+{
+    if (!PauseMenuInstance) return;
+
+    APlayerController* PC = Cast<APlayerController>(GetController());
+
+    PauseMenuInstance->RemoveFromParent();
+    UGameplayStatics::SetGamePaused(this, false);
+
+    if (PC)
+    {
+        FInputModeGameOnly Mode;
+        PC->SetInputMode(Mode);
+        PC->bShowMouseCursor = false;
+    }
+}
+
+void ACPP_PlayerCharacter::CloseDeckMenu()
+{
+    if (!DeckManagerInstance) return;
+
+    APlayerController* PC = Cast<APlayerController>(GetController());
+
+    DeckManagerInstance->RemoveFromParent();
+    UGameplayStatics::SetGamePaused(this, false);
+
+    if (PC)
+    {
+        FInputModeGameOnly Mode;
+        PC->SetInputMode(Mode);
+        PC->bShowMouseCursor = false;
     }
 }
