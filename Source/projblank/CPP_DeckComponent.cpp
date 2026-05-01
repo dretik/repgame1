@@ -102,20 +102,30 @@ const FCardDeck& UCPP_DeckComponent::GetDeck(int32 Index) const
 	return EmptyDeck;
 }
 
-// NEXT FUNCS ARE NOT USED ANYWHERE
+void UCPP_DeckComponent::SwapCards(int32 IndexA, int32 IndexB)
+{
+	if (Decks.IsValidIndex(ActiveDeckIndex))
+	{
+		TArray<FCombatCard>& TargetCards = Decks[ActiveDeckIndex].Cards;
+		if (TargetCards.IsValidIndex(IndexA) && TargetCards.IsValidIndex(IndexB))
+		{
+			TargetCards.Swap(IndexA, IndexB);
+			OnDeckChanged.Broadcast();
+		}
+	}
+}
 
-//void UCPP_DeckComponent::SwapCards(int32 IndexA, int32 IndexB)
-//{
-//	if (DrawPile.IsValidIndex(IndexA) && DrawPile.IsValidIndex(IndexB))
-//	{
-//		DrawPile.Swap(IndexA, IndexB);
-//	}
-//}
-//
-//void UCPP_DeckComponent::RemoveCard(int32 Index)
-//{
-//	if (DrawPile.IsValidIndex(Index))
-//	{
-//		DrawPile.RemoveAt(Index);
-//	}
-//}
+void UCPP_DeckComponent::SwapCardWithInventory(int32 DeckIndex, int32 CardIndexInDeck, int32 InventoryIndex)
+{
+	if (Decks.IsValidIndex(DeckIndex) &&
+		Decks[DeckIndex].Cards.IsValidIndex(CardIndexInDeck) &&
+		CardInventory.IsValidIndex(InventoryIndex))
+	{
+		FCombatCard CardFromDeck = Decks[DeckIndex].Cards[CardIndexInDeck];
+
+		Decks[DeckIndex].Cards[CardIndexInDeck] = CardInventory[InventoryIndex];
+		CardInventory[InventoryIndex] = CardFromDeck;
+
+		OnDeckChanged.Broadcast();
+	}
+}

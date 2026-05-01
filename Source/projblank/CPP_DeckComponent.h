@@ -27,9 +27,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Deck")
 		bool DrawCard(ECardDrawMode DrawMode, FCombatCard& OutCard);
 
-	////for ui in inventory
-	//UFUNCTION(BlueprintCallable, Category = "Deck|UI")
-	//	void SwapCards(int32 IndexA, int32 IndexB);
+	//for ui in inventory
+	UFUNCTION(BlueprintCallable, Category = "Deck|UI")
+		void SwapCards(int32 IndexA, int32 IndexB);
+	UFUNCTION(BlueprintCallable, Category = "Deck|UI")
+		void SwapCardWithInventory(int32 DeckIndex, int32 CardIndexInDeck, int32 InventoryIndex);
 
 	////card amount
 	//UFUNCTION(BlueprintCallable, Category = "Deck")
@@ -58,6 +60,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Deck|UI")
 		const FCardDeck& GetDeck(int32 Index) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Deck")
+		int32 GetActiveDeckIndex() const { return ActiveDeckIndex; }
 
 protected:
 	virtual void BeginPlay() override;
