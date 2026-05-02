@@ -14,6 +14,27 @@
 #include "CPP_VisualComponent.h"
 #include "DrawDebugHelpers.h"
 
+bool UCPP_CombatStatics::ShouldApplyEffect(AActor* Instigator, AActor* Target, bool bAffectEnemies, bool bAffectSelf)
+{
+    if (!Target || !Instigator) return false;
+
+    if (Target == Instigator)
+    {
+        return bAffectSelf;
+    }
+
+    if (Instigator->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
+    {
+        bool bIsEnemy = ICPP_CombatInterface::Execute_CanDealDamageTo(Instigator, Target);
+
+        if (bIsEnemy) return bAffectEnemies;
+
+        return false;
+    }
+
+    return true;
+}
+
 bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Instigator, 
     FVector Origin, FVector AttackDirection, 
     float Range, FVector BoxSize, float BaseDamage, 
@@ -124,7 +145,8 @@ bool UCPP_CombatStatics::ExecuteBoxTraceAttack(AActor* DamageCauser, AActor* Ins
 bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instigator, 
     FVector Origin, float Radius, float BaseDamage, 
     const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply,
-    float ImpulseStrength, bool bDrawDebug)
+    float ImpulseStrength, bool bDrawDebug,
+    bool bAffectEnemies, bool bAffectSelf)
 {
     if (!DamageCauser) return false;
 
@@ -140,8 +162,13 @@ bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instiga
 
     TArray<AActor*> OverlappedActors;
     TArray<AActor*> ActorsToIgnore;
-    ActorsToIgnore.Add(DamageCauser);
-    if (Instigator) ActorsToIgnore.Add(Instigator);
+
+    if (DamageCauser && DamageCauser != Instigator) ActorsToIgnore.Add(DamageCauser);
+
+    if (!bAffectSelf && Instigator)
+    {
+        ActorsToIgnore.Add(Instigator);
+    }
 
     TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
     ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
@@ -164,27 +191,8 @@ bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instiga
 
     for (AActor* Target : OverlappedActors)
     {
-        if (!Target) continue;
-        bool bCanDamage = true;
-        UObject* InterfaceObj = nullptr;
-        if (Instigator && Instigator->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
-        {
-            InterfaceObj = Instigator;
-        }
-        else if (DamageCauser && DamageCauser->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
-        {
-            InterfaceObj = DamageCauser;
-        }
-        if (Instigator && Instigator->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
-        {
-            bCanDamage = ICPP_CombatInterface::Execute_CanDealDamageTo(Instigator, Target);
-        }
-        else if (DamageCauser && DamageCauser->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
-        {
-            bCanDamage = ICPP_CombatInterface::Execute_CanDealDamageTo(DamageCauser, Target);
-        }
-        if (bCanDamage)
-        {
+        if (!ShouldApplyEffect(Instigator, Target, bAffectEnemies, bAffectSelf)) continue;
+
             UGameplayStatics::ApplyDamage(
                 Target, FinalDamage,
                 Instigator ? Instigator->GetInstigatorController() : nullptr,
@@ -220,7 +228,6 @@ bool UCPP_CombatStatics::ExecuteAreaDamage(AActor* DamageCauser, AActor* Instiga
                     RootComp->AddImpulse(ImpulseDir * ImpulseStrength, NAME_None, true);
                 }
             }
-        }
     }
 
     return true;

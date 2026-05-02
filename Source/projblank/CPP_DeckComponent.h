@@ -64,6 +64,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Deck")
 		int32 GetActiveDeckIndex() const { return ActiveDeckIndex; }
 
+	UFUNCTION(BlueprintCallable, Category = "Deck")
+    int32 GetActiveDeckCount() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Deck")
+		bool PeekTopCard(FCombatCard& OutCard) const;
+
+	//saves
+	UFUNCTION(BlueprintCallable, Category = "Deck")
+		void RestoreDeckData(const TArray<FCardDeck>& InDecks, const TArray<FCombatCard>& InInventory, int32 InActiveIndex);
+
+	const TArray<FCardDeck>& GetDecks() const { return Decks; }
+
 protected:
 	virtual void BeginPlay() override;
 

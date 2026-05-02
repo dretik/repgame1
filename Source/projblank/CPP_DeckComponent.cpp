@@ -97,7 +97,7 @@ const FCardDeck& UCPP_DeckComponent::GetDeck(int32 Index) const
 {
 	if (Decks.IsValidIndex(Index)) return Decks[Index];
 
-	// Fallback если индекс неверный
+	// Fallback
 	static FCardDeck EmptyDeck;
 	return EmptyDeck;
 }
@@ -125,6 +125,38 @@ void UCPP_DeckComponent::SwapCardWithInventory(int32 DeckIndex, int32 CardIndexI
 
 		Decks[DeckIndex].Cards[CardIndexInDeck] = CardInventory[InventoryIndex];
 		CardInventory[InventoryIndex] = CardFromDeck;
+
+		OnDeckChanged.Broadcast();
+	}
+}
+
+bool UCPP_DeckComponent::PeekTopCard(FCombatCard& OutCard) const
+{
+	if (Decks.IsValidIndex(ActiveDeckIndex) && Decks[ActiveDeckIndex].Cards.Num() > 0)
+	{
+		OutCard = Decks[ActiveDeckIndex].Cards[0];
+		return true;
+	}
+	return false;
+}
+
+int32 UCPP_DeckComponent::GetActiveDeckCount() const
+{
+	if (Decks.IsValidIndex(ActiveDeckIndex))
+	{
+		return Decks[ActiveDeckIndex].Cards.Num();
+	}
+
+	return 0;
+}
+
+void UCPP_DeckComponent::RestoreDeckData(const TArray<FCardDeck>& InDecks, const TArray<FCombatCard>& InInventory, int32 InActiveIndex)
+{
+	if (InDecks.Num() > 0)
+	{
+		Decks = InDecks;
+		CardInventory = InInventory;
+		ActiveDeckIndex = InActiveIndex;
 
 		OnDeckChanged.Broadcast();
 	}

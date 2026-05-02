@@ -11,6 +11,15 @@ class UCPP_Action;
 class UTexture2D;
 
 UENUM(BlueprintType)
+enum class EFieldForceType : uint8
+{
+	None,
+	PullToCenter    UMETA(DisplayName = "pull"),
+	PushFromCenter  UMETA(DisplayName = "push"),
+	ConstantWind    UMETA(DisplayName = "wind")
+};
+
+UENUM(BlueprintType)
 enum class ECardDrawMode : uint8
 {
 	DrawTop     UMETA(DisplayName = "deck top"),

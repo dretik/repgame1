@@ -117,4 +117,14 @@ public:
 
     UPROPERTY(VisibleAnywhere, Category = "SaveData")
         TSet<FString> CollectedItems;
+
+    // --- COMBAT DECK DATA ---
+    UPROPERTY(VisibleAnywhere, Category = "SaveData")
+        TArray<FCardDeck> SavedDecks;
+
+    UPROPERTY(VisibleAnywhere, Category = "SaveData")
+        TArray<FCombatCard> SavedCardInventory;
+
+    UPROPERTY(VisibleAnywhere, Category = "SaveData")
+        int32 SavedActiveDeckIndex;
 };

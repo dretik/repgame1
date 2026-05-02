@@ -16,6 +16,7 @@
 #include "CPP_DamageTextActor.h"
 #include "CPP_SaveGame.h"
 #include "CPP_InventoryComponent.h"
+#include "CPP_DeckComponent.h"
 #include "CPP_Action.h"
 #include "CPP_ActionSet.h"
 #include "CPP_ActionComponent.h"
@@ -489,6 +490,15 @@ void ACPP_PlayerCharacter::OnSaveGame_Implementation(UCPP_SaveGame* SaveObject)
     {
         SaveObject->InventoryData = InvComp->GetInventory();
     }
+
+    //deck
+    UCPP_DeckComponent* DeckComp = FindComponentByClass<UCPP_DeckComponent>();
+    if (DeckComp)
+    {
+        SaveObject->SavedDecks = DeckComp->GetDecks();
+        SaveObject->SavedCardInventory = DeckComp->GetInventoryCards();
+        SaveObject->SavedActiveDeckIndex = DeckComp->GetActiveDeckIndex();
+    }
 }
 
 void ACPP_PlayerCharacter::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
@@ -528,6 +538,16 @@ void ACPP_PlayerCharacter::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
     if (UCPP_InventoryComponent* InvComp = FindComponentByClass<UCPP_InventoryComponent>())
     {
         InvComp->SetInventory(SaveObject->InventoryData);
+    }
+
+    UCPP_DeckComponent* DeckComp = FindComponentByClass<UCPP_DeckComponent>();
+    if (DeckComp)
+    {
+        DeckComp->RestoreDeckData(
+            SaveObject->SavedDecks,
+            SaveObject->SavedCardInventory,
+            SaveObject->SavedActiveDeckIndex
+        );
     }
 
     //ui

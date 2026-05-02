@@ -1,6 +1,7 @@
 #include "CPP_Action.h"
 #include "CPP_ActionComponent.h"
 #include "TimerManager.h"
+#include "CPP_CombatInterface.h"
 #include "Engine/World.h"
 
 bool UCPP_Action::CanStart_Implementation(AActor* Instigator)
@@ -201,4 +202,24 @@ FVector UCPP_Action::GetActionLocation() const
 	}
 
 	return FVector::ZeroVector;
+}
+
+bool UCPP_Action::IsValidTarget(AActor* Target, AActor* Instigator) const
+{
+	if (!Target || !Instigator) return false;
+
+	if (Target == Instigator)
+	{
+		return bAffectSelf;
+	}
+
+	if (Instigator->GetClass()->ImplementsInterface(UCPP_CombatInterface::StaticClass()))
+	{
+		bool bIsEnemy = ICPP_CombatInterface::Execute_CanDealDamageTo(Instigator, Target);
+
+		if (bIsEnemy) return bAffectEnemies;
+		else return bAffectFriends;
+	}
+
+	return true;
 }

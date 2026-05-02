@@ -39,7 +39,9 @@ public:
             float BaseDamage,
             const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply,
             float ImpulseStrength= 500.0f,
-            bool bDrawDebug = false
+            bool bDrawDebug = false,
+            bool bAffectEnemies = true,
+            bool bAffectSelf = true
         );
 
     UFUNCTION(BlueprintCallable, Category = "Combat|Statics")
@@ -54,4 +56,7 @@ public:
         );
 
     static bool ExecuteHealing(AActor* Instigator, AActor* Target, float HealAmount, bool bIsPercentage);
+
+private:
+    static bool ShouldApplyEffect(AActor* Instigator, AActor* Target, bool bAffectEnemies, bool bAffectSelf);
 };

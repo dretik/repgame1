@@ -96,6 +96,10 @@ public:
 		void SetOverrideLocation(FVector NewLocation);
 	UFUNCTION(BlueprintCallable, Category = "Action")
 		void ClearOverrideLocation() { bUseOverrideLocation = false; }
+
+	UFUNCTION(BlueprintCallable, Category = "Action|Targeting")
+		bool IsValidTarget(AActor* Target, AActor* Instigator) const;
+
 	//for timers
 	virtual UWorld* GetWorld() const override;
 
@@ -119,6 +123,15 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Action")
 		bool bUseOverrideLocation = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Action|Targeting")
+		bool bAffectEnemies = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Action|Targeting")
+		bool bAffectSelf = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Action|Targeting")
+		bool bAffectFriends = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Action")
 		FTimerHandle TimerHandle_AutoStop;
