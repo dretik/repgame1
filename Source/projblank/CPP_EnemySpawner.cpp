@@ -43,6 +43,11 @@ void ACPP_EnemySpawner::BeginPlay()
 	// sub to overlap events
     TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &ACPP_EnemySpawner::OnOverlapBegin);
     TriggerBox->OnComponentEndOverlap.AddDynamic(this, &ACPP_EnemySpawner::OnOverlapEnd);
+
+    if (bAutoSpawn && SpawnInterval > 0.0f)
+    {
+        GetWorld()->GetTimerManager().SetTimer(TimerHandle_AutoSpawn, this, &ACPP_EnemySpawner::ExecuteSpawn, SpawnInterval, true, InitialDelay);
+    }
 }
 
 //when approaching
@@ -65,60 +70,94 @@ void ACPP_EnemySpawner::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor
 
 void ACPP_EnemySpawner::Interact_Implementation(AActor* Interactor)
 {
-    if (SpawnList.Num() == 0) return;
+    if (!bAutoSpawn)
+    {
+        ExecuteSpawn();
+    }
+}
+
+void ACPP_EnemySpawner::ExecuteSpawn()
+{
+    if (EnemiesSpawnedTotal >= MaxTotalEnemies)
+    {
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Orange, TEXT("Spawner Depleted"));
+
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_AutoSpawn);
+        PromptWidget->SetVisibility(false);
+        return;
+    }
+
+    int32 CurrentGroupSize = FMath::RandRange(MinGroupSize, MaxGroupSize);
+
+    for (int32 i = 0; i < CurrentGroupSize; i++)
+    {
+        if (EnemiesSpawnedTotal >= MaxTotalEnemies) break;
+
+        TSubclassOf<AActor> SelectedClass = GetRandomEnemyClassFromList();
+        if (SelectedClass)
+        {
+            FVector SpawnLocation = GetRandomSpawnLocation();
+
+            FActorSpawnParameters SpawnParams;
+            SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+            AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
+                SelectedClass,
+                SpawnLocation,
+                GetActorRotation(),
+                SpawnParams
+                );
+
+            if (SpawnedActor)
+            {
+                EnemiesSpawnedTotal++;
+                SpawnedActor->Tags.Add(FName("Dynamic"));
+
+                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
+                    FString::Printf(TEXT("Spawned %d/%d: %s"), EnemiesSpawnedTotal, MaxTotalEnemies, *SelectedClass->GetName()));
+            }
+        }
+    }
+}
+
+TSubclassOf<AActor> ACPP_EnemySpawner::GetRandomEnemyClassFromList()
+{
+    if (SpawnList.Num() == 0) return nullptr;
 
     float TotalWeight = 0.0f;
     for (const FEnemySpawnInfo& Entry : SpawnList)
     {
-        if (Entry.EnemyClass)
-        {
-            TotalWeight += Entry.SpawnWeight;
-        }
+        if (Entry.EnemyClass) TotalWeight += Entry.SpawnWeight;
     }
 
-    if (TotalWeight <= 0.0f) return;
+    if (TotalWeight <= 0.0f) return nullptr;
 
     float RandomPoint = FMath::FRandRange(0.0f, TotalWeight);
-
-    TSubclassOf<AActor> SelectedClass = nullptr;
     float CurrentSum = 0.0f;
 
     for (const FEnemySpawnInfo& Entry : SpawnList)
     {
         if (!Entry.EnemyClass) continue;
-
         CurrentSum += Entry.SpawnWeight;
-
         if (RandomPoint <= CurrentSum)
         {
-            SelectedClass = Entry.EnemyClass;
-            break; 
+            return Entry.EnemyClass;
         }
     }
+    return nullptr;
+}
 
-    if (SelectedClass)
-    {
-        FActorSpawnParameters SpawnParams;
-        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+FVector ACPP_EnemySpawner::GetRandomSpawnLocation() const
+{
+    FVector Origin = GetActorLocation();
 
-        AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
-            SelectedClass,
-            SpawnPoint->GetComponentLocation(),
-            SpawnPoint->GetComponentRotation(),
-            SpawnParams
-            );
+    float Angle = FMath::FRandRange(0.0f, 2.0f * PI);
+    float Distance = bSpawnOnCircleEdge ? SpawnRadius : FMath::FRandRange(0.0f, SpawnRadius);
 
-        if (SpawnedActor)
-        {
-            ACPP_BaseEnemy* Enemy = Cast<ACPP_BaseEnemy>(SpawnedActor);
-            if (Enemy)
-            {
-                SpawnedActor->Tags.Add(FName("Dynamic"));
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Spawned Dynamic Enemy"));
-            }
-        }
+    FVector Offset;
+    Offset.X = FMath::Cos(Angle) * Distance;
+    Offset.Y = FMath::Sin(Angle) * Distance;
+    Offset.Z = 0.0f;
 
-        if (GEngine)
-            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, FString::Printf(TEXT("Spawned: %s"), *SelectedClass->GetName()));
-    }
+    return Origin + Offset;
 }

@@ -50,6 +50,40 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner")
         TArray<FEnemySpawnInfo> SpawnList;
 
+    UPROPERTY(EditAnywhere, Category = "Spawner|Groups")
+        int32 MinGroupSize = 1;
+
+    UPROPERTY(EditAnywhere, Category = "Spawner|Groups")
+        int32 MaxGroupSize = 3;
+
+    UPROPERTY(EditAnywhere, Category = "Spawner|Geometry")
+        float SpawnRadius = 300.0f;
+
+    UPROPERTY(EditAnywhere, Category = "Spawner|Geometry")
+        bool bSpawnOnCircleEdge = false;
+
+    UPROPERTY(EditAnywhere, Category = "Spawner|Mode")
+        bool bAutoSpawn = true;
+
+    UPROPERTY(EditAnywhere, Category = "Spawner|Auto", meta = (EditCondition = "bAutoSpawn"))
+        float SpawnInterval = 5.0f;
+
+    UPROPERTY(EditAnywhere, Category = "Spawner|Auto", meta = (EditCondition = "bAutoSpawn"))
+        float InitialDelay = 2.0f;
+
+    UPROPERTY(EditAnywhere, Category = "Spawner|Limits")
+        int32 MaxTotalEnemies = 5;
+
+    int32 EnemiesSpawnedTotal = 0;
+    FTimerHandle TimerHandle_AutoSpawn;
+
+    UFUNCTION()
+        void ExecuteSpawn();
+
+    TSubclassOf<AActor> GetRandomEnemyClassFromList();
+
+    FVector GetRandomSpawnLocation() const;
+
 public:
     virtual void Interact_Implementation(AActor* Interactor) override;
 

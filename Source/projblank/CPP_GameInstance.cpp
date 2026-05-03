@@ -197,3 +197,94 @@ void UCPP_GameInstance::RestartRun()
 
     UGameplayStatics::OpenLevel(this, CurrentLevelName);
 }
+
+void UCPP_GameInstance::StartNewRun()
+{
+    //default
+    CurrentRunScore = 0;
+    CurrentLevelIndex = 0;
+    CurrentRunRoute.Empty();
+    CurrentSessionCollectedItems.Empty();
+    DestroyedStaticActors.Empty();
+    bIsLoadingSave = false;
+
+    TArray<FLevelData> TempPool = Pool_Tier1_Normal;
+
+    for (int32 i = 0; i < LevelsBeforeBoss; ++i)
+    {
+        if (TempPool.Num() > 0)
+        {
+            int32 RandomIdx = FMath::RandRange(0, TempPool.Num() - 1);
+            CurrentRunRoute.Add(TempPool[RandomIdx]);
+
+            TempPool.RemoveAt(RandomIdx);
+        }
+    }
+
+    if (Pool_Tier1_Boss.Num() > 0)
+    {
+        int32 BossIdx = FMath::RandRange(0, Pool_Tier1_Boss.Num() - 1);
+        CurrentRunRoute.Add(Pool_Tier1_Boss[BossIdx]);
+    }
+
+    if (CurrentRunRoute.Num() == 0)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to generate run route! Pools might be empty."));
+        return;
+    }
+
+    AdvanceToNextLevel();
+}
+
+void UCPP_GameInstance::AdvanceToNextLevel()
+{
+    if (CurrentRunRoute.IsValidIndex(CurrentLevelIndex))
+    {
+        DestroyedStaticActors.Empty();
+
+        UGameplayStatics::SetGamePaused(this, false);
+        APlayerController* PC = GetWorld()->GetFirstPlayerController();
+        if (PC)
+        {
+            FInputModeGameOnly Mode;
+            PC->SetInputMode(Mode);
+            PC->bShowMouseCursor = false;
+        }
+
+        FName LevelToLoad = CurrentRunRoute[CurrentLevelIndex].LevelName;
+
+        CurrentLevelIndex++;
+
+        UGameplayStatics::OpenLevel(this, LevelToLoad);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Run Completed!"));
+        // victoru screen could be called (RunCompleteScreen) 
+        // and return to main menu or hub
+    }
+}
+
+void UCPP_GameInstance::AddRunScore(int32 Points)
+{
+    CurrentRunScore += Points;
+}
+
+void UCPP_GameInstance::AddWorldExperience(float Amount)
+{
+    float BalancedAmount = Amount * 0.75f;
+
+    CurrentWorldXP += BalancedAmount;
+
+    while (CurrentWorldXP >= WorldXPToNextLevel)
+    {
+        CurrentWorldXP -= WorldXPToNextLevel;
+        WorldLevel++;
+        WorldXPToNextLevel *= WorldLevelMultiplier;
+
+        OnWorldLevelUp.Broadcast(WorldLevel);
+
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red,
+            FString::Printf(TEXT("World level increased to %d!"), WorldLevel));
+    }
+}

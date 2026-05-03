@@ -64,10 +64,18 @@ void ACPP_BaseEnemy::BeginPlay()
         VisualComp->FaceLocation(GetActorLocation() + GetActorForwardVector() * 100.0f, BaseSpriteScale);
     }
 
-    if (!bStatsRestoredFromSave)
+    UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
+    if (GI)
     {
-        InitializeEnemyScaling();
+        GI->OnWorldLevelUp.AddDynamic(this, &ACPP_BaseEnemy::OnWorldLevelChanged);
     }
+
+    //if (!bStatsRestoredFromSave)
+    //{
+    //    InitializeEnemyScaling();
+    //}
+
+    InitializeEnemyScaling();
 }
 
 void ACPP_BaseEnemy::OnPawnSeen(APawn* SeenPawn)
@@ -118,6 +126,12 @@ bool ACPP_BaseEnemy::CanDealDamageTo_Implementation(AActor* TargetActor) const
 void ACPP_BaseEnemy::OnDeath_Implementation()
 {
     UCPP_LootStatics::SpawnAllLoot(this, CharacterStats, GetActorLocation());
+
+    UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(GetGameInstance());
+    if (GI && CharacterStats)
+    {
+        GI->AddWorldExperience(CharacterStats->MinXP);
+    }
 
     Super::OnDeath_Implementation();
 }
@@ -196,4 +210,22 @@ void ACPP_BaseEnemy::OnLoadGame_Implementation(UCPP_SaveGame* SaveObject)
             }
         }
     }
+}
+
+void ACPP_BaseEnemy::OnWorldLevelChanged(int32 NewLevel)
+{
+    if (bIsDead) return;
+
+    // current hp
+    float HealthPercent = AttributeComp->GetHealth() / AttributeComp->GetMaxHealth();
+
+    // recalc
+    InitializeEnemyScaling();
+
+    // restore
+    float NewHealth = AttributeComp->GetMaxHealth() * HealthPercent;
+    float Diff = NewHealth - AttributeComp->GetHealth();
+    AttributeComp->ApplyHealthChange(nullptr, Diff);
+
+    if (VisualComp) VisualComp->PlayHitFlash(0.5f, FLinearColor::Red);
 }

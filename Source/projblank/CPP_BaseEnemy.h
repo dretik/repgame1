@@ -50,6 +50,8 @@ protected:
 
     virtual void OnDeath_Implementation() override;
 
+    void OnWorldLevelChanged(int32 NewLevel);
+
     void InitializeEnemyScaling();
 
     bool bStatsRestoredFromSave = false;

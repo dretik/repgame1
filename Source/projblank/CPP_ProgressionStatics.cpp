@@ -3,20 +3,29 @@
 
 #include "CPP_ProgressionStatics.h"
 #include "Kismet/GameplayStatics.h"
+#include "CPP_GameInstance.h"
 #include "CPP_PlayerCharacter.h"
 
 int32 UCPP_ProgressionStatics::GetCurrentDifficultyLevel(const UObject* WorldContextObject)
 {
-    // player level for now
-    // could take "ZoneLevel" from GameInstance
-    if (ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(WorldContextObject, 0))
+    //// player level for now
+    //// could take "ZoneLevel" from GameInstance
+    //if (ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(WorldContextObject, 0))
+    //{
+    //    if (ACPP_PlayerCharacter* MyPlayer = Cast<ACPP_PlayerCharacter>(PlayerChar))
+    //    {
+    //        return MyPlayer->GetCharacterLevel();
+    //    }
+    //}
+    //return 1; //if player is miising (Fallback)
+
+    UCPP_GameInstance* GI = Cast<UCPP_GameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+    if (GI)
     {
-        if (ACPP_PlayerCharacter* MyPlayer = Cast<ACPP_PlayerCharacter>(PlayerChar))
-        {
-            return MyPlayer->GetCharacterLevel();
-        }
+        //difficulty now has a world level dependency
+        return GI->GetWorldLevel();
     }
-    return 1; //if player is miising (Fallback)
+    return 1;
 }
 
 float UCPP_ProgressionStatics::CalculateEnemyHealth(float BaseHealth, float ScalingFactor, int32 DifficultyLevel)
