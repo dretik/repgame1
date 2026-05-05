@@ -21,6 +21,7 @@ ACPP_EnemySpawner::ACPP_EnemySpawner()
     TriggerBox->SetupAttachment(RootComponent);
     TriggerBox->SetBoxExtent(FVector(100.f, 100.f, 100.f));
     TriggerBox->SetCollisionProfileName("Trigger");
+    TriggerBox->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 
     // 3. widget
     PromptWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PromptWidget"));
@@ -43,11 +44,6 @@ void ACPP_EnemySpawner::BeginPlay()
 	// sub to overlap events
     TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &ACPP_EnemySpawner::OnOverlapBegin);
     TriggerBox->OnComponentEndOverlap.AddDynamic(this, &ACPP_EnemySpawner::OnOverlapEnd);
-
-    if (bAutoSpawn && SpawnInterval > 0.0f)
-    {
-        GetWorld()->GetTimerManager().SetTimer(TimerHandle_AutoSpawn, this, &ACPP_EnemySpawner::ExecuteSpawn, SpawnInterval, true, InitialDelay);
-    }
 }
 
 //when approaching
@@ -55,7 +51,23 @@ void ACPP_EnemySpawner::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AAct
 {
     if (OtherActor && OtherActor->IsA(ACPP_BaseCharacter::StaticClass()))
     {
+        bPlayerInside = true;
+
+        if (!bAutoSpawn)
         PromptWidget->SetVisibility(true);
+
+        //player enters
+        if (bAutoSpawn && !GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_AutoSpawn))
+        {
+            GetWorld()->GetTimerManager().SetTimer(
+                TimerHandle_AutoSpawn,
+                this,
+                &ACPP_EnemySpawner::ExecuteSpawn,
+                SpawnInterval,
+                true,
+                InitialDelay
+            );
+        }
     }
 }
 
@@ -64,7 +76,15 @@ void ACPP_EnemySpawner::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor
 {
     if (OtherActor && OtherActor->IsA(ACPP_BaseCharacter::StaticClass()))
     {
+        bPlayerInside = false;
+        if (!bAutoSpawn)
         PromptWidget->SetVisibility(false);
+
+        //player leaves
+        if (bAutoSpawn)
+        {
+            GetWorld()->GetTimerManager().ClearTimer(TimerHandle_AutoSpawn);
+        }
     }
 }
 
@@ -78,6 +98,13 @@ void ACPP_EnemySpawner::Interact_Implementation(AActor* Interactor)
 
 void ACPP_EnemySpawner::ExecuteSpawn()
 {
+    AliveEnemies.RemoveAll([](AActor* A) { return A == nullptr || !IsValid(A); });
+
+    if (AliveEnemies.Num() >= MaxActiveEnemiesFromThisSpawner)
+    {
+        return;
+    }
+
     if (EnemiesSpawnedTotal >= MaxTotalEnemies)
     {
         if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Orange, TEXT("Spawner Depleted"));
@@ -91,6 +118,8 @@ void ACPP_EnemySpawner::ExecuteSpawn()
 
     for (int32 i = 0; i < CurrentGroupSize; i++)
     {
+        if (AliveEnemies.Num() >= MaxActiveEnemiesFromThisSpawner) break;
+
         if (EnemiesSpawnedTotal >= MaxTotalEnemies) break;
 
         TSubclassOf<AActor> SelectedClass = GetRandomEnemyClassFromList();
@@ -112,6 +141,13 @@ void ACPP_EnemySpawner::ExecuteSpawn()
             {
                 EnemiesSpawnedTotal++;
                 SpawnedActor->Tags.Add(FName("Dynamic"));
+                AliveEnemies.Add(SpawnedActor); //tracking array
+
+                ACPP_BaseCharacter* EnemyChar = Cast<ACPP_BaseCharacter>(SpawnedActor);
+                if (EnemyChar)
+                {
+                    EnemyChar->OnCharacterDeath.AddDynamic(this, &ACPP_EnemySpawner::HandleEnemyDeath);
+                }
 
                 if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan,
                     FString::Printf(TEXT("Spawned %d/%d: %s"), EnemiesSpawnedTotal, MaxTotalEnemies, *SelectedClass->GetName()));
@@ -160,4 +196,24 @@ FVector ACPP_EnemySpawner::GetRandomSpawnLocation() const
     Offset.Z = 0.0f;
 
     return Origin + Offset;
+}
+
+void ACPP_EnemySpawner::HandleEnemyDeath(AActor* DeadEnemy)
+{
+    if (DeadEnemy)
+    {
+        AliveEnemies.Remove(DeadEnemy);
+
+        if (bAutoSpawn && bPlayerInside)
+        {
+            GetWorld()->GetTimerManager().SetTimer(
+                TimerHandle_AutoSpawn,
+                this,
+                &ACPP_EnemySpawner::ExecuteSpawn,
+                SpawnInterval,
+                true,
+                SpawnInterval
+            );
+        }
+    }
 }

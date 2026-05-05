@@ -26,6 +26,5 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Field | Effects")
 		TArray<TSubclassOf<class UCPP_Action_Effect>> EffectsToApply;
 
-	// Основная логика тика поля
 	virtual void OnPulse(const TArray<AActor*>& OverlappedActors, AActor* Instigator) override;
 };

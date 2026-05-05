@@ -166,6 +166,7 @@ void ACPP_BaseCharacter::OnDeath_Implementation()
 
     FTimerHandle TimerHandle;
     GetWorldTimerManager().SetTimer(TimerHandle, this, &ACPP_BaseCharacter::SwitchToDeadStatic, DeathDuration, false);
+    OnCharacterDeath.Broadcast(this);
 }
 
 void ACPP_BaseCharacter::SwitchToDeadStatic()
@@ -385,4 +386,13 @@ void ACPP_BaseCharacter::Tick(float DeltaTime)
     if (VisualComp) {
         VisualComp->UpdateSpriteFacing(GetVelocity(), BaseSpriteScale);
     }
+}
+
+FVector ACPP_BaseCharacter::GetTargetLocation_Implementation() const
+{
+    if (VisualComp)
+    {
+        return GetActorLocation() + (VisualComp->GetVisualFacingDirection() * 500.0f);
+    }
+    return GetActorLocation() + GetActorForwardVector() * 500.0f;
 }

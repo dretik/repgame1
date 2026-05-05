@@ -7,9 +7,9 @@
 #include "RunTypes.h"
 #include "CPP_GameInstance.generated.h"
 
-class UCCP_Action;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWorldLevelUp, int32, NewLevel);
 
+class UCPP_Action;
 
 UCLASS()
 class PROJBLANK_API UCPP_GameInstance : public UGameInstance

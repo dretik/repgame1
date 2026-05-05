@@ -42,6 +42,13 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
         UProjectileMovementComponent* MovementComp;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+        class UCPP_VisualComponent* VisualComp;
+
+    float BaseSpriteScale = 1.0f;
+
+    virtual void Tick(float DeltaTime) override;
+
     // sprite
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations")
         UPaperFlipbook* SpawnAnim;

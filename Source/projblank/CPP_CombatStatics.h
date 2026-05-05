@@ -52,7 +52,8 @@ public:
             float Speed,
             float Radius,
             float Scale,
-            const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply
+            const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply,
+            FRotator SpawnRotation = FRotator::ZeroRotator
         );
 
     static bool ExecuteHealing(AActor* Instigator, AActor* Target, float HealAmount, bool bIsPercentage);

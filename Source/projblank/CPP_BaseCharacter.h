@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "CharacterStats.h"
 #include "InteractableInterface.h"
+#include "CPP_TargetingInterface.h"
 #include "SaveableInterface.h"
 #include "CPP_CombatInterface.h"
 #include "GameplayTagContainer.h"
@@ -18,13 +19,14 @@
 #include "CPP_BaseCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, NewHealth, float, MaxHealth);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterDeath, AActor*, Victim);
 
 class UPaperFlipbook;
 class ACPP_DestructibleActor;
 class ACPP_BaseEnemy;
 
 UCLASS()
-class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter, public ISaveableInterface, public ICPP_CombatInterface
+class PROJBLANK_API ACPP_BaseCharacter : public APaperCharacter, public ISaveableInterface, public ICPP_CombatInterface, public ICPP_TargetingInterface
 {
 	GENERATED_BODY()
 
@@ -37,6 +39,9 @@ public:
     //delegate object
     UPROPERTY(BlueprintAssignable, Category = "Events")
         FOnHealthChangedSignature OnHealthChanged;
+
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+        FOnCharacterDeath OnCharacterDeath;
 
     virtual bool CanDealDamageTo_Implementation(AActor* TargetActor) const override;
 
@@ -66,6 +71,9 @@ public:
     //saves
     virtual void OnSaveGame_Implementation(UCPP_SaveGame* SaveObject);
     virtual void OnLoadGame_Implementation(UCPP_SaveGame* SaveObject);
+
+    //targeting
+    virtual FVector GetTargetLocation_Implementation() const override;
 
     //UFUNCTION(BlueprintCallable, Category = "Movement")
     //    void RecalculateActualSpeed();

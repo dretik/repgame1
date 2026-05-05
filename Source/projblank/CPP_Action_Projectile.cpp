@@ -6,6 +6,7 @@
 #include "PaperFlipbookComponent.h" 
 #include "PaperCharacter.h" 
 #include "CPP_BaseCharacter.h" 
+#include "CPP_TargetingInterface.h"
 #include "CPP_AttributeComponent.h"
 #include "CPP_VisualComponent.h"
 #include "CPP_CombatStatics.h"
@@ -21,9 +22,17 @@ void UCPP_Action_Projectile::StartAction_Implementation(AActor* Instigator)
 {
 	Super::StartAction_Implementation(Instigator);
 
-	ACharacter* Character = Cast<ACharacter>(Instigator);
+	ACPP_BaseCharacter* Character = Cast<ACPP_BaseCharacter>(Instigator);
 	if (Character)
 	{
+		UCPP_VisualComponent* VisualComp = Character->FindComponentByClass<UCPP_VisualComponent>();
+		if (VisualComp && Character->Implements<UCPP_TargetingInterface>())
+		{
+			FVector TargetLoc = ICPP_TargetingInterface::Execute_GetTargetLocation(Character);
+			VisualComp->FaceLocation(TargetLoc, Character->GetBaseSpriteScale());
+			VisualComp->LockFlipping(AttackAnimDelay + 0.1f);
+		}
+
 		APaperCharacter* PaperChar = Cast<APaperCharacter>(Character);
 		if (PaperChar && CastAnim)
 		{
@@ -46,6 +55,7 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 		return;
 	}
 
+
 	UCPP_ActionComponent* Comp = GetOwningComponent();
 	if (!Comp) { StopAction(InstigatorCharacter); return; }
 
@@ -57,6 +67,16 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 	{
 		const FProjectileLevelData& Cfg = LevelConfigs[ConfigIndex];
 
+		FVector SpawnLocation = GetActionLocation();
+		FRotator SpawnRotation = InstigatorCharacter->GetActorRotation();
+
+		if (InstigatorCharacter->Implements<UCPP_TargetingInterface>())
+		{
+			FVector TargetLoc = ICPP_TargetingInterface::Execute_GetTargetLocation(InstigatorCharacter);
+			FVector Direction = (TargetLoc - SpawnLocation).GetSafeNormal();
+			SpawnRotation = Direction.Rotation();
+		}
+
 		UCPP_CombatStatics::SpawnProjectile(
 			InstigatorCharacter,
 			Cfg.ProjectileClass,
@@ -64,7 +84,8 @@ void UCPP_Action_Projectile::AttackDelay_Elapsed(ACharacter* InstigatorCharacter
 			Cfg.FlightSpeed,
 			Cfg.ExplosionRadius,
 			Cfg.ProjectileScale,
-			Cfg.ImpactEffects
+			Cfg.ImpactEffects,
+			SpawnRotation
 		);
 	}
 

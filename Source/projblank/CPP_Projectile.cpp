@@ -12,6 +12,7 @@
 #include "NiagaraFunctionLibrary.h" 
 #include "CPP_Action_Effect.h"
 #include "CPP_CombatStatics.h"
+#include "CPP_VisualComponent.h"
 
 ACPP_Projectile::ACPP_Projectile()
 {
@@ -23,18 +24,23 @@ ACPP_Projectile::ACPP_Projectile()
 
     CollisionComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
     CollisionComp->SetCollisionObjectType(ECC_WorldDynamic);
-    CollisionComp->SetCollisionResponseToAllChannels(ECR_Block);
-    CollisionComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-    CollisionComp->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+    CollisionComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+    CollisionComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+    CollisionComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
     CollisionComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
     CollisionComp->bTraceComplexOnMove = true;
     CollisionComp->BodyInstance.bUseCCD = true;
 
+    VisualComp = CreateDefaultSubobject<UCPP_VisualComponent>(TEXT("VisualComp"));
+    PrimaryActorTick.bCanEverTick = true;
+
     //sprite
     ProjectileSprite = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("ProjectileSprite"));
     ProjectileSprite->SetupAttachment(RootComponent);
     ProjectileSprite->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    ProjectileSprite->SetUsingAbsoluteRotation(true);
+    ProjectileSprite->SetWorldRotation(FRotator(0, 90, 0));
 
     //movement
     MovementComp = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("MovementComp"));
@@ -50,6 +56,7 @@ void ACPP_Projectile::SetProjectileStats(float NewSpeed, float NewRadius)
     if (MovementComp) {
         MovementComp->InitialSpeed = NewSpeed;
         MovementComp->MaxSpeed = NewSpeed;
+        MovementComp->Velocity = GetActorForwardVector() * NewSpeed;
     }
     ExplosionRadius = NewRadius;
 }
@@ -61,10 +68,18 @@ void ACPP_Projectile::BeginPlay()
     CollisionComp->OnComponentHit.AddDynamic(this, &ACPP_Projectile::OnHit);
     CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &ACPP_Projectile::OnOverlap);
 
-    if (GetOwner())
+    AActor* MyOwner = GetOwner();
+    if (MyOwner)
     {
-        CollisionComp->IgnoreActorWhenMoving(GetOwner(), true);
+        CollisionComp->IgnoreActorWhenMoving(MyOwner, true);
+        //if (UPrimitiveComponent* OwnerRoot = Cast<UPrimitiveComponent>(MyOwner->GetRootComponent()))
+        //{
+        //    OwnerRoot->IgnoreActorWhenMoving(this, true);
+        //}
     }
+
+    ProjectileSprite->SetWorldRotation(FRotator(0, 90.0f, 0));
+    BaseSpriteScale = FMath::Abs(ProjectileSprite->GetRelativeScale3D().X);
 
     if (SpawnAnim)
     {
@@ -95,13 +110,17 @@ void ACPP_Projectile::SwitchToFlyLoop()
 
 void ACPP_Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-    //if hit the wall (block) otheractor will be null or worldstatic - no checks needed
     Explode(OtherActor);
 }
 
 void ACPP_Projectile::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     if (bHasExploded || !OtherActor || OtherActor == GetOwner()) return;
+
+    if (OtherComp && OtherComp->GetCollisionProfileName() == FName("Trigger"))
+    {
+        return;
+    }
 
     bool bCanDamage = false;
     AActor* MyOwner = GetOwner();
@@ -113,7 +132,6 @@ void ACPP_Projectile::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 
     if (bCanDamage)
     {
-        //if its an enemy
         Explode(OtherActor);
     }
 }
@@ -149,3 +167,11 @@ void ACPP_Projectile::DestroyProjectile()
     Destroy();
 }
 
+void ACPP_Projectile::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (VisualComp) {
+        VisualComp->UpdateSpriteFacing(GetVelocity(), BaseSpriteScale);
+    }
+}

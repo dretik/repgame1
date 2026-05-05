@@ -2,6 +2,7 @@
 #include "Perception/PawnSensingComponent.h" 
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "AIController.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
@@ -99,13 +100,31 @@ void ACPP_BaseEnemy::Tick(float DeltaTime)
 
 void ACPP_BaseEnemy::AttackPlayer()
 {
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("AI Trying to Attack..."));
-    if (!CharacterStats) return;
-    if (IsDead() || GetIsAttacking()) return;
-    if (!ActionComp) return;
-    static FGameplayTag AttackTag = FGameplayTag::RequestGameplayTag("Ability.Enemy.Melee");
+    if (IsDead() || GetIsAttacking() || !ActionComp || !CharacterStats) return;
 
-    ActionComp->StartActionByName(this, AttackTag);
+    AAIController* AIC = Cast<AAIController>(GetController());
+    if (!AIC || !AIC->GetBlackboardComponent()) return;
+
+    AActor* Target = Cast<AActor>(AIC->GetBlackboardComponent()->GetValueAsObject("TargetPlayer"));
+    if (!Target) return;
+
+    float Distance = FVector::Dist(GetActorLocation(), Target->GetActorLocation());
+
+    FGameplayTag SelectedTag;
+
+    if (Distance <= StoppingDistance)
+    {
+        SelectedTag = MeleeAttackTag.IsValid() ? MeleeAttackTag : FGameplayTag::RequestGameplayTag("Ability.Enemy.Melee");
+    }
+    else if (Distance <= RangedAttackDistance)
+    {
+        SelectedTag = RangedAttackTag.IsValid() ? RangedAttackTag : FGameplayTag::RequestGameplayTag("Ability.Enemy.Range");
+    }
+
+    if (SelectedTag.IsValid())
+    {
+        ActionComp->StartActionByName(this, SelectedTag);
+    }
 }
 
 bool ACPP_BaseEnemy::CanDealDamageTo_Implementation(AActor* TargetActor) const
@@ -228,4 +247,19 @@ void ACPP_BaseEnemy::OnWorldLevelChanged(int32 NewLevel)
     AttributeComp->ApplyHealthChange(nullptr, Diff);
 
     if (VisualComp) VisualComp->PlayHitFlash(0.5f, FLinearColor::Red);
+}
+
+FVector ACPP_BaseEnemy::GetTargetLocation_Implementation() const
+{
+    AAIController* AIC = Cast<AAIController>(GetController());
+    if (AIC && AIC->GetBlackboardComponent())
+    {
+        AActor* TargetActor = Cast<AActor>(AIC->GetBlackboardComponent()->GetValueAsObject("TargetPlayer"));
+        if (TargetActor)
+        {
+            return TargetActor->GetActorLocation();
+        }
+    }
+    // fallback
+    return GetActorLocation() + GetActorForwardVector() * 500.0f;
 }

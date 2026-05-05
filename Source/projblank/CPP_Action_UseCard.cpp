@@ -6,6 +6,7 @@
 #include "CPP_ActionComponent.h"
 #include "CPP_Projectile_Card.h"
 #include "CPP_CombatStatics.h"
+#include "CPP_TargetingInterface.h"
 #include "CPP_ProgressionInterface.h"
 
 UCPP_Action_UseCard::UCPP_Action_UseCard()
@@ -37,6 +38,13 @@ void UCPP_Action_UseCard::StartAction_Implementation(AActor* Instigator)
 				//throw
 				if (DrawnCard.CardProjectileClass)
 				{
+					FRotator ThrowRotation = Instigator->GetActorRotation();
+					if (Instigator->Implements<UCPP_TargetingInterface>())
+					{
+						FVector TargetLoc = ICPP_TargetingInterface::Execute_GetTargetLocation(Instigator);
+						ThrowRotation = (TargetLoc - Instigator->GetActorLocation()).Rotation();
+					}
+
 					ACPP_Projectile* SpawnedProj = UCPP_CombatStatics::SpawnProjectile(
 						Instigator,
 						DrawnCard.CardProjectileClass,
@@ -44,7 +52,8 @@ void UCPP_Action_UseCard::StartAction_Implementation(AActor* Instigator)
 						DrawnCard.ThrowSpeed,      
 						DrawnCard.CardCollisionRadius, 
 						DrawnCard.VisualScale,
-						{}
+						{},
+						ThrowRotation
 					);
 
 					//set payload

@@ -33,6 +33,9 @@ public:
     virtual void OnSaveGame_Implementation(UCPP_SaveGame* SaveObject) override;
     virtual void OnLoadGame_Implementation(UCPP_SaveGame* SaveObject) override;
 
+    //targeting 
+    virtual FVector GetTargetLocation_Implementation() const override;
+
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
         UPawnSensingComponent* PawnSensingComp;
@@ -42,14 +45,24 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animations | Attack")
         UPaperFlipbook* EnemyAttackFlipbook;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI | Combat")
         float StoppingDistance = 80.0f;
+
+    UPROPERTY(EditAnywhere, Category = "AI | Combat")
+        FGameplayTag MeleeAttackTag;
+
+    UPROPERTY(EditAnywhere, Category = "AI | Combat")
+        FGameplayTag RangedAttackTag;
+
+    UPROPERTY(EditAnywhere, Category = "AI | Combat")
+        float RangedAttackDistance = 300.0f;
 
     UPROPERTY(EditAnywhere, Category = "AI")
         bool bStartFacingRight = true;
 
     virtual void OnDeath_Implementation() override;
-
+    
+    UFUNCTION()
     void OnWorldLevelChanged(int32 NewLevel);
 
     void InitializeEnemyScaling();

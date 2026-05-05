@@ -74,6 +74,17 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Spawner|Limits")
         int32 MaxTotalEnemies = 5;
 
+    UPROPERTY(EditAnywhere, Category = "Spawner|Limits")
+        int32 MaxActiveEnemiesFromThisSpawner = 5;
+
+    UPROPERTY()
+        TArray<AActor*> AliveEnemies;
+
+    bool bPlayerInside = false;
+
+    UFUNCTION()
+        void HandleEnemyDeath(AActor* DeadEnemy);
+
     int32 EnemiesSpawnedTotal = 0;
     FTimerHandle TimerHandle_AutoSpawn;
 

@@ -248,7 +248,10 @@ bool UCPP_CombatStatics::ExecuteHealing(AActor* Instigator, AActor* Target, floa
     return AttrComp->ApplyHealthChange(Instigator, FinalHeal);
 }
 
-ACPP_Projectile* UCPP_CombatStatics::SpawnProjectile(AActor* Instigator, TSubclassOf<ACPP_Projectile> ProjectileClass, float Damage, float Speed, float Radius, float Scale, const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply)
+ACPP_Projectile* UCPP_CombatStatics::SpawnProjectile(AActor* Instigator, 
+    TSubclassOf<ACPP_Projectile> ProjectileClass, float Damage, float Speed, 
+    float Radius, float Scale, const TArray<TSubclassOf<UCPP_Action_Effect>>& EffectsToApply,
+    FRotator SpawnRotation)
 {
     if (!Instigator || !ProjectileClass) return nullptr;
 
@@ -262,8 +265,6 @@ ACPP_Projectile* UCPP_CombatStatics::SpawnProjectile(AActor* Instigator, TSubcla
     FVector SpawnLocation = Instigator->GetActorLocation();
     SpawnLocation.Y += FacingDir.Y * BaseOffset;
     SpawnLocation.Z += 20.0f;
-
-    FRotator SpawnRotation = FRotator(0, (FacingDir.Y > 0 ? 90.f : -90.f), 0);
 
     FActorSpawnParameters Params;
     Params.Instigator = Cast<APawn>(Instigator);

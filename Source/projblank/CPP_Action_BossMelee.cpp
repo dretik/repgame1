@@ -10,6 +10,7 @@
 #include "CPP_Action_Effect.h"
 #include "PaperFlipbookComponent.h"
 #include "CPP_CombatStatics.h"
+#include "CPP_TargetingInterface.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
 
@@ -62,6 +63,13 @@ void UCPP_Action_BossMelee::StartAction_Implementation(AActor* Instigator)
 		{
 			ActualDashDir.X *= -1.0f;
 			ActualDashDir.Y *= -1.0f;
+		}
+		if (Char->Implements<UCPP_TargetingInterface>())
+		{
+			FVector TargetLoc = ICPP_TargetingInterface::Execute_GetTargetLocation(Char);
+			ActualDashDir = (TargetLoc - Char->GetActorLocation());
+			ActualDashDir.Z = 0.0f;
+			ActualDashDir.Normalize();
 		}
 
 		ActualDashDir.Normalize();
