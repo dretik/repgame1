@@ -141,6 +141,7 @@ void ACPP_BaseCharacter::OnDeath_Implementation()
 {
     if (bIsDead) return;
     bIsDead = true;
+    OnCharacterDeath.Broadcast(this);
 
     GetCharacterMovement()->DisableMovement();
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -166,7 +167,6 @@ void ACPP_BaseCharacter::OnDeath_Implementation()
 
     FTimerHandle TimerHandle;
     GetWorldTimerManager().SetTimer(TimerHandle, this, &ACPP_BaseCharacter::SwitchToDeadStatic, DeathDuration, false);
-    OnCharacterDeath.Broadcast(this);
 }
 
 void ACPP_BaseCharacter::SwitchToDeadStatic()

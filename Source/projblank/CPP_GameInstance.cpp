@@ -263,6 +263,10 @@ void UCPP_GameInstance::AdvanceToNextLevel()
         UE_LOG(LogTemp, Warning, TEXT("Run Completed!"));
         // victoru screen could be called (RunCompleteScreen) 
         // and return to main menu or hub
+        ReturnToMenu();
+        //OR 
+        //OnRunCompleted.Broadcast();
+        //ui binding and victory screen call and then return to menu
     }
 }
 

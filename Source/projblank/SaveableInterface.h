@@ -6,7 +6,6 @@
 #include "UObject/Interface.h"
 #include "SaveableInterface.generated.h"
 
-// ќЅя«ј“≈Ћ№Ќќ: говорим компил€тору, что такой класс существует
 class UCPP_SaveGame;
 
 UINTERFACE(MinimalAPI)

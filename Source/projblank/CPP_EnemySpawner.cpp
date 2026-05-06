@@ -2,6 +2,7 @@
 
 
 #include "CPP_EnemySpawner.h"
+#include "Kismet/GameplayStatics.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
@@ -49,7 +50,7 @@ void ACPP_EnemySpawner::BeginPlay()
 //when approaching
 void ACPP_EnemySpawner::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (OtherActor && OtherActor->IsA(ACPP_BaseCharacter::StaticClass()))
+    if (OtherActor && OtherActor == UGameplayStatics::GetPlayerPawn(this, 0))
     {
         bPlayerInside = true;
 
@@ -57,8 +58,10 @@ void ACPP_EnemySpawner::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AAct
         PromptWidget->SetVisibility(true);
 
         //player enters
-        if (bAutoSpawn && !GetWorld()->GetTimerManager().IsTimerActive(TimerHandle_AutoSpawn))
+        if (bAutoSpawn)
         {
+            //ExecuteSpawn();
+
             GetWorld()->GetTimerManager().SetTimer(
                 TimerHandle_AutoSpawn,
                 this,
@@ -74,7 +77,7 @@ void ACPP_EnemySpawner::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AAct
 //when leaving
 void ACPP_EnemySpawner::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-    if (OtherActor && OtherActor->IsA(ACPP_BaseCharacter::StaticClass()))
+    if (OtherActor && OtherActor == UGameplayStatics::GetPlayerPawn(this, 0))
     {
         bPlayerInside = false;
         if (!bAutoSpawn)
@@ -98,7 +101,13 @@ void ACPP_EnemySpawner::Interact_Implementation(AActor* Interactor)
 
 void ACPP_EnemySpawner::ExecuteSpawn()
 {
-    AliveEnemies.RemoveAll([](AActor* A) { return A == nullptr || !IsValid(A); });
+    AliveEnemies.RemoveAll([](AActor* A) {
+        if (!A || !IsValid(A)) return true;
+        ACPP_BaseCharacter* Char = Cast<ACPP_BaseCharacter>(A);
+        return Char && Char->IsDead();
+        });
+
+    UE_LOG(LogTemp, Warning, TEXT("Spawner %s checks: Alive: %d / Max: %d TotalSpawned=%d/%d"), *GetName(), AliveEnemies.Num(), MaxActiveEnemiesFromThisSpawner, EnemiesSpawnedTotal, MaxTotalEnemies);
 
     if (AliveEnemies.Num() >= MaxActiveEnemiesFromThisSpawner)
     {
@@ -203,17 +212,6 @@ void ACPP_EnemySpawner::HandleEnemyDeath(AActor* DeadEnemy)
     if (DeadEnemy)
     {
         AliveEnemies.Remove(DeadEnemy);
-
-        if (bAutoSpawn && bPlayerInside)
-        {
-            GetWorld()->GetTimerManager().SetTimer(
-                TimerHandle_AutoSpawn,
-                this,
-                &ACPP_EnemySpawner::ExecuteSpawn,
-                SpawnInterval,
-                true,
-                SpawnInterval
-            );
-        }
+        UE_LOG(LogTemp, Warning, TEXT("Enemy Died. Remaining in list: %d"), AliveEnemies.Num());
     }
 }

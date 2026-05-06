@@ -8,6 +8,7 @@
 #include "CPP_GameInstance.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWorldLevelUp, int32, NewLevel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRunCompleted);
 
 class UCPP_Action;
 
@@ -92,6 +93,9 @@ public:
     //world level
     UPROPERTY(BlueprintAssignable, Category = "Progression")
         FOnWorldLevelUp OnWorldLevelUp;
+
+    UPROPERTY(BlueprintAssignable)
+        FOnRunCompleted OnRunCompleted;
 
     UFUNCTION(BlueprintCallable, Category = "Progression")
         void AddWorldExperience(float Amount);
